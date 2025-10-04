@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Asus%20TUF%20Gaming/Documents/KULIAH/Pengabdian%20Website%20Posyandu/bukadita_backoffice/src/app/not-found.tsx"],"sourcesContent":["export default function NotFound() {\r\n  return (\r\n    <div className=\"min-h-screen flex items-center justify-center p-6\">\r\n      <div className=\"text-center space-y-2\">\r\n        <h1 className=\"text-4xl font-bold\">404</h1>\r\n        <p className=\"text-slate-600\">Halaman tidak ditemukan.</p>\r\n      </div>\r\n    </div>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACtB,qBACE,6TAAC;QAAI,WAAU;kBACb,cAAA,6TAAC;YAAI,WAAU;;8BACb,6TAAC;oBAAG,WAAU;8BAAqB;;;;;;8BACnC,6TAAC;oBAAE,WAAU;8BAAiB;;;;;;;;;;;;;;;;;AAItC","debugId":null}}]
+}

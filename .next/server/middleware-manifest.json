@@ -1,0 +1,33 @@
+{
+  "version": 3,
+  "middleware": {
+    "/": {
+      "files": [
+        "server/edge/chunks/Documents_KULIAH_Pengabdian Website Posyandu_bukadita_backoffice_7f02cf30._.js",
+        "server/edge/chunks/[root-of-the-server]__b2148f41._.js",
+        "server/edge/chunks/358b3_KULIAH_Pengabdian Website Posyandu_bukadita_backoffice_edge-wrapper_b7cada84.js"
+      ],
+      "name": "middleware",
+      "page": "/",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next|static|favicon.ico|images|public).*))(\\\\.json)?[\\/#\\?]?$",
+          "originalSource": "/((?!_next|static|favicon.ico|images|public).*)"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "owFVxHpUUwOxuhjCTptqW0WYp0UwNmWDAlAfjNvkmhw=",
+        "__NEXT_PREVIEW_MODE_ID": "91d4a61c03356671d16433b86927ebf0",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "9feae93da9e0f193f62bb929d4b1653ca6a7d4e97b00502cb9df8d2fb087101b",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "19d84d82405008a60d23980167788378c06deba27952a738b7be7db93aaa5714"
+      }
+    }
+  },
+  "sortedMiddleware": [
+    "/"
+  ],
+  "functions": {}
+}

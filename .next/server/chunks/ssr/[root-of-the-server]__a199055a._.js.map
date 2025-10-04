@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 3, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
+    {"offset": {"line": 23, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Asus%20TUF%20Gaming/Documents/KULIAH/Pengabdian%20Website%20Posyandu/bukadita_backoffice/src/app/page.tsx"],"sourcesContent":["import { cookies } from \"next/headers\";\nimport { redirect } from \"next/navigation\";\n\nexport default async function Home() {\n  const cookieStore = await cookies();\n  const adminAuth = cookieStore.get(\"admin_auth\")?.value;\n  const adminRole = cookieStore.get(\"admin_role\")?.value;\n  const isAuthed = adminAuth === \"1\";\n  const isAdminLevel = adminRole === \"admin\" || adminRole === \"superadmin\";\n  if (isAuthed && isAdminLevel) {\n    redirect(\"/admin/dashboard\");\n  }\n  redirect(\"/login\");\n}"],"names":[],"mappings":";;;;AAAA;AACA;AAAA;;;AAEe,eAAe;IAC5B,MAAM,cAAc,MAAM,IAAA,yNAAO;IACjC,MAAM,YAAY,YAAY,GAAG,CAAC,eAAe;IACjD,MAAM,YAAY,YAAY,GAAG,CAAC,eAAe;IACjD,MAAM,WAAW,cAAc;IAC/B,MAAM,eAAe,cAAc,WAAW,cAAc;IAC5D,IAAI,YAAY,cAAc;QAC5B,IAAA,gRAAQ,EAAC;IACX;IACA,IAAA,gRAAQ,EAAC;AACX","debugId":null}}]
+}

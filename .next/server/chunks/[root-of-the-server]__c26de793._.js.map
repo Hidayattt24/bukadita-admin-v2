@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 3, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
+    {"offset": {"line": 55, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Asus%20TUF%20Gaming/Documents/KULIAH/Pengabdian%20Website%20Posyandu/bukadita_backoffice/src/app/api/auth/logout/route.ts"],"sourcesContent":["import { NextResponse } from \"next/server\";\r\n\r\nexport async function POST() {\r\n  const res = NextResponse.json({ ok: true });\r\n  const isProd = process.env.NODE_ENV === \"production\";\r\n  const cookieOpts = {\r\n    httpOnly: true as const,\r\n    path: \"/\",\r\n    sameSite: \"lax\" as const,\r\n    secure: isProd,\r\n    maxAge: 0,\r\n    expires: new Date(0),\r\n  };\r\n  res.cookies.set(\"admin_auth\", \"\", cookieOpts);\r\n  res.cookies.set(\"admin_role\", \"\", cookieOpts);\r\n  return res;\r\n}\r\n"],"names":[],"mappings":";;;;AAAA;;AAEO,eAAe;IACpB,MAAM,MAAM,+NAAY,CAAC,IAAI,CAAC;QAAE,IAAI;IAAK;IACzC,MAAM,SAAS,oDAAyB;IACxC,MAAM,aAAa;QACjB,UAAU;QACV,MAAM;QACN,UAAU;QACV,QAAQ;QACR,QAAQ;QACR,SAAS,IAAI,KAAK;IACpB;IACA,IAAI,OAAO,CAAC,GAAG,CAAC,cAAc,IAAI;IAClC,IAAI,OAAO,CAAC,GAAG,CAAC,cAAc,IAAI;IAClC,OAAO;AACT","debugId":null}}]
+}
