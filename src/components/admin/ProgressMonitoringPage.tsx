@@ -11,7 +11,8 @@ import {
   XCircle,
   Eye,
   Search,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
 } from "lucide-react";
 import { progressService, type QuizAttemptSummary, type UserProgress } from "@/lib/api/progress";
 import { adminModulesApi, type ModuleItem } from "@/lib/api/admin";
@@ -157,6 +158,7 @@ export default function ProgressMonitoringPage() {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
+        <TrendingUp className="w-5 h-5 opacity-90" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Monitoring Progress & Attempts</h1>
         <p className="text-gray-600">Pantau progress pengguna dan hasil kuis</p>
       </div>

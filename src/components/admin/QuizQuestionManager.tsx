@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { ArrowLeft, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye, Edit } from "lucide-react";
 import { quizService, type QuizRecord, type QuizQuestion } from "@/lib/api/quiz";
 
 interface QuizQuestionManagerProps {
-  quizId: string;
+  kuisId: string;
 }
 
-export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps) {
+export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps) {
   const router = useRouter();
   const [quiz, setQuiz] = useState<QuizRecord | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -29,7 +29,7 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
     const loadQuiz = async () => {
       setLoading(true);
       try {
-        const res = await quizService.get(quizId);
+        const res = await quizService.get(kuisId);
         if (res.ok) {
           setQuiz(res.data);
           setQuestions(res.data.questions || []);
@@ -45,7 +45,7 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
     };
 
     loadQuiz();
-  }, [quizId]);
+  }, [kuisId]);
 
   const resetForm = () => {
     setQuestionText("");
@@ -79,8 +79,24 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!kuisId) {
+      await Swal.fire({ icon: 'error', title: 'Error', text: 'ID kuis tidak valid' });
+      return;
+    }
+
     if (!questionText.trim()) {
       await Swal.fire({ icon: 'warning', title: 'Peringatan', text: 'Teks pertanyaan harus diisi' });
+      return;
+    }
+
+    if (questionText.trim().length < 10) {
+      await Swal.fire({ icon: 'warning', title: 'Peringatan', text: 'Pertanyaan harus minimal 10 karakter' });
+      return;
+    }
+
+    // Validate that the selected correct answer is not empty
+    if (!options[correctIndex] || !options[correctIndex].trim()) {
+      await Swal.fire({ icon: 'warning', title: 'Peringatan', text: 'Opsi jawaban yang dipilih sebagai benar tidak boleh kosong' });
       return;
     }
 
@@ -90,7 +106,22 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
       return;
     }
 
-    if (correctIndex >= validOptions.length) {
+    // Check if the correct_answer_index is valid for the filtered options
+    let adjustedCorrectIndex = correctIndex;
+
+    // Find the actual index in validOptions array
+    let validIndex = 0;
+    for (let i = 0; i <= correctIndex && i < options.length; i++) {
+      if (options[i].trim()) {
+        if (i === correctIndex) {
+          adjustedCorrectIndex = validIndex;
+          break;
+        }
+        validIndex++;
+      }
+    }
+
+    if (adjustedCorrectIndex >= validOptions.length) {
       await Swal.fire({ icon: 'warning', title: 'Peringatan', text: 'Jawaban benar tidak valid' });
       return;
     }
@@ -100,15 +131,20 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
       const payload = {
         question_text: questionText.trim(),
         options: validOptions,
-        correct_answer_index: correctIndex,
+        correct_answer_index: adjustedCorrectIndex,
         explanation: explanation.trim() || undefined,
         order_index: questions.length + 1,
       };
 
-      const res = await quizService.addQuestion(quizId, payload);
+      // Debug logging (can be removed in production)
+      console.log('Adding question payload:', payload);
+
+      const res = await quizService.addQuestion(kuisId, payload);
+      console.log('Add question response:', res);
+
       if (res.ok) {
         // Reload quiz to get updated questions
-        const quizRes = await quizService.get(quizId);
+        const quizRes = await quizService.get(kuisId);
         if (quizRes.ok) {
           setQuiz(quizRes.data);
           setQuestions(quizRes.data.questions || []);
@@ -117,7 +153,32 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
         setShowAddQuestion(false);
         await Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Pertanyaan berhasil ditambahkan', timer: 1500, showConfirmButton: false });
       } else {
-        await Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menambah pertanyaan' });
+        console.error('Failed to add question:', res);
+        console.error('Raw error response:', res.raw);
+
+        let errorMessage = 'Gagal menambah pertanyaan';
+        let errorDetails = '';
+
+        if (res.status === 422) {
+          errorMessage = 'Data pertanyaan tidak valid';
+          if (res.raw && typeof res.raw === 'object') {
+            const rawError = res.raw as Record<string, unknown>;
+            if (rawError.message) {
+              errorDetails = String(rawError.message);
+            } else if (rawError.errors) {
+              errorDetails = JSON.stringify(rawError.errors);
+            }
+          }
+        }
+
+        const finalMessage = errorDetails ? `${errorMessage}: ${errorDetails}` : (res.error || errorMessage);
+
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: finalMessage,
+          footer: `Status: ${res.status}`
+        });
       }
     } catch (error) {
       console.error('Error adding question:', error);
@@ -131,7 +192,7 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
     const { value: formValues, isConfirmed } = await Swal.fire({
       title: 'Edit Pertanyaan',
       html: `
-        <div class="text-left">
+        <div class="text-left text-black">
           <label class="block text-sm font-medium mb-1">Pertanyaan:</label>
           <textarea id="edit-question" class="swal2-textarea" placeholder="Masukkan pertanyaan...">${question.question_text}</textarea>
           
@@ -165,7 +226,7 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
         const res = await quizService.updateQuestion(question.id, formValues);
         if (res.ok) {
           // Reload quiz
-          const quizRes = await quizService.get(quizId);
+          const quizRes = await quizService.get(kuisId);
           if (quizRes.ok) {
             setQuiz(quizRes.data);
             setQuestions(quizRes.data.questions || []);
@@ -197,7 +258,7 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
         const res = await quizService.removeQuestion(question.id);
         if (res.ok) {
           // Reload quiz
-          const quizRes = await quizService.get(quizId);
+          const quizRes = await quizService.get(kuisId);
           if (quizRes.ok) {
             setQuiz(quizRes.data);
             setQuestions(quizRes.data.questions || []);
@@ -280,15 +341,15 @@ export default function QuizQuestionManager({ quizId }: QuizQuestionManagerProps
         <form onSubmit={handleAddQuestion} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Tambah Pertanyaan Baru</h2>
 
-          <div className="space-y-4">
+          <div className="space-y-4 text-black">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pertanyaan *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pertanyaan *<span className="text-xs"> (minimal 10 karakter)</span></label>
               <textarea
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows={3}
-                placeholder="Masukkan pertanyaan..."
+                placeholder="Masukkan pertanyaan (minimal 10 karakter)..."
                 required
               />
             </div>

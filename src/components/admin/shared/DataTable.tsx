@@ -18,6 +18,10 @@ interface DataTableProps<T> {
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   onView?: (item: T) => void;
+  onCustomAction?: (item: T) => void;
+  customActionIcon?: React.ReactNode;
+  customActionTitle?: string;
+  customActionColor?: string;
   searchPlaceholder?: string;
 }
 
@@ -30,6 +34,10 @@ export default function DataTable<T = any>({
   onEdit,
   onDelete,
   onView,
+  onCustomAction,
+  customActionIcon,
+  customActionTitle = "Custom Action",
+  // customActionColor = "purple-600",
   searchPlaceholder = "Cari data..."
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -100,7 +108,7 @@ export default function DataTable<T = any>({
                   {column.label}
                 </th>
               ))}
-              {(onEdit || onDelete || onView) && (
+              {(onEdit || onDelete || onView || onCustomAction) && (
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Aksi
                 </th>
@@ -111,7 +119,7 @@ export default function DataTable<T = any>({
             {paginatedData.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
+                  colSpan={columns.length + (onEdit || onDelete || onView || onCustomAction ? 1 : 0)}
                   className="px-6 py-8 text-center text-gray-500"
                 >
                   {searchTerm ? "Tidak ada data yang sesuai pencarian" : "Belum ada data"}
@@ -126,34 +134,47 @@ export default function DataTable<T = any>({
                       {column.render ? column.render((item as any)[column.key], item) : String((item as any)[column.key] || '')}
                     </td>
                   ))}
-                  {(onEdit || onDelete || onView) && (
+                  {(onEdit || onDelete || onView || onCustomAction) && (
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        {onCustomAction && (
+                          <button
+                            onClick={() => onCustomAction(item)}
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-purple-300 text-purple-600 hover:bg-purple-400/80 rounded transition-colors"
+                            title={customActionTitle}
+                          >
+                            {customActionIcon || <Plus className="w-4 h-4" />}
+                            <p className="text-sm">Poin</p>
+                          </button>
+                        )}
                         {onView && (
                           <button
                             onClick={() => onView(item)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-blue-300 text-blue-600 hover:bg-blue-400/80 rounded transition-colors"
                             title="Lihat"
                           >
                             <Eye className="w-4 h-4" />
+                            <p className="text-sm">Lihat</p>
                           </button>
                         )}
                         {onEdit && (
                           <button
                             onClick={() => onEdit(item)}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-green-300 text-green-600 hover:bg-green-400/80 rounded transition-colors"
                             title="Edit"
                           >
                             <Edit className="w-4 h-4" />
+                            <p className="text-sm">Edit</p>
                           </button>
                         )}
                         {onDelete && (
                           <button
                             onClick={() => onDelete(item)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-red-300 text-red-600 hover:bg-red-400/80 rounded transition-colors"
                             title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />
+                            <p className="text-sm">Hapus</p>
                           </button>
                         )}
                       </div>

@@ -26,8 +26,6 @@ module.exports = mod;
 "[project]/Documents/KULIAH/Pengabdian Website Posyandu/bukadita_backoffice/src/lib/api/client.ts [app-ssr] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
-// Centralized API client for calling the new Express backend
-// Ensures Authorization: Bearer <access_token> and JSON headers are set.
 __turbopack_context__.s([
     "apiFetch",
     ()=>apiFetch,
@@ -56,7 +54,14 @@ async function apiFetch(path, options = {}) {
     const url = path.startsWith("http") ? path : `${base}${path}`;
     const headers = {};
     const token = getStoredAccessToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    } else {
+        // Only warn for admin endpoints when no token is available
+        if (url.includes('/admin/') || url.includes('/materials/')) {
+            console.warn(`API Call to ${url} - No auth token available!`);
+        }
+    }
     const asJson = options.asJson !== false;
     if (asJson) headers["Content-Type"] = "application/json";
     const init = {
@@ -547,6 +552,8 @@ const adminMaterialsApi = {
         if (params.module_id) query.set("module_id", String(params.module_id));
         if (params.page) query.set("page", String(params.page));
         if (params.limit) query.set("limit", String(params.limit));
+        if (params.include_drafts) query.set("include_drafts", "true");
+        if (params.include_poins) query.set("include_poins", "true");
         // Use ADMIN endpoint as suggested by backend team
         // This endpoint returns ALL materials including unpublished (published=false)
         const endpoint = `/api/v1/admin/sub-materis?${query.toString()}`;

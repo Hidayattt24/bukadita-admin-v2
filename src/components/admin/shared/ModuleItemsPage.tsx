@@ -1,14 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type React from "react";
 import Swal from "sweetalert2";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Plus, Edit, X } from "lucide-react";
 import DataTable from "./DataTable";
-import { adminMaterialsApi, type MaterialRecord, type MaterialsListResponse } from "@/lib/api/admin";
+import { adminMaterialsApi, type MaterialRecord, type MaterialsListResponse, adminModulesApi } from "@/lib/api/admin";
 import { quizService, type QuizRecord } from "@/lib/api/quiz";
+import { enhancedMaterialService, type PoinDetailRecord } from "@/lib/api/poin-details";
+import MaterialPreview from "../MaterialPreview";
 
 type ResourceType = "materi" | "kuis";
+
+// Interface untuk soal sementara (sebelum disimpan ke server)
+interface TempQuestion {
+  id: string; // temporary ID
+  question_text: string;
+  options: string[];
+  correct_answer_index: number;
+  explanation?: string;
+}
 
 export interface ModuleItemRow {
   id: string;
@@ -16,9 +27,11 @@ export interface ModuleItemRow {
   description?: string;
   updated_at?: string;
   published?: boolean;
-  // Optional fields per resource type
   contentLength?: number; // materi
+  pointsCount?: number; // materi - jumlah poin
   questionCount?: number; // kuis
+  content?: string; // materi - untuk preview
+  poinDetails?: PoinDetailRecord[]; // materi - detail poin lengkap dengan media
 }
 
 interface ModuleItemsPageProps {
@@ -34,18 +47,125 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   const storageKey = `${STORAGE_PREFIX}${resource}_${moduleId}`;
 
   const [rows, setRows] = useState<ModuleItemRow[]>([]);
+  const [currentModuleName, setCurrentModuleName] = useState<string>("");
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingItem, setEditingItem] = useState<ModuleItemRow | null>(null);
+
+  // State untuk sub-materi options (khusus kuis)
+  const [subMateriOptions, setSubMateriOptions] = useState<import("@/lib/api/quiz").SubMateriOption[]>([]);
+
+  // State untuk quiz questions
+  const [questions, setQuestions] = useState<TempQuestion[]>([]);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  // Add form states
   const [aTitle, setATitle] = useState("");
   const [aPublished, setAPublished] = useState(false);
   const [aSlug, setASlug] = useState(""); // materi optional
   const [aContent, setAContent] = useState(""); // materi
   const [aDescription, setADescription] = useState(""); // kuis
-  const [aTimeLimit, setATimeLimit] = useState<string>(""); // kuis time limit in seconds
-  const [aPassingScore, setAPassingScore] = useState<string>(""); // kuis passing score
+  const [aSubMateriId, setASubMateriId] = useState(""); // kuis sub materi
+  const [aTimeLimit, setATimeLimit] = useState<string>("30"); // kuis time limit in minutes
+  const [aPassingScore, setAPassingScore] = useState<string>("70"); // kuis passing score
   const [aSubmitting, setASubmitting] = useState(false);
+
+  // Edit form states (separate from add form)
+  const [eTitle, setETitle] = useState("");
+  const [ePublished, setEPublished] = useState(false);
+  const [eSlug, setESlug] = useState(""); // materi optional
+  const [eContent, setEContent] = useState(""); // materi
+  const [eDescription, setEDescription] = useState(""); // kuis
+  const [eSubMateriId, setESubMateriId] = useState(""); // kuis sub materi
+  const [eTimeLimit, setETimeLimit] = useState<string>(""); // kuis time limit in seconds
+  const [ePassingScore, setEPassingScore] = useState<string>(""); // kuis passing score
+  const [eSubmitting, setESubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Helper to format server error from our apiFetch union result
+  // Preview modal states
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewItem, setPreviewItem] = useState<ModuleItemRow | null>(null);
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Load poin with complete media data (same as MaterialPoinManager)
+  const loadPoinWithMedia = async (poinId: string | number) => {
+    try {
+      const { apiFetch } = await import('@/lib/api/client');
+
+      const res = await apiFetch<PoinDetailRecord>(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}`, {
+        method: "GET"
+      });
+
+      if (res.ok) {
+        // Backend now includes media by default, but if not present, get from direct endpoint
+        if (!res.data.poin_media || res.data.poin_media.length === 0) {
+          try {
+            const { apiFetch: apiFetch2 } = await import('@/lib/api/client');
+            const mediaRes = await apiFetch2<import('@/lib/api/poin-details').MediaItem[]>(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}/media`, {
+              method: "GET"
+            });
+
+            if (mediaRes.ok && mediaRes.data) {
+              res.data.poin_media = mediaRes.data;
+            }
+          } catch (mediaError) {
+            console.warn('Error fetching media:', mediaError);
+          }
+        }
+
+        return res.data;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Error in loadPoinWithMedia:', error);
+      return null;
+    }
+  };
+
+  // Fetch module name if not provided
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchModuleName = async () => {
+      if (!moduleId) return;
+
+      try {
+        const res = await adminModulesApi.list();
+        if (res.ok && res.data && !isCancelled) {
+          // Handle multiple possible response structures
+          let modulesList: { id: string | number; title: string }[] = [];
+          if (Array.isArray(res.data)) {
+            modulesList = res.data;
+          } else if (res.data.items && Array.isArray(res.data.items)) {
+            modulesList = res.data.items;
+          } else if (res.data.data && Array.isArray(res.data.data)) {
+            modulesList = res.data.data;
+          }
+
+          // Find the module with matching ID
+          const foundModule = modulesList.find((m) => String(m.id) === String(moduleId));
+          if (foundModule && foundModule.title && !isCancelled) {
+            setCurrentModuleName(foundModule.title);
+          }
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Failed to fetch module name:', error);
+        }
+      }
+    };
+
+    fetchModuleName();
+
+    // Cleanup function to prevent setting state if component unmounts
+    return () => {
+      isCancelled = true;
+    };
+  }, [moduleId]);  // Helper to format server error from our apiFetch union result
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formatServerError = (res: { ok: false; status: number; error: string; raw?: any }) => {
     const j = res.raw && typeof res.raw === 'object' ? (res.raw as Record<string, unknown>) : undefined;
@@ -57,9 +177,11 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   };
 
   // Helper function to refetch materials list
-  const refetchMaterialsList = async (bypassCache = false) => {
+  const refetchMaterialsList = useCallback(async (bypassCache = false) => {
     const params = {
       module_id: moduleId,
+      include_drafts: true, // Admin can see draft materials
+      include_poins: true,  // Include poin details for count and preview
       ...(bypassCache && { _t: Date.now() })
     };
 
@@ -80,125 +202,296 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         arr = Array.from(data as ArrayLike<MaterialRecord>);
       }
 
-      const mapped: ModuleItemRow[] = arr.map((m) => ({
-        id: String(m.id),
-        title: m.title,
-        description: typeof m.content === 'string' ? m.content.slice(0, 140) : undefined,
-        updated_at: m.updated_at || m.created_at,
-        published: !!m.published,
-        contentLength: typeof m.content === 'string' ? m.content.length : 0,
-      }));
+      const mapped: ModuleItemRow[] = await Promise.all(
+        arr.map(async (m) => {
+          // Fetch poin details for count only (media will be loaded on demand for preview)
+          let poinDetails: PoinDetailRecord[] = [];
+          try {
+            const poinRes = await enhancedMaterialService.getWithPoins(m.id);
+            if (poinRes.ok && poinRes.data.poin_details) {
+              poinDetails = poinRes.data.poin_details;
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch poins for material ${m.id}:`, error);
+          }
 
-      setRows(mapped);
+          return {
+            id: String(m.id),
+            title: m.title,
+            description: undefined, // Remove content description from table
+            updated_at: m.updated_at || m.created_at,
+            published: !!m.published,
+            contentLength: typeof m.content === 'string' ? m.content.length : 0,
+            pointsCount: poinDetails.length,
+            content: typeof m.content === 'string' ? m.content : undefined,
+            poinDetails: poinDetails,
+          };
+        })
+      ); setRows(mapped);
       try { localStorage.setItem(storageKey, JSON.stringify(mapped)); } catch { }
       return true;
     } else {
       console.error('Failed to refetch materials:', res.error);
       return false;
     }
-  };
+  }, [moduleId, storageKey]);
 
   // Helper function to refetch quiz list
-  const refetchQuizList = async (bypassCache = false) => {
-    const params = {
-      module_id: moduleId,
-      ...(bypassCache && { _t: Date.now() })
-    };
+  const refetchQuizList = useCallback(async (bypassCache = false) => {
+    // Call quiz API directly according to backend API documentation
+    const quizRes = await quizService.list({
+      // Add cache busting if needed (API doesn't need this param but TypeScript requires valid params)
+      ...(bypassCache && { limit: 1000 })
+    });
 
-    const res = await quizService.list(params);
-
-    if (res.ok) {
-      const data = res.data;
-      const arr: QuizRecord[] = Array.isArray(data.items) ? data.items : [];
-      const mapped: ModuleItemRow[] = arr.map((q) => ({
-        id: String(q.id),
-        title: q.title,
-        description: q.description?.slice(0, 140),
-        updated_at: q.updated_at || q.created_at,
-        published: true,
-        questionCount: q.questions?.length || 0,
-      }));
-
-      setRows(mapped);
-      try { localStorage.setItem(storageKey, JSON.stringify(mapped)); } catch { }
-      return true;
-    } else {
-      console.error('Failed to refetch quizzes:', res.error);
+    if (!quizRes.ok) {
+      console.error('Failed to get quiz list:', quizRes.error);
+      setRows([]);
       return false;
     }
-  };
+
+    // Parse quiz response according to backend API documentation
+    const responseData = quizRes.data;
+    let allQuizzes: QuizRecord[] = [];
+
+    // According to API documentation, response should be:
+    // { "success": true, "data": { "quizzes": [...], "pagination": {...} } }
+    const dataWithQuizzes = responseData as unknown as { quizzes?: QuizRecord[]; items?: QuizRecord[];[key: string]: unknown };
+
+    if (dataWithQuizzes.quizzes && Array.isArray(dataWithQuizzes.quizzes)) {
+      // Backend API format: { data: { quizzes: [...] } }
+      allQuizzes = dataWithQuizzes.quizzes;
+    } else if (dataWithQuizzes.items && Array.isArray(dataWithQuizzes.items)) {
+      // Fallback format: { items: [...] }
+      allQuizzes = dataWithQuizzes.items;
+    } else if (Array.isArray(responseData)) {
+      // Direct array format
+      allQuizzes = responseData;
+    } else {
+      console.error('Unexpected API response structure:', Object.keys(dataWithQuizzes));
+      setRows([]);
+      return false;
+    }
+
+    // Filter quizzes by module - get materials in this module first
+    const materialsRes = await adminMaterialsApi.list({
+      module_id: moduleId,
+      include_drafts: true,
+      limit: 100,
+      ...(bypassCache && { _t: Date.now() })
+    });
+
+    let materialIds: Set<string | number> = new Set();
+
+    if (materialsRes.ok && materialsRes.data.items) {
+      const materials = materialsRes.data.items;
+      materialIds = new Set(materials.map(m => String(m.id)));
+    } else {
+      console.warn('Could not get materials for module filtering');
+      // If we can't get materials, include all quizzes (fallback)
+    }
+
+    // Filter quizzes that belong to materials in this module
+    const moduleQuizzes = allQuizzes.filter(quiz => {
+      return materialIds.size === 0 || materialIds.has(String(quiz.sub_materi_id));
+    });
+
+    // Map quiz data to UI rows - fetch question count for each quiz
+    const mapped: ModuleItemRow[] = await Promise.all(
+      moduleQuizzes.map(async (quiz) => {
+        let questionCount = 0;
+
+        // Get question count - check if already included in response
+        if (quiz.questions && Array.isArray(quiz.questions)) {
+          questionCount = quiz.questions.length;
+        } else {
+          // Fetch quiz details to get question count
+          try {
+            const detailRes = await quizService.get(quiz.id);
+            if (detailRes.ok && detailRes.data.questions) {
+              questionCount = detailRes.data.questions.length;
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch question count for quiz ${quiz.id}:`, error);
+          }
+        }
+
+        // Handle published field mapping - Backend uses 'is_active' instead of 'published'
+        let publishedStatus = false;
+
+        if (quiz.published !== undefined) {
+          // Preferred field name per API documentation
+          publishedStatus = quiz.published;
+        } else {
+          // Backend actually uses 'is_active' field - map it to published
+          const quizWithExtraFields = quiz as unknown as { is_active?: boolean };
+          if (quizWithExtraFields.is_active !== undefined) {
+            publishedStatus = quizWithExtraFields.is_active;
+          }
+        }
+
+        return {
+          id: String(quiz.id),
+          title: quiz.title,
+          description: quiz.description?.slice(0, 140),
+          updated_at: quiz.updated_at || quiz.created_at,
+          published: publishedStatus,
+          questionCount: questionCount,
+        };
+      })
+    );
+
+    setRows(mapped);
+
+    // Clear local storage cache if bypassCache is true
+    if (bypassCache) {
+      try { localStorage.removeItem(storageKey); } catch { }
+    }
+
+    try { localStorage.setItem(storageKey, JSON.stringify(mapped)); } catch { }
+    return true;
+  }, [moduleId, storageKey]);
+
+  // Load sub-materi options for quiz dropdown - get materials from current module
+  useEffect(() => {
+    if (resource === "kuis") {
+      const loadSubMateriOptions = async () => {
+        try {
+          // Get materials from the current module to use as sub-materi options
+          const res = await adminMaterialsApi.list({
+            module_id: moduleId,
+            include_drafts: true, // Get both published and unpublished
+            limit: 100 // Get all materials in module
+          });
+
+          if (res.ok && res.data.items) {
+            // Transform material data to match SubMateriOption interface
+            const options = res.data.items.map((material: MaterialRecord) => ({
+              id: material.id,
+              title: material.title,
+              module_title: currentModuleName || `Module ${moduleId}`,
+              display_title: `${currentModuleName || `Module ${moduleId}`} - ${material.title}`
+            }));
+            setSubMateriOptions(options);
+          } else {
+            console.warn('Failed to load materials for module:', res);
+            setSubMateriOptions([]);
+          }
+        } catch (error) {
+          console.error('Failed to load sub-materi options:', error);
+          setSubMateriOptions([]); // Set empty array on error
+        }
+      };
+      loadSubMateriOptions();
+    }
+  }, [resource, moduleId, currentModuleName]);
 
   // Load data from backend for both materi and kuis
   useEffect(() => {
     const load = async () => {
-      if (resource === "materi") {
-        const res = await adminMaterialsApi.list({
-          module_id: moduleId
-        });
-
-        if (res.ok) {
-          const data = res.data as MaterialsListResponse;
-
-          // Handle multiple possible response structures
-          let arr: MaterialRecord[] = [];
-          if (Array.isArray(data)) {
-            arr = data as MaterialRecord[];
-          } else if (Array.isArray(data.items)) {
-            arr = data.items;
-          } else if (Array.isArray(data.data)) {
-            arr = data.data;
-          } else if (data && typeof data === 'object' && 'length' in data) {
-            arr = Array.from(data as ArrayLike<MaterialRecord>);
-          }
-
-          const mapped: ModuleItemRow[] = arr.map((m) => ({
-            id: String(m.id),
-            title: m.title,
-            description: typeof m.content === 'string' ? m.content.slice(0, 140) : undefined,
-            updated_at: m.updated_at || m.created_at,
-            published: !!m.published,
-            contentLength: typeof m.content === 'string' ? m.content.length : 0,
-          }));
-
-          setRows(mapped);
-          try { localStorage.setItem(storageKey, JSON.stringify(mapped)); } catch { }
-          return;
-        } else {
-          console.error('Failed to load materials:', res.error);
-        }
-      } else if (resource === "kuis") {
-        const res = await quizService.list({ module_id: moduleId });
-        if (res.ok) {
-          const data = res.data;
-          const arr: QuizRecord[] = Array.isArray(data.items) ? data.items : [];
-          const mapped: ModuleItemRow[] = arr.map((q) => ({
-            id: String(q.id),
-            title: q.title,
-            description: q.description?.slice(0, 140),
-            updated_at: q.updated_at || q.created_at,
-            published: true, // Assume published if in API response
-            questionCount: q.questions?.length || 0,
-          }));
-          setRows(mapped);
-          try { localStorage.setItem(storageKey, JSON.stringify(mapped)); } catch { }
-          return;
-        }
-      }
-
-      // Fallback to local storage
       try {
-        const raw = localStorage.getItem(storageKey);
-        if (raw) {
-          setRows(JSON.parse(raw));
-          return;
-        }
-      } catch { }
+        if (resource === "materi") {
+          // Get materials list first (without poin details to avoid backend dependency)
+          const res = await adminMaterialsApi.list({
+            module_id: moduleId,
+            include_drafts: true // Admin can see draft materials
+          });
 
-      // If no data available, set empty
-      setRows([]);
+          if (res.ok) {
+            const data = res.data as MaterialsListResponse;
+
+            // Handle multiple possible response structures
+            let arr: MaterialRecord[] = [];
+            if (Array.isArray(data)) {
+              arr = data as MaterialRecord[];
+            } else if (Array.isArray(data.items)) {
+              arr = data.items;
+            } else if (Array.isArray(data.data)) {
+              arr = data.data;
+            } else if (data && typeof data === 'object' && 'length' in data) {
+              arr = Array.from(data as ArrayLike<MaterialRecord>);
+            }
+
+            // Fetch poin details for each material (without media for faster initial load)
+            const mapped: ModuleItemRow[] = await Promise.all(
+              arr.map(async (m) => {
+                // Only fetch poin details for count, don't load media yet for faster initial load
+                let poinDetails: PoinDetailRecord[] = [];
+                try {
+                  const poinRes = await enhancedMaterialService.getWithPoins(m.id);
+                  if (poinRes.ok && poinRes.data.poin_details) {
+                    poinDetails = poinRes.data.poin_details;
+                  }
+                } catch (error) {
+                  console.warn(`Failed to fetch poins for material ${m.id}:`, error);
+                }
+
+                return {
+                  id: String(m.id),
+                  title: m.title,
+                  description: undefined, // Remove content description from table
+                  updated_at: m.updated_at || m.created_at,
+                  published: !!m.published,
+                  contentLength: typeof m.content === 'string' ? m.content.length : 0,
+                  pointsCount: poinDetails.length,
+                  content: typeof m.content === 'string' ? m.content : undefined,
+                  poinDetails: poinDetails,
+                };
+              })
+            );
+
+            setRows(mapped);
+            try { localStorage.setItem(storageKey, JSON.stringify(mapped)); } catch { }
+            return;
+          } else {
+            console.error('Failed to load materials:', res.error);
+            // Show user-friendly error message
+            await Swal.fire({
+              icon: 'error',
+              title: 'Gagal Memuat Materi',
+              text: `Tidak dapat memuat materi: ${res.error || 'Terjadi kesalahan pada server'}`,
+              footer: 'Silakan coba refresh halaman atau hubungi administrator jika masalah berlanjut'
+            });
+          }
+        } else if (resource === "kuis") {
+          // Use the same logic as refetchQuizList to ensure consistency
+          const result = await refetchQuizList(false);
+          if (result) {
+            return; // Data already set by refetchQuizList
+          } else {
+            await Swal.fire({
+              icon: 'error',
+              title: 'Gagal Memuat Kuis',
+              text: 'Tidak dapat memuat kuis untuk modul ini',
+              footer: 'Silakan coba refresh halaman atau hubungi administrator jika masalah berlanjut'
+            });
+          }
+        }
+
+        // Fallback to local storage
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (raw) {
+            setRows(JSON.parse(raw));
+            return;
+          }
+        } catch { }
+
+        // If no data available, set empty
+        setRows([]);
+      } catch (error) {
+        console.error(`Error loading ${resource} data:`, error);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: `Terjadi kesalahan saat memuat ${resource}: ${error instanceof Error ? error.message : 'Kesalahan tidak diketahui'}`,
+          footer: 'Silakan refresh halaman atau hubungi administrator'
+        });
+        setRows([]); // Set empty array as fallback
+      }
     };
     load();
-  }, [moduleId, resource, storageKey]);
+  }, [moduleId, resource, storageKey, refetchQuizList]);
 
   // Persist to localStorage on change
   useEffect(() => {
@@ -208,6 +501,31 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       // ignore
     }
   }, [rows, storageKey]);
+
+  // Filter data based on status and search term
+  const filteredRows = useMemo(() => {
+    let filtered = rows;
+
+    // Apply status filter
+    if (statusFilter === 'published') {
+      filtered = filtered.filter(row => row.published === true);
+    } else if (statusFilter === 'draft') {
+      filtered = filtered.filter(row => row.published !== true);
+    }
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(row =>
+        row.title.toLowerCase().includes(term) ||
+        (row.description && row.description.toLowerCase().includes(term))
+      );
+    }
+
+    return filtered;
+  }, [rows, statusFilter, searchTerm]);
+
+
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type ColumnDef = { key: string; label: string; render?: (value: any, row: ModuleItemRow) => React.ReactNode };
@@ -219,21 +537,13 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         render: (_: unknown, row: ModuleItemRow) => (
           <div>
             {resource === "kuis" ? (
-              <a
-                href={`/admin/kuis/${row.id}/pertanyaan`}
-                className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                title="Kelola pertanyaan"
-              >
+              <p className="font-semibold text-xl">
                 {row.title}
-              </a>
+              </p>
             ) : (
-              <a
-                href={`/admin/materi/${row.id}/poin`}
-                className="font-medium text-green-600 hover:text-green-800 hover:underline"
-                title="Kelola poin materi"
-              >
+              <div className="font-medium text-gray-900">
                 {row.title}
-              </a>
+              </div>
             )}
             {row.description && (
               <div className="text-sm text-gray-500 truncate max-w-[360px]">{row.description}</div>
@@ -242,10 +552,10 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         )
       },
       {
-        key: resource === "materi" ? "contentLength" : "questionCount",
-        label: resource === "materi" ? "Panjang Konten" : "Jumlah Soal",
+        key: resource === "materi" ? "pointsCount" : "questionCount",
+        label: resource === "materi" ? "Jumlah Poin Materi" : "Jumlah Soal",
         render: (val: number | undefined) => (
-          <span className="text-sm text-gray-700">{val ?? 0} {resource === "materi" ? "kata" : "soal"}</span>
+          <span className="text-sm text-gray-700">{val ?? 0} {resource === "materi" ? "poin materi" : "soal"}</span>
         )
       },
       {
@@ -269,7 +579,147 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
 
   const onAdd = () => setShowAdd((v) => !v);
 
-  const onManualRefresh = async () => {
+  // Function to handle "Tambah Poin" action for materi and "Tambah Soal" for kuis
+  const onTambahPoin = (row: ModuleItemRow) => {
+    if (resource === "materi") {
+      if (!row.id) {
+        console.error('Row ID is missing:', row);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'ID materi tidak ditemukan. Silakan refresh halaman dan coba lagi.'
+        });
+        return;
+      }
+      // Use nested structure: /admin/modul/[id]/materi/[materialId]/poin
+      window.location.href = `/admin/modul/${moduleId}/materi/${row.id}/poin`;
+    } else if (resource === "kuis") {
+      if (!row.id) {
+        console.error('Row ID is missing:', row);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'ID kuis tidak ditemukan. Silakan refresh halaman dan coba lagi.'
+        });
+        return;
+      }
+      // Use nested structure: /admin/modul/[id]/kuis/[kuisId]/soal
+      window.location.href = `/admin/modul/${moduleId}/kuis/${row.id}/soal`;
+    }
+  };
+
+  // Function to handle "Preview" action for materi
+  const onPreview = async (row: ModuleItemRow) => {
+    if (resource === "materi") {
+      // Check if we already have poin details with media in the row
+      if (row.poinDetails && row.poinDetails.length > 0) {
+        // Check if any poin has media data already loaded
+        const hasMediaLoaded = row.poinDetails.some(poin => poin.poin_media && poin.poin_media.length > 0);
+
+        if (hasMediaLoaded) {
+          setPreviewItem(row);
+          setShowPreview(true);
+          return;
+        }
+      }
+
+      // Only fetch if we don't have complete data
+      try {
+        const poinRes = await enhancedMaterialService.getWithPoins(row.id);
+        if (poinRes.ok && poinRes.data.poin_details) {
+          // Only load media for poins that don't have it yet
+          const poinsWithMedia = await Promise.all(
+            poinRes.data.poin_details.map(async (poin) => {
+              // Check if this poin already has media
+              if (poin.poin_media && poin.poin_media.length > 0) {
+                return poin;
+              }
+
+              const poinWithMedia = await loadPoinWithMedia(poin.id);
+              if (poinWithMedia) {
+                return poinWithMedia;
+              }
+              return poin;
+            })
+          );
+
+          const updatedRow = {
+            ...row,
+            poinDetails: poinsWithMedia
+          };
+          setPreviewItem(updatedRow);
+          setShowPreview(true);
+        } else {
+          // Show preview even if no poin details
+          setPreviewItem(row);
+          setShowPreview(true);
+        }
+      } catch (error) {
+        console.error('Error loading preview data:', error);
+        // Fallback to current data
+        setPreviewItem(row);
+        setShowPreview(true);
+      }
+    }
+  };
+
+  // Helper functions untuk quiz questions
+  const resetQuizForm = () => {
+    setATitle("");
+    setADescription("");
+    setASubMateriId("");
+    setATimeLimit("30");
+    setAPassingScore("70");
+    setAPublished(false);
+    setQuestions([]);
+    setShowQuestionForm(false);
+    setEditingQuestionId(null);
+  };
+
+  const addNewQuestion = () => {
+    const newQuestion: TempQuestion = {
+      id: `temp_${Date.now()}`,
+      question_text: "",
+      options: ["", "", "", ""],
+      correct_answer_index: 0,
+      explanation: ""
+    };
+    setQuestions([...questions, newQuestion]);
+    setShowQuestionForm(true);
+    setEditingQuestionId(newQuestion.id);
+  };
+
+  const updateQuestion = (questionId: string, updates: Partial<TempQuestion>) => {
+    setQuestions(questions.map(q =>
+      q.id === questionId ? { ...q, ...updates } : q
+    ));
+  };
+
+  const deleteQuestion = async (questionId: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Soal?',
+      text: 'Soal ini akan dihapus dari daftar.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      setQuestions(questions.filter(q => q.id !== questionId));
+      if (editingQuestionId === questionId) {
+        setEditingQuestionId(null);
+        setShowQuestionForm(false);
+      }
+    }
+  };
+
+  const editQuestion = (questionId: string) => {
+    setEditingQuestionId(questionId);
+    setShowQuestionForm(true);
+  };
+
+  const onManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       if (resource === 'materi') {
@@ -293,7 +743,9 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [resource, refetchMaterialsList, refetchQuizList]);
+
+
 
   const submitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -336,119 +788,254 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
 
     // Kuis: create via backend API
     if (resource === 'kuis') {
-      setASubmitting(true);
-      const payload = {
-        module_id: moduleId,
-        title: titleVal,
-        description: aDescription || undefined,
-        time_limit_seconds: aTimeLimit ? Number(aTimeLimit) : undefined,
-        passing_score: aPassingScore ? Number(aPassingScore) : undefined,
-      };
-
-      const res = await quizService.create(payload);
-      setASubmitting(false);
-
-      if (!res.ok) {
+      if (!aSubMateriId) {
         await Swal.fire({
-          icon: 'error',
-          title: 'Gagal',
-          text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal membuat kuis'
+          icon: 'warning',
+          title: 'Peringatan',
+          text: 'Sub materi harus dipilih'
         });
         return;
       }
 
-      // Force refetch all quizzes to ensure UI shows complete list
-      await refetchQuizList();
+      // Validasi soal jika ada
+      if (questions.length > 0) {
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          if (!q.question_text.trim()) {
+            await Swal.fire({
+              icon: 'warning',
+              title: 'Peringatan',
+              text: `Soal ${i + 1}: Pertanyaan harus diisi`
+            });
+            return;
+          }
+          const validOptions = q.options.filter(opt => opt.trim());
+          if (validOptions.length < 2) {
+            await Swal.fire({
+              icon: 'warning',
+              title: 'Peringatan',
+              text: `Soal ${i + 1}: Minimal harus ada 2 opsi jawaban`
+            });
+            return;
+          }
+        }
+      }
 
-      await Swal.fire({ icon: 'success', title: 'Berhasil', timer: 900, showConfirmButton: false });
-      // Reset form
-      setATitle(""); setADescription(""); setAPublished(false);
-      setATimeLimit(""); setAPassingScore(""); setShowAdd(false);
+      const timeLimitSeconds = parseInt(aTimeLimit) * 60; // convert minutes to seconds
+      const passingScoreNum = parseInt(aPassingScore);
+
+      if (passingScoreNum < 0 || passingScoreNum > 100) {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Peringatan',
+          text: 'Nilai kelulusan harus antara 0-100'
+        });
+        return;
+      }
+
+      setASubmitting(true);
+      try {
+        // 1. Buat kuis terlebih dahulu
+        const payload = {
+          sub_materi_id: aSubMateriId,
+          title: titleVal,
+          description: aDescription || undefined,
+          time_limit_seconds: timeLimitSeconds,
+          passing_score: passingScoreNum,
+          published: aPublished
+        };
+
+        const res = await quizService.create(payload);
+
+        if (!res.ok) {
+          await Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal membuat kuis'
+          });
+          return;
+        }
+
+        // 2. Tambahkan soal-soal jika ada
+        if (questions.length > 0) {
+          for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
+            const validOptions = q.options.filter(opt => opt.trim());
+
+            await quizService.addQuestion(res.data.id, {
+              question_text: q.question_text.trim(),
+              options: validOptions,
+              correct_answer_index: Math.min(q.correct_answer_index, validOptions.length - 1),
+              explanation: q.explanation?.trim() || undefined,
+              order_index: i + 1
+            });
+          }
+        }
+
+        // 3. Reset form dan refresh data
+        resetQuizForm();
+        setShowAdd(false);
+        await refetchQuizList();
+
+        const message = questions.length > 0
+          ? `Kuis berhasil dibuat dengan ${questions.length} soal`
+          : 'Kuis berhasil dibuat';
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'Berhasil',
+          text: message,
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+      } catch (error) {
+        console.error('Error creating quiz:', error);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Terjadi kesalahan saat membuat kuis'
+        });
+      } finally {
+        setASubmitting(false);
+      }
       return;
     }
   };
 
   const onEdit = async (row: ModuleItemRow) => {
+    setEditingItem(row);
+    // Populate edit form dengan data existing (menggunakan state edit terpisah)
+    setETitle(row.title);
+    setEPublished(row.published || false);
     if (resource === 'materi') {
-      const { value: formValues, isConfirmed } = await Swal.fire<
-        { title?: string; content?: string; published?: boolean } | undefined
-      >({
-        title: `Edit ${title}`,
-        html:
-          `<input id="f-title" class="swal2-input" placeholder="Judul (min 3)" value="${row.title.replace(/"/g, '&quot;')}"/>` +
-          `<textarea id="f-content" class="swal2-textarea" placeholder="Konten (min 10 karakter)"></textarea>` +
-          `<label style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:6px"><input type="checkbox" id="f-pub" ${row.published ? 'checked' : ''}/> Terbitkan</label>`,
-        focusConfirm: false,
-        preConfirm: () => {
-          const t = (document.getElementById('f-title') as HTMLInputElement)?.value?.trim();
-          const c = (document.getElementById('f-content') as HTMLTextAreaElement)?.value?.trim();
-          const p = (document.getElementById('f-pub') as HTMLInputElement)?.checked;
-          const payload: { title?: string; content?: string; published?: boolean } = {};
-          if (t && t.length >= 3) payload.title = t;
-          if (c && c.length >= 10) payload.content = c;
-          payload.published = !!p;
-          if (!payload.title && !payload.content && typeof payload.published === 'undefined') {
-            Swal.showValidationMessage('Tidak ada perubahan yang valid.');
-            return undefined;
-          }
-          return payload;
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Simpan',
-        cancelButtonText: 'Batal'
-      });
-      if (!isConfirmed || !formValues) return;
-      const res = await adminMaterialsApi.update(row.id, formValues);
+      setEContent(row.content || '');
+      setESlug(''); // slug tidak disimpan di row, biarkan kosong
+    } else {
+      setEDescription(row.description || '');
+      setETimeLimit('');
+      setEPassingScore('');
+      setESubMateriId('');
+
+      // Fetch quiz details to get current sub_materi_id, time_limit, and passing_score
+      try {
+        const quizDetailsRes = await quizService.get(row.id);
+        if (quizDetailsRes.ok) {
+          const quiz = quizDetailsRes.data;
+          setESubMateriId(String(quiz.sub_materi_id || ''));
+          setETimeLimit(String(quiz.time_limit_seconds ? Math.floor(quiz.time_limit_seconds / 60) : '')); // convert seconds to minutes
+          setEPassingScore(String(quiz.passing_score || ''));
+        }
+      } catch (error) {
+        console.warn('Failed to fetch quiz details for editing:', error);
+      }
+    }
+    setShowEdit(true);
+  };
+
+  const submitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    const titleVal = eTitle.trim();
+    if (!titleVal || titleVal.length < 3) {
+      await Swal.fire({ icon: 'warning', title: 'Judul minimal 3 karakter' });
+      return;
+    }
+
+    if (resource === 'materi') {
+      const contentVal = eContent.trim();
+      if (!contentVal || contentVal.length < 10) {
+        await Swal.fire({ icon: 'warning', title: 'Konten minimal 10 karakter' });
+        return;
+      }
+
+      setESubmitting(true);
+      const payload = {
+        title: titleVal,
+        content: contentVal,
+        published: ePublished,
+        slug: eSlug ? eSlug.trim() : undefined,
+      };
+
+      const res = await adminMaterialsApi.update(editingItem.id, payload);
+      setESubmitting(false);
+
       if (!res.ok) {
         await Swal.fire({ icon: 'error', title: 'Gagal', text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal memperbarui materi' });
         return;
       }
+
       // Force refetch to ensure UI is up to date
       await refetchMaterialsList();
       await Swal.fire({ icon: 'success', title: 'Tersimpan', timer: 900, showConfirmButton: false });
+
+      // Reset edit form and close
+      setETitle(''); setEContent(''); setESlug(''); setEPublished(false);
+      setShowEdit(false); setEditingItem(null);
       return;
     }
-    // kuis: update via backend API
-    const { value: formValues, isConfirmed } = await Swal.fire<{ title: string; description?: string; time_limit_seconds?: number; passing_score?: number } | undefined>({
-      title: `Edit ${title}`,
-      html:
-        `<input id="f-title" class="swal2-input" placeholder="Judul" value="${row.title.replace(/"/g, '&quot;')}"/>` +
-        `<input id="f-desc" class="swal2-input" placeholder="Deskripsi (opsional)" value="${(row.description || '').replace(/"/g, '&quot;')}"/>` +
-        `<input id="f-time" class="swal2-input" type="number" placeholder="Batas waktu (detik)" value=""/>` +
-        `<input id="f-score" class="swal2-input" type="number" placeholder="Nilai lulus (%)" value=""/>`,
-      focusConfirm: false,
-      preConfirm: () => {
-        const t = (document.getElementById('f-title') as HTMLInputElement)?.value?.trim();
-        const d = (document.getElementById('f-desc') as HTMLInputElement)?.value?.trim();
-        const time = (document.getElementById('f-time') as HTMLInputElement)?.value;
-        const score = (document.getElementById('f-score') as HTMLInputElement)?.value;
-        if (!t || t.length < 3) {
-          Swal.showValidationMessage('Judul minimal 3 karakter');
-          return undefined;
-        }
-        const payload: { title: string; description?: string; time_limit_seconds?: number; passing_score?: number } = { title: t };
-        if (d) payload.description = d;
-        if (time && Number(time) > 0) payload.time_limit_seconds = Number(time);
-        if (score && Number(score) > 0) payload.passing_score = Number(score);
-        return payload;
-      },
-      showCancelButton: true,
-      confirmButtonText: 'Simpan',
-      cancelButtonText: 'Batal'
-    });
 
-    if (!isConfirmed || !formValues) return;
+    // Kuis: validate required fields
+    if (!eSubMateriId) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Peringatan',
+        text: 'Sub materi harus dipilih'
+      });
+      return;
+    }
 
-    const res = await quizService.update(row.id, formValues);
+    const timeLimitMinutes = parseInt(eTimeLimit);
+    const passingScoreNum = parseInt(ePassingScore);
+
+    if (eTimeLimit && (isNaN(timeLimitMinutes) || timeLimitMinutes < 1)) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Peringatan',
+        text: 'Batas waktu harus berupa angka positif (dalam menit)'
+      });
+      return;
+    }
+
+    if (ePassingScore && (isNaN(passingScoreNum) || passingScoreNum < 0 || passingScoreNum > 100)) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Peringatan',
+        text: 'Nilai kelulusan harus antara 0-100'
+      });
+      return;
+    }
+
+    // Kuis: update via backend API
+    setESubmitting(true);
+    const payload = {
+      sub_materi_id: eSubMateriId,
+      title: titleVal,
+      description: eDescription || undefined,
+      time_limit_seconds: eTimeLimit ? timeLimitMinutes * 60 : undefined, // convert minutes to seconds
+      passing_score: ePassingScore ? passingScoreNum : undefined,
+      published: ePublished,
+    };
+
+    const res = await quizService.update(editingItem.id, payload);
+    setESubmitting(false);
+
     if (!res.ok) {
       await Swal.fire({ icon: 'error', title: 'Gagal', text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal memperbarui kuis' });
       return;
     }
 
-    // Force refetch to ensure UI is up to date
-    await refetchQuizList();
+    // Small delay to ensure database commit is complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
+    // Force refetch to ensure UI is up to date with fresh data
+    await refetchQuizList(true); // bypassCache=true untuk memastikan data terbaru
     await Swal.fire({ icon: 'success', title: 'Tersimpan', timer: 900, showConfirmButton: false });
+
+    // Reset edit form and close
+    setETitle(''); setEDescription(''); setESubMateriId(''); setETimeLimit(''); setEPassingScore(''); setEPublished(false);
+    setShowEdit(false); setEditingItem(null);
   };
 
   const onDelete = async (row: ModuleItemRow) => {
@@ -462,6 +1049,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       reverseButtons: true
     });
     if (!result.isConfirmed) return;
+
     if (resource === 'materi') {
       const res = await adminMaterialsApi.remove(row.id);
       if (!res.ok) {
@@ -470,6 +1058,14 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       }
       // Force refetch to ensure UI is accurate
       await refetchMaterialsList();
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Dihapus',
+        text: `Materi "${row.title}" berhasil dihapus.`,
+        timer: 2000,
+        showConfirmButton: false
+      });
     } else if (resource === 'kuis') {
       const res = await quizService.remove(row.id);
       if (!res.ok) {
@@ -478,6 +1074,14 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       }
       // Force refetch to ensure UI is accurate
       await refetchQuizList();
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Berhasil Dihapus',
+        text: `Kuis "${row.title}" berhasil dihapus.`,
+        timer: 2000,
+        showConfirmButton: false
+      });
     }
   };
 
@@ -501,17 +1105,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
                 <input id="a-published" type="checkbox" checked={aPublished} onChange={(e) => setAPublished(e.target.checked)} className="w-4 h-4" />
                 <label htmlFor="a-published" className="text-sm text-gray-700">
                   Terbitkan
-                  <span className="text-xs text-gray-500 ml-1">
-                    (Draft juga akan tampil di admin, tapi tidak di user)
-                  </span>
                 </label>
               </div>
-              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-gray-600">Slug (opsional)</label>
-                  <input value={aSlug} onChange={(e) => setASlug(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="biarkan kosong untuk auto" />
-                </div>
-              </div> */}
               <div>
                 <button type="submit" disabled={aSubmitting} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow disabled:opacity-60">
                   {aSubmitting ? 'Menyimpan...' : 'Simpan'}
@@ -522,34 +1117,271 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Judul *</label>
-                <input value={aTitle} onChange={(e) => setATitle(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Judul minimal 3 karakter" required minLength={3} />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Deskripsi</label>
-                <input value={aDescription} onChange={(e) => setADescription(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Opsional" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* Basic Quiz Info */}
+              <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="text-sm text-gray-600">Batas Waktu (detik)</label>
-                  <input type="number" min={0} value={aTimeLimit} onChange={(e) => setATimeLimit(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="mis. 1800 (30 menit)" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Judul Kuis *</label>
+                  <input
+                    value={aTitle}
+                    onChange={(e) => setATitle(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Masukkan judul kuis"
+                    required
+                    minLength={3}
+                  />
                 </div>
+
                 <div>
-                  <label className="text-sm text-gray-600">Nilai Lulus (%)</label>
-                  <input type="number" min={0} max={100} value={aPassingScore} onChange={(e) => setAPassingScore(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="mis. 70" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi</label>
+                  <textarea
+                    value={aDescription}
+                    onChange={(e) => setADescription(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Deskripsi singkat kuis (opsional)"
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sub Materi *</label>
+                  <select
+                    value={aSubMateriId}
+                    onChange={(e) => setASubMateriId(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Pilih Sub Materi</option>
+                    {(Array.isArray(subMateriOptions) ? subMateriOptions : []).map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.title}
+                      </option>
+                    ))}
+                    {subMateriOptions.length === 0 && (
+                      <option value="" disabled>
+                        Tidak ada materi tersedia
+                      </option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Batas Waktu (menit)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={aTimeLimit}
+                      onChange={(e) => setATimeLimit(e.target.value)}
+                      className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="30"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nilai Kelulusan (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={aPassingScore}
+                      onChange={(e) => setAPassingScore(e.target.value)}
+                      className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="70"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={aPublished}
+                      onChange={(e) => setAPublished(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Publikasikan kuis</span>
+                  </label>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input id="q-published" type="checkbox" checked={aPublished} onChange={(e) => setAPublished(e.target.checked)} className="w-4 h-4" />
-                <label htmlFor="q-published" className="text-sm text-gray-700">Terbitkan</label>
+
+              {/* Questions Section */}
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-md font-semibold text-gray-900">Soal Kuis ({questions.length})</h3>
+                  <button
+                    type="button"
+                    onClick={addNewQuestion}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tambah Soal
+                  </button>
+                </div>
+
+                {/* Questions List */}
+                {questions.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {questions.map((question, index) => (
+                      <div key={question.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Soal {index + 1}: {question.question_text || 'Belum diisi'}
+                            </h4>
+                            <div className="text-sm text-gray-600">
+                              {question.options.filter(opt => opt.trim()).length} opsi jawaban
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <button
+                              type="button"
+                              onClick={() => editQuestion(question.id)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit soal"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteQuestion(question.id)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus soal"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Question Form */}
+                {showQuestionForm && editingQuestionId && (() => {
+                  const currentEditingQuestion = questions.find(q => q.id === editingQuestionId);
+                  if (!currentEditingQuestion) return null;
+
+                  return (
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+                      <h4 className="font-medium text-gray-900 mb-3">
+                        Edit Soal {questions.findIndex(q => q.id === editingQuestionId) + 1}
+                      </h4>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Pertanyaan *</label>
+                          <textarea
+                            value={currentEditingQuestion.question_text}
+                            onChange={(e) => updateQuestion(editingQuestionId!, { question_text: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows={3}
+                            placeholder="Masukkan pertanyaan..."
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Opsi Jawaban *</label>
+                          {currentEditingQuestion.options.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center gap-2 mb-2">
+                              <input
+                                type="radio"
+                                name={`correct_${editingQuestionId}`}
+                                checked={currentEditingQuestion.correct_answer_index === optionIndex}
+                                onChange={() => updateQuestion(editingQuestionId!, { correct_answer_index: optionIndex })}
+                                className="w-4 h-4 text-blue-600"
+                              />
+                              <input
+                                type="text"
+                                value={option}
+                                onChange={(e) => {
+                                  const newOptions = [...currentEditingQuestion.options];
+                                  newOptions[optionIndex] = e.target.value;
+                                  updateQuestion(editingQuestionId!, { options: newOptions });
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={`Opsi ${optionIndex + 1}...`}
+                              />
+                              {currentEditingQuestion.options.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newOptions = currentEditingQuestion.options.filter((_, i) => i !== optionIndex);
+                                    const newCorrectIndex = currentEditingQuestion.correct_answer_index >= newOptions.length
+                                      ? newOptions.length - 1
+                                      : currentEditingQuestion.correct_answer_index;
+                                    updateQuestion(editingQuestionId!, {
+                                      options: newOptions,
+                                      correct_answer_index: newCorrectIndex
+                                    });
+                                  }}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {currentEditingQuestion.options.length < 6 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOptions = [...currentEditingQuestion.options, ""];
+                                updateQuestion(editingQuestionId!, { options: newOptions });
+                              }}
+                              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            >
+                              + Tambah Opsi
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Penjelasan (opsional)</label>
+                          <textarea
+                            value={currentEditingQuestion.explanation || ""}
+                            onChange={(e) => updateQuestion(editingQuestionId!, { explanation: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows={2}
+                            placeholder="Penjelasan jawaban yang benar..."
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowQuestionForm(false);
+                              setEditingQuestionId(null);
+                            }}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors"
+                          >
+                            Selesai
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-              <div>
-                <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow">
-                  Simpan
+
+              {/* Form Actions */}
+              <div className="flex items-center gap-3 pt-6 border-t border-gray-200">
+                <button
+                  type="submit"
+                  disabled={aSubmitting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition-colors disabled:opacity-60"
+                >
+                  {aSubmitting ? 'Menyimpan...' : 'Simpan Kuis'}
                 </button>
-                <button type="button" onClick={() => setShowAdd(false)} className="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 shadow">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetQuizForm();
+                    setShowAdd(false);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow transition-colors"
+                >
                   Batal
                 </button>
               </div>
@@ -558,13 +1390,190 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         </form>
       )}
 
+      {/* Edit form section */}
+      {showEdit && (
+        <form onSubmit={submitEdit} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit {title}</h2>
+          {resource === 'materi' ? (
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-sm text-gray-600">Judul *</label>
+                <input value={eTitle} onChange={(e) => setETitle(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Judul minimal 3 karakter" required minLength={3} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Konten *</label>
+                <textarea value={eContent} onChange={(e) => setEContent(e.target.value)} className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-32" placeholder="Konten minimal 10 karakter" required />
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="e-published" type="checkbox" checked={ePublished} onChange={(e) => setEPublished(e.target.checked)} className="w-4 h-4" />
+                <label htmlFor="e-published" className="text-sm text-gray-700">
+                  Terbitkan
+                </label>
+              </div>
+              <div>
+                <button type="submit" disabled={eSubmitting} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow disabled:opacity-60">
+                  {eSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+                <button type="button" onClick={() => { setShowEdit(false); setEditingItem(null); }} className="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 shadow">
+                  Batal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Judul Kuis *</label>
+                <input
+                  value={eTitle}
+                  onChange={(e) => setETitle(e.target.value)}
+                  className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Judul minimal 3 karakter"
+                  required
+                  minLength={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi</label>
+                <textarea
+                  value={eDescription}
+                  onChange={(e) => setEDescription(e.target.value)}
+                  className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Deskripsi singkat kuis (opsional)"
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Sub Materi *</label>
+                <select
+                  value={eSubMateriId}
+                  onChange={(e) => setESubMateriId(e.target.value)}
+                  className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Pilih Sub Materi</option>
+                  {(Array.isArray(subMateriOptions) ? subMateriOptions : []).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.title}
+                    </option>
+                  ))}
+                  {subMateriOptions.length === 0 && (
+                    <option value="" disabled>
+                      Tidak ada materi tersedia
+                    </option>
+                  )}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Batas Waktu (menit)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={eTimeLimit}
+                    onChange={(e) => setETimeLimit(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nilai Kelulusan (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={ePassingScore}
+                    onChange={(e) => setEPassingScore(e.target.value)}
+                    className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="70"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    id="eq-published"
+                    type="checkbox"
+                    checked={ePublished}
+                    onChange={(e) => setEPublished(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Publikasikan kuis</span>
+                </label>
+              </div>
+
+              <div>
+                <button type="submit" disabled={eSubmitting} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow disabled:opacity-60">
+                  {eSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+                <button type="button" onClick={() => { setShowEdit(false); setEditingItem(null); }} className="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 shadow">
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
+        </form>
+      )}
+
+      {/* Preview Modal */}
+      {showPreview && previewItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Preview: {previewItem.title}
+              </h3>
+              <button
+                onClick={() => { setShowPreview(false); setPreviewItem(null); }}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto flex-1">
+              {previewItem.poinDetails && previewItem.poinDetails.length > 0 ? (
+                <MaterialPreview
+                  poins={previewItem.poinDetails}
+                  materialTitle={previewItem.title}
+                />
+              ) : (
+                <div className="px-6 py-8 text-center">
+                  <p className="text-gray-500 italic text-lg">Belum ada poin yang dibuat</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Tambahkan poin pembelajaran untuk melihat preview lengkap
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => { setShowPreview(false); setPreviewItem(null); }}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         {/* Header with refresh button */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">{title} Modul</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{title} Modul {currentModuleName || `#${moduleId}`}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Mode Admin: Menampilkan semua {title.toLowerCase()} termasuk draft
+              Menampilkan semua {title.toLowerCase()}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -580,15 +1589,77 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
           </div>
         </div>
 
+        {/* Status Filter & Search */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Filter Status:</span>
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors ${statusFilter === 'all'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  Semua ({rows.length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('published')}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors ${statusFilter === 'published'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  Published ({rows.filter(r => r.published).length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('draft')}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors ${statusFilter === 'draft'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  Draft ({rows.filter(r => !r.published).length})
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder={`Cari ${title.toLowerCase()}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* DataTable content */}
         <div className="p-4">
           <DataTable<ModuleItemRow>
             title=""
-            data={rows}
+            data={filteredRows}
             columns={columns}
             onAdd={onAdd}
             onEdit={onEdit}
             onDelete={onDelete}
+            onView={resource === "materi" ? onPreview : undefined}
+            onCustomAction={onTambahPoin}
+            customActionIcon={<Plus className="w-4 h-4" />}
+            customActionTitle={resource === "materi" ? "Tambah Poin" : "Tambah Soal"}
+            customActionColor="purple-600"
             searchPlaceholder={searchPlaceholder}
           />
         </div>

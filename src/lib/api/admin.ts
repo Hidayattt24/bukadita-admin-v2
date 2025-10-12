@@ -12,6 +12,9 @@ export interface AdminUser {
   created_at: string;
   email_confirmed_at?: string | null;
   last_sign_in_at?: string | null;
+  address?: string;
+  date_of_birth?: string;
+  profil_url?: string;
 }
 
 export interface PaginationMeta {
@@ -66,6 +69,9 @@ export const adminUsersApi = {
     full_name: string;
     phone?: string;
     role: "pengguna" | "admin";
+    address?: string;
+    date_of_birth?: string;
+    profil_url?: string;
   }) => {
     return apiFetch<AdminUser>(`/api/v1/admin/users`, {
       method: "POST",
@@ -79,7 +85,17 @@ export const adminUsersApi = {
 
   update: async (
     id: string,
-    payload: Partial<Pick<AdminUser, "full_name" | "phone" | "email">>
+    payload: Partial<
+      Pick<
+        AdminUser,
+        | "full_name"
+        | "phone"
+        | "email"
+        | "address"
+        | "date_of_birth"
+        | "profil_url"
+      >
+    >
   ) => {
     return apiFetch<AdminUser>(`/api/v1/admin/users/${id}`, {
       method: "PUT",
@@ -169,11 +185,14 @@ export const adminMaterialsApi = {
     page?: number;
     limit?: number;
     include_drafts?: boolean; // Admin-specific parameter (kept for compatibility)
+    include_poins?: boolean; // Include poin details in response
   }) => {
     const query = new URLSearchParams();
     if (params.module_id) query.set("module_id", String(params.module_id));
     if (params.page) query.set("page", String(params.page));
     if (params.limit) query.set("limit", String(params.limit));
+    if (params.include_drafts) query.set("include_drafts", "true");
+    if (params.include_poins) query.set("include_poins", "true");
 
     // Use ADMIN endpoint as suggested by backend team
     // This endpoint returns ALL materials including unpublished (published=false)

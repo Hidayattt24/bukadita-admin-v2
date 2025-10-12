@@ -1,6 +1,3 @@
-// Centralized API client for calling the new Express backend
-// Ensures Authorization: Bearer <access_token> and JSON headers are set.
-
 const RAW_DEFAULT_BASE =
   (typeof process !== "undefined" &&
     (process.env.NEXT_PUBLIC_API_URL || process.env.API_BASE_URL)) ||
@@ -51,7 +48,14 @@ export async function apiFetch<T = unknown>(
 
   const headers: Record<string, string> = {};
   const token = getStoredAccessToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    // Only warn for admin endpoints when no token is available
+    if (url.includes('/admin/') || url.includes('/materials/')) {
+      console.warn(`API Call to ${url} - No auth token available!`);
+    }
+  }
 
   const asJson = options.asJson !== false;
   if (asJson) headers["Content-Type"] = "application/json";
