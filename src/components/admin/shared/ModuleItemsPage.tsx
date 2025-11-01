@@ -5,12 +5,16 @@ import type React from "react";
 import Swal from "sweetalert2";
 import { RefreshCw, Plus, Edit, X } from "lucide-react";
 import DataTable from "./DataTable";
-import { adminMaterialsApi, type MaterialRecord, type MaterialsListResponse, adminModulesApi } from "@/lib/api/admin";
-import { quizService, type QuizRecord } from "@/lib/api/quiz";
-import { enhancedMaterialService, type PoinDetailRecord } from "@/lib/api/poin-details";
+import { materialsAPI, quizzesAPI, modulesAPI, type Material, type Quiz, type Poin, type MediaItem } from "@/lib/api";
 import MaterialPreview from "../MaterialPreview";
 
 type ResourceType = "materi" | "kuis";
+
+// Alias for backward compatibility
+type MaterialRecord = Material;
+type QuizRecord = Quiz;
+type PoinDetailRecord = Poin;
+type MaterialsListResponse = { items?: Material[]; data?: Material[]; pagination?: Material[] };
 
 // Interface untuk soal sementara (sebelum disimpan ke server)
 interface TempQuestion {
@@ -53,7 +57,13 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   const [editingItem, setEditingItem] = useState<ModuleItemRow | null>(null);
 
   // State untuk sub-materi options (khusus kuis)
-  const [subMateriOptions, setSubMateriOptions] = useState<import("@/lib/api/quiz").SubMateriOption[]>([]);
+  interface SubMateriOption {
+    id: string | number;
+    title: string;
+    module_title: string;
+    display_title: string;
+  }
+  const [subMateriOptions, setSubMateriOptions] = useState<SubMateriOption[]>([]);
 
   // State untuk quiz questions
   const [questions, setQuestions] = useState<TempQuestion[]>([]);
@@ -95,7 +105,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     try {
       const { apiFetch } = await import('@/lib/api/client');
 
-      const res = await apiFetch<PoinDetailRecord>(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}`, {
+      const res = await apiFetch<PoinDetailRecord>(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}`, {
         method: "GET"
       });
 
@@ -104,7 +114,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         if (!res.data.poin_media || res.data.poin_media.length === 0) {
           try {
             const { apiFetch: apiFetch2 } = await import('@/lib/api/client');
-            const mediaRes = await apiFetch2<import('@/lib/api/poin-details').MediaItem[]>(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}/media`, {
+            const mediaRes = await apiFetch2<MediaItem[]>(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}/media`, {
               method: "GET"
             });
 
@@ -134,7 +144,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       if (!moduleId) return;
 
       try {
-        const res = await adminModulesApi.list();
+        const res = await modulesAPI.list();
         if (res.ok && res.data && !isCancelled) {
           // Handle multiple possible response structures
           let modulesList: { id: string | number; title: string }[] = [];
@@ -180,12 +190,10 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   const refetchMaterialsList = useCallback(async (bypassCache = false) => {
     const params = {
       module_id: moduleId,
-      include_drafts: true, // Admin can see draft materials
-      include_poins: true,  // Include poin details for count and preview
       ...(bypassCache && { _t: Date.now() })
     };
 
-    const res = await adminMaterialsApi.list(params);
+    const res = await materialsAPI.list(params);
 
     if (res.ok) {
       const data = res.data as MaterialsListResponse;
@@ -207,7 +215,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
           // Fetch poin details for count only (media will be loaded on demand for preview)
           let poinDetails: PoinDetailRecord[] = [];
           try {
-            const poinRes = await enhancedMaterialService.getWithPoins(m.id);
+            const poinRes = await materialsAPI.get(m.id);
             if (poinRes.ok && poinRes.data.poin_details) {
               poinDetails = poinRes.data.poin_details;
             }
@@ -239,7 +247,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   // Helper function to refetch quiz list
   const refetchQuizList = useCallback(async (bypassCache = false) => {
     // Call quiz API directly according to backend API documentation
-    const quizRes = await quizService.list({
+    const quizRes = await quizzesAPI.list({
       // Add cache busting if needed (API doesn't need this param but TypeScript requires valid params)
       ...(bypassCache && { limit: 1000 })
     });
@@ -274,9 +282,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     }
 
     // Filter quizzes by module - get materials in this module first
-    const materialsRes = await adminMaterialsApi.list({
+    const materialsRes = await materialsAPI.list({
       module_id: moduleId,
-      include_drafts: true,
       limit: 100,
       ...(bypassCache && { _t: Date.now() })
     });
@@ -307,7 +314,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         } else {
           // Fetch quiz details to get question count
           try {
-            const detailRes = await quizService.get(quiz.id);
+            const detailRes = await quizzesAPI.get(quiz.id);
             if (detailRes.ok && detailRes.data.questions) {
               questionCount = detailRes.data.questions.length;
             }
@@ -358,9 +365,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       const loadSubMateriOptions = async () => {
         try {
           // Get materials from the current module to use as sub-materi options
-          const res = await adminMaterialsApi.list({
+          const res = await materialsAPI.list({
             module_id: moduleId,
-            include_drafts: true, // Get both published and unpublished
             limit: 100 // Get all materials in module
           });
 
@@ -392,9 +398,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       try {
         if (resource === "materi") {
           // Get materials list first (without poin details to avoid backend dependency)
-          const res = await adminMaterialsApi.list({
-            module_id: moduleId,
-            include_drafts: true // Admin can see draft materials
+          const res = await materialsAPI.list({
+            module_id: moduleId
           });
 
           if (res.ok) {
@@ -418,7 +423,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
                 // Only fetch poin details for count, don't load media yet for faster initial load
                 let poinDetails: PoinDetailRecord[] = [];
                 try {
-                  const poinRes = await enhancedMaterialService.getWithPoins(m.id);
+                  const poinRes = await materialsAPI.get(m.id);
                   if (poinRes.ok && poinRes.data.poin_details) {
                     poinDetails = poinRes.data.poin_details;
                   }
@@ -625,7 +630,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
 
       // Only fetch if we don't have complete data
       try {
-        const poinRes = await enhancedMaterialService.getWithPoins(row.id);
+        const poinRes = await materialsAPI.get(row.id);
         if (poinRes.ok && poinRes.data.poin_details) {
           // Only load media for poins that don't have it yet
           const poinsWithMedia = await Promise.all(
@@ -763,9 +768,10 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       }
       setASubmitting(true);
 
-      const res = await adminMaterialsApi.createNested(moduleId, {
+      const res = await materialsAPI.create({
         title: titleVal,
         content: contentVal,
+        module_id: String(moduleId),
         published: aPublished,
         slug: aSlug ? aSlug.trim() : undefined,
       });
@@ -845,7 +851,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
           published: aPublished
         };
 
-        const res = await quizService.create(payload);
+        const res = await quizzesAPI.create(payload);
 
         if (!res.ok) {
           await Swal.fire({
@@ -862,7 +868,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
             const q = questions[i];
             const validOptions = q.options.filter(opt => opt.trim());
 
-            await quizService.addQuestion(res.data.id, {
+            await quizzesAPI.addQuestion(res.data.id, {
               question_text: q.question_text.trim(),
               options: validOptions,
               correct_answer_index: Math.min(q.correct_answer_index, validOptions.length - 1),
@@ -919,7 +925,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
 
       // Fetch quiz details to get current sub_materi_id, time_limit, and passing_score
       try {
-        const quizDetailsRes = await quizService.get(row.id);
+        const quizDetailsRes = await quizzesAPI.get(row.id);
         if (quizDetailsRes.ok) {
           const quiz = quizDetailsRes.data;
           setESubMateriId(String(quiz.sub_materi_id || ''));
@@ -958,7 +964,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         slug: eSlug ? eSlug.trim() : undefined,
       };
 
-      const res = await adminMaterialsApi.update(editingItem.id, payload);
+      const res = await materialsAPI.update(editingItem.id, payload);
       setESubmitting(false);
 
       if (!res.ok) {
@@ -1018,7 +1024,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       published: ePublished,
     };
 
-    const res = await quizService.update(editingItem.id, payload);
+    const res = await quizzesAPI.update(editingItem.id, payload);
     setESubmitting(false);
 
     if (!res.ok) {
@@ -1051,7 +1057,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     if (!result.isConfirmed) return;
 
     if (resource === 'materi') {
-      const res = await adminMaterialsApi.remove(row.id);
+      const res = await materialsAPI.remove(row.id);
       if (!res.ok) {
         await Swal.fire({ icon: 'error', title: 'Gagal', text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal menghapus materi' });
         return;
@@ -1067,7 +1073,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         showConfirmButton: false
       });
     } else if (resource === 'kuis') {
-      const res = await quizService.remove(row.id);
+      const res = await quizzesAPI.remove(row.id);
       if (!res.ok) {
         await Swal.fire({ icon: 'error', title: 'Gagal', text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal menghapus kuis' });
         return;

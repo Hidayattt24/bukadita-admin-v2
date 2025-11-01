@@ -13,15 +13,29 @@ import {
   BarChart3,
   PieChart
 } from "lucide-react";
-import { progressService } from "@/lib/api/progress";
+import { adminAPI } from "@/lib/api";
+
+interface Activity {
+  id: string | number;
+  user: string;
+  action: string;
+  category: string;
+  score?: number;
+  passed?: boolean;
+  time: string;
+  relative_time: string;
+}
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
     total_users: 0,
     active_users_today: 0,
+    new_users_this_week: 0,
     total_modules: 0,
+    total_materials: 0,
     total_quizzes: 0,
     completed_quizzes_total: 0,
+    passed_quizzes_total: 0,
     average_completion_rate: 0,
     module_completion_stats: [] as Array<{
       module_id: string | number;
@@ -29,49 +43,42 @@ export default function AdminDashboardPage() {
       total_users_started: number;
       total_users_completed: number;
       completion_rate: number;
-    }>
+    }>,
+    recent_activities: [] as Activity[],
+    last_updated: "" as string | undefined
   });
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load dashboard stats
+  // Load dashboard stats from real API
   useEffect(() => {
     const loadStats = async () => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        // Try to load from progress service
-        const progressRes = await progressService.getProgressStats();
-        if (progressRes.ok) {
-          setStats(progressRes.data);
+        console.log('Loading dashboard stats from API...');
+        const res = await adminAPI.dashboardStats();
+        
+        if (res.ok && res.data) {
+          console.log('Dashboard stats loaded successfully:', res.data);
+          setStats(res.data as typeof stats);
         } else {
-          // Use fallback dummy data if API fails
-          setStats({
-            total_users: 248,
-            active_users_today: 67,
-            total_modules: 12,
-            total_quizzes: 32,
-            completed_quizzes_total: 156,
-            average_completion_rate: 73,
-            module_completion_stats: [
-              { module_id: "1", module_title: "Bayi & Balita", total_users_started: 78, total_users_completed: 64, completion_rate: 82 },
-              { module_id: "2", module_title: "Hamil & Menyusui", total_users_started: 64, total_users_completed: 48, completion_rate: 75 },
-              { module_id: "3", module_title: "Sekolah & Remaja", total_users_started: 52, total_users_completed: 35, completion_rate: 67 },
-              { module_id: "4", module_title: "Dewasa & Lansia", total_users_started: 54, total_users_completed: 32, completion_rate: 59 }
-            ]
-          });
+          const errorMsg = !res.ok && 'error' in res ? res.error : 'Failed to load dashboard stats';
+          console.error('Failed to load dashboard stats:', errorMsg);
+          setError(errorMsg);
         }
       } catch (error) {
         console.error('Error loading dashboard stats:', error);
+        setError('Terjadi kesalahan saat memuat data dashboard');
+      } finally {
+        setLoading(false);
       }
     };
 
     loadStats();
   }, []);
-
-  const recentActivities = [
-    { id: 1, user: "Siti Aminah", action: "Menyelesaikan Kuis", category: "Bayi & Balita", time: "5 menit lalu" },
-    { id: 2, user: "Budi Santoso", action: "Membaca Materi", category: "Dewasa & Lansia", time: "12 menit lalu" },
-    { id: 3, user: "Rina Wati", action: "Menyelesaikan Kuis", category: "Hamil & Menyusui", time: "25 menit lalu" },
-    { id: 4, user: "Ahmad Yani", action: "Membaca Materi", category: "Sekolah & Remaja", time: "1 jam lalu" },
-    { id: 5, user: "Dewi Lestari", action: "Mendaftar Jadwal", category: "Posyandu", time: "2 jam lalu" }
-  ];
 
 
 
@@ -154,8 +161,8 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Pengguna Baru</p>
-              <p className="text-2xl font-bold text-gray-900">-</p>
+              <p className="text-sm text-gray-600">Pengguna Baru (7 Hari)</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.new_users_this_week}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-600" />
           </div>
@@ -164,8 +171,8 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Jadwal Mendatang</p>
-              <p className="text-2xl font-bold text-gray-900">-</p>
+              <p className="text-sm text-gray-600">Kuis Lulus</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.passed_quizzes_total}</p>
             </div>
             <Clock className="w-8 h-8 text-orange-600" />
           </div>
@@ -182,25 +189,40 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                    {activity.user.charAt(0)}
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full mx-auto mb-2"></div>
+                <p className="text-sm">Memuat aktivitas...</p>
+              </div>
+            ) : stats.recent_activities && stats.recent_activities.length > 0 ? (
+              <div className="space-y-4">
+                {stats.recent_activities.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className={`w-10 h-10 rounded-full ${activity.passed ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-purple-600'} flex items-center justify-center text-white font-semibold flex-shrink-0`}>
+                      {activity.user.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.user}</p>
+                      <p className="text-sm text-gray-600">
+                        {activity.action} • <span className={activity.passed ? "text-green-600" : "text-blue-600"}>{activity.category}</span>
+                        {activity.score !== undefined && (
+                          <span className="ml-1 text-gray-500">({Math.round(activity.score)}%)</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+                      <Clock className="w-3 h-3" />
+                      {activity.relative_time}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.user}</p>
-                    <p className="text-sm text-gray-600">
-                      {activity.action} • <span className="text-blue-600">{activity.category}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
-                    <Clock className="w-3 h-3" />
-                    {activity.time}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Belum ada aktivitas terbaru</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -239,23 +261,39 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Info Note */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-bold">ℹ️</span>
+      {/* Status Info */}
+      {error ? (
+        <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">⚠️</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-red-900 mb-1">Error</h3>
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">Dashboard Sementara</h3>
-            <p className="text-sm text-blue-700">
-              Data yang ditampilkan saat ini adalah data dummy untuk keperluan tampilan.
-              Data akan diintegrasikan dengan backend setelah semua fitur selesai dikembangkan.
-            </p>
+        </div>
+      ) : !loading && stats.last_updated && (
+        <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">✓</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-green-900 mb-1">Data Real-time</h3>
+              <p className="text-sm text-green-700">
+                Semua data ditampilkan secara real-time dari database. 
+                Terakhir diperbarui: {new Date(stats.last_updated).toLocaleString("id-ID")}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

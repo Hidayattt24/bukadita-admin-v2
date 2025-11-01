@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Swal from "sweetalert2";
 import { PlusCircle, Folder, Edit, Trash2, BookOpen, ListChecks, X, Check, Clock, Search, Filter } from "lucide-react";
 import Link from "next/link";
-import { adminModulesApi, adminMaterialsApi } from "@/lib/api/admin";
-import { quizService } from "@/lib/api/quiz";
+import { modulesAPI, materialsAPI, quizzesAPI } from "@/lib/api";
 import StatCard from "@/components/admin/shared/StatCard";
 
 interface ModuleItem {
@@ -61,7 +60,7 @@ export default function ModuleManagement() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await adminModulesApi.list();
+        const res = await modulesAPI.list();
         if (res.ok) {
           const dataAny = res.data as unknown as ModuleItem[] | { items?: ModuleItem[]; data?: ModuleItem[] };
           const items = Array.isArray(dataAny)
@@ -129,7 +128,7 @@ export default function ModuleManagement() {
   const fetchModuleCounts = useCallback(async (moduleId: string | number) => {
     try {
       // Fetch materials count
-      const materialsRes = await adminMaterialsApi.list({ module_id: moduleId });
+      const materialsRes = await materialsAPI.list({ module_id: moduleId });
       const materialsCount = materialsRes.ok ?
         (Array.isArray(materialsRes.data) ? materialsRes.data.length :
           materialsRes.data?.items?.length || 0) : 0;
@@ -138,7 +137,7 @@ export default function ModuleManagement() {
       let quizCount = 0;
 
       // First try direct module_id approach
-      const quizRes = await quizService.list({ module_id: moduleId });
+      const quizRes = await quizzesAPI.list({ module_id: moduleId });
 
       if (quizRes.ok && quizRes.data?.items) {
         quizCount = quizRes.data.items.length;
@@ -147,7 +146,7 @@ export default function ModuleManagement() {
         const allQuizzes: unknown[] = [];
 
         for (const material of materialsRes.data.items) {
-          const subQuizRes = await quizService.list({ sub_materi_id: material.id });
+          const subQuizRes = await quizzesAPI.list({ sub_materi_id: material.id });
 
           if (subQuizRes.ok) {
             const quizData = subQuizRes.data;
@@ -236,9 +235,9 @@ export default function ModuleManagement() {
     };
     setSubmitting(true);
     try {
-      const apiRes = await adminModulesApi.create(payload);
+      const apiRes = await modulesAPI.create(payload);
       if (apiRes.ok) {
-        const listRes = await adminModulesApi.list();
+        const listRes = await modulesAPI.list();
         if (listRes.ok) {
           const items = parseList(listRes.data);
           saveModules(items);
@@ -278,9 +277,9 @@ export default function ModuleManagement() {
     };
     setESubmitting(true);
     try {
-      const apiRes = await adminModulesApi.update(m.id, payload);
+      const apiRes = await modulesAPI.update(m.id, payload);
       if (apiRes.ok) {
-        const listRes = await adminModulesApi.list();
+        const listRes = await modulesAPI.list();
         if (listRes.ok) {
           const items = parseList(listRes.data);
           saveModules(items);
@@ -308,10 +307,10 @@ export default function ModuleManagement() {
     });
     if (result.isConfirmed) {
       try {
-        const apiRes = await adminModulesApi.remove(m.id);
+        const apiRes = await modulesAPI.remove(m.id);
         if (apiRes.ok) {
           console.log("✅ Modules API remove():", m.id);
-          const listRes = await adminModulesApi.list();
+          const listRes = await modulesAPI.list();
           if (listRes.ok) {
             const items = (listRes.data.items || listRes.data.data || []) as ModuleItem[];
             saveModules(items);

@@ -15,7 +15,9 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { progressService, type QuizAttemptSummary, type UserProgress } from "@/lib/api/progress";
-import { adminModulesApi, type ModuleItem } from "@/lib/api/admin";
+import { modulesAPI, type Module } from "@/lib/api";
+
+type ModuleItem = Module;
 
 export default function ProgressMonitoringPage() {
   const [activeTab, setActiveTab] = useState<"attempts" | "progress">("attempts");
@@ -41,7 +43,7 @@ export default function ProgressMonitoringPage() {
   useEffect(() => {
     const loadModules = async () => {
       try {
-        const res = await adminModulesApi.list();
+        const res = await modulesAPI.list();
         if (res.ok) {
           const data = res.data as { items?: ModuleItem[]; data?: ModuleItem[] };
           const items = data.items || data.data || [];
@@ -213,8 +215,8 @@ export default function ProgressMonitoringPage() {
             <button
               onClick={() => setActiveTab("attempts")}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "attempts"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
             >
               Quiz Attempts
@@ -222,8 +224,8 @@ export default function ProgressMonitoringPage() {
             <button
               onClick={() => setActiveTab("progress")}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "progress"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
             >
               User Progress

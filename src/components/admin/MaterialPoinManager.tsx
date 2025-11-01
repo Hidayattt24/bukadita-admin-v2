@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { ArrowLeft, Plus, Edit, Trash2, FileText, Video, ImageIcon } from "lucide-react";
-import { poinDetailService, enhancedMaterialService, type PoinDetailRecord, type MaterialRecordWithPoins, type MediaItem } from "@/lib/api/poin-details";
+import { poinsAPI, materialsAPI, type Poin, type Material, type MediaItem } from "@/lib/api";
+import { renderContent, htmlToMarkdown } from "@/lib/markdown-utils";
 
 import MaterialPreview from "./MaterialPreview";
+
+// Alias for backward compatibility
+type PoinDetailRecord = Poin;
+type MaterialRecordWithPoins = Material;
 
 interface MaterialPoinManagerProps {
   materialId: string;
@@ -59,7 +64,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
   const loadPoinWithMedia = async (poinId: string | number) => {
     try {
       const { apiFetch } = await import('@/lib/api/client');
-      const res = await apiFetch<PoinDetailRecord>(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}`, {
+      const res = await apiFetch<PoinDetailRecord>(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}`, {
         method: "GET"
       });
 
@@ -68,7 +73,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
         // Backend now includes media by default, but if not present, get from direct endpoint
         if (!res.data.poin_media || res.data.poin_media.length === 0) {
           try {
-            const mediaRes = await apiFetch<MediaItem[]>(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}/media`, {
+            const mediaRes = await apiFetch<MediaItem[]>(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}/media`, {
               method: "GET"
             });
 
@@ -175,7 +180,9 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
       .sort((a, b) => a.order - b.order) // Ensure correct order
       .map(block => {
         if (block.type === 'text' && block.content?.trim()) {
-          return `<div data-block-id="${block.id}" data-block-type="text" data-block-order="${block.order}">${block.content}</div>`;
+          // Convert markdown to HTML with preserved newlines
+          const contentHtml = renderContent(block.content, true);
+          return `<div data-block-id="${block.id}" data-block-type="text" data-block-order="${block.order}">${contentHtml}</div>`;
         } else if (block.type === 'media') {
           // Create placeholder for media that will be replaced during preview
           return `<div data-block-id="${block.id}" data-block-type="media" data-block-order="${block.order}" data-media-caption="${block.caption || ''}" class="media-placeholder">[MEDIA_PLACEHOLDER_${block.id}]</div>`;
@@ -258,7 +265,12 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
 
           const blockId = blockIdMatch ? blockIdMatch[1] : `text-${blocks.length}`;
           const order = orderMatch ? parseInt(orderMatch[1]) : blocks.length;
-          const content = part.replace(/<div[^>]*>|<\/div>/g, '').trim();
+          
+          // Remove outer div tags and convert HTML back to markdown/plain text
+          let content = part.replace(/<div[^>]*>|<\/div>/g, '').trim();
+          
+          // Convert HTML back to markdown for editing (removes HTML tags, preserves markdown syntax)
+          content = htmlToMarkdown(content);
 
           if (content) {
             blocks.push({
@@ -324,7 +336,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
     const loadMaterial = async () => {
       setLoading(true);
       try {
-        const res = await enhancedMaterialService.getWithPoins(materialId);
+        const res = await materialsAPI.get(materialId);
 
         if (res.ok) {
           // Load complete media data for each poin for preview
@@ -446,7 +458,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
   const deleteMediaFromServer = async (mediaId: string) => {
     try {
       const { apiFetch } = await import('@/lib/api/client');
-      const res = await apiFetch(`/api/v1/admin/poins/media/${encodeURIComponent(mediaId)}`, {
+      const res = await apiFetch(`/api/v1/materials/poins/media/${encodeURIComponent(mediaId)}`, {
         method: "DELETE"
       });
 
@@ -471,7 +483,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
       }
 
       const { apiFetch } = await import('@/lib/api/client');
-      const res = await apiFetch(`/api/v1/admin/poins/${encodeURIComponent(String(poinId))}/media`, {
+      const res = await apiFetch(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}/media`, {
         method: "POST",
         body: formData,
         asJson: false
@@ -492,7 +504,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
   const updateMediaCaption = async (mediaId: string, caption: string) => {
     try {
       const { apiFetch } = await import('@/lib/api/client');
-      const res = await apiFetch(`/api/v1/admin/poins/media/${encodeURIComponent(mediaId)}`, {
+      const res = await apiFetch(`/api/v1/materials/poins/media/${encodeURIComponent(mediaId)}`, {
         method: "PUT",
         body: { caption }
       });
@@ -585,7 +597,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
           throw error;
         }
       } else {
-        res = await poinDetailService.create(payload);
+        res = await poinsAPI.create(String(materialId), payload);
       }
 
       if (res.ok) {
@@ -605,7 +617,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
 
             // Update the poin with correct HTML
             try {
-              const updateRes = await poinDetailService.update(res.data.id, {
+              const updateRes = await poinsAPI.update(res.data.id, {
                 content_html: updatedHtml
               });
 
@@ -619,7 +631,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
         }
 
         // Reload material to get updated poins with full media data
-        const materialRes = await enhancedMaterialService.getWithPoins(materialId);
+        const materialRes = await materialsAPI.get(materialId);
         if (materialRes.ok) {
           // Load complete media data for each poin for preview
           if (materialRes.data.poin_details && materialRes.data.poin_details.length > 0) {
@@ -734,7 +746,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
         duration_minutes: durationMinutes ? Number(durationMinutes) : undefined,
       };
 
-      const res = await poinDetailService.update(editingPoin.id, payload);
+      const res = await poinsAPI.update(editingPoin.id, payload);
       if (!res.ok) {
         await Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal memperbarui poin' });
         return;
@@ -775,7 +787,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
           if (currentPoin) {
             const updatedHtml = updateHtmlWithMediaIds(currentPoin.content_html, mediaMapping);
 
-            await poinDetailService.update(editingPoin.id, {
+            await poinsAPI.update(editingPoin.id, {
               content_html: updatedHtml
             });
           }
@@ -783,7 +795,7 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
       }
 
       // Reload material to get updated poins with full media data
-      const materialRes = await enhancedMaterialService.getWithPoins(materialId);
+      const materialRes = await materialsAPI.get(materialId);
       if (materialRes.ok) {
         // Load complete media data for each poin for preview
         if (materialRes.data.poin_details && materialRes.data.poin_details.length > 0) {
@@ -847,10 +859,10 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
 
     if (result.isConfirmed) {
       try {
-        const res = await poinDetailService.remove(poin.id);
+        const res = await poinsAPI.remove(poin.id);
         if (res.ok) {
           // Reload material with full media data
-          const materialRes = await enhancedMaterialService.getWithPoins(materialId);
+          const materialRes = await materialsAPI.get(materialId);
           if (materialRes.ok) {
             // Load complete media data for each poin for preview
             if (materialRes.data.poin_details && materialRes.data.poin_details.length > 0) {
@@ -1248,10 +1260,13 @@ export default function MaterialPoinManager({ materialId }: MaterialPoinManagerP
                             <textarea
                               value={block.content || ''}
                               onChange={(e) => updateTextBlock(block.id, e.target.value)}
-                              placeholder="Type your text content here..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              rows={3}
+                              placeholder="Tulis konten di sini... (Mendukung Markdown: # Judul, ## Sub Judul, **bold**, *italic*, dll)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                              rows={5}
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              💡 Tips: Gunakan <code className="bg-gray-100 px-1">#</code> untuk heading, <code className="bg-gray-100 px-1">**bold**</code>, <code className="bg-gray-100 px-1">*italic*</code>. Enter untuk baris baru.
+                            </p>
                           </div>
                         ) : (
                           <div className="relative">

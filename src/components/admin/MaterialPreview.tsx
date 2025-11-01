@@ -3,19 +3,16 @@
 import { useState } from "react";
 import Image from "next/image";
 import { FileText, ImageIcon, Download } from "lucide-react";
-import { type PoinDetailRecord, type MediaItem } from "@/lib/api/poin-details";
+import { type Poin, type MediaItem } from "@/lib/api";
 
 interface MaterialPreviewProps {
-  poins: PoinDetailRecord[];
+  poins: Poin[];
   materialTitle: string;
 }
 
 export default function MaterialPreview({ poins, materialTitle }: MaterialPreviewProps) {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-
-
-
-  const getPoinMedia = (poin: PoinDetailRecord): MediaItem[] => {
+  const getPoinMedia = (poin: Poin): MediaItem[] => {
     return poin.poin_media || [];
   };
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Profile } from '@/types/profile';
-import { apiLogin, apiLogout, type BackendProfile } from '@/lib/api/auth';
+import { authAPI, type BackendProfile } from '@/lib/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('🔐 Attempting login (backend) for:', email);
 
-      const res = await apiLogin(email, password);
+      const res = await authAPI.login(email, password);
       if (!res.ok) {
         if (res.status === 401) {
           setIsLoading(false);
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Auto-retry up to 2 times with small delay
         for (let attempt = 1; attempt <= 2; attempt++) {
           await new Promise((r) => setTimeout(r, 1500));
-          const retry = await apiLogin(email, password);
+          const retry = await authAPI.login(email, password);
           if (retry.ok && retry.status === 200 && (retry.data.profile?.role === 'admin' || retry.data.profile?.role === 'superadmin')) {
             const retryProf = mapBackendToProfile(retry.data.profile);
             if (retryProf) {
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (prof.role !== 'admin' && prof.role !== 'superadmin') {
         // Not admin, revoke on server (best-effort)
-        void apiLogout(access_token, refresh_token);
+        void authAPI.logout(access_token, refresh_token);
         setAccessToken(undefined);
         setRefreshToken(undefined);
         setIsAuthenticated(false);
@@ -196,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🚪 Logging out...');
 
       // Ask backend to invalidate session
-      await apiLogout(accessToken, refreshToken);
+      await authAPI.logout(accessToken, refreshToken);
 
       // Clear admin cookies used by middleware
       await fetch('/api/auth/logout', { method: 'POST' });

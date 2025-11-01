@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Profile } from "@/types/profile";
-import { adminUsersApi, type VisibilityRules, type AdminUser } from "@/lib/api/admin";
+import { usersAPI, type Profile, type VisibilityRules } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import Modal from "@/components/admin/shared/Modal";
 import StatCard from "@/components/admin/shared/StatCard";
@@ -48,6 +47,7 @@ export default function UserManagement() {
     total: 0,
     totalPages: 0
   });
+  const [itemsPerPage, setItemsPerPage] = useState<number | "all">(10);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -117,21 +117,22 @@ export default function UserManagement() {
   const { profile: currentProfile } = useAuth();
 
   // Fetch users from new backend with visibility rules
-  const fetchUsers = useCallback(async (page = 1, search = "", role = "") => {
+  const fetchUsers = useCallback(async (page = 1, search = "", role = "", limit: number | "all" = 10) => {
     setLoading(true);
 
     try {
-      const res = await adminUsersApi.list({ page, limit: 10, search, role });
+      // If "all" is selected, use a very large limit (e.g., 10000)
+      const actualLimit = limit === "all" ? 10000 : limit;
+      const res = await usersAPI.list({ page: limit === "all" ? 1 : page, limit: actualLimit, search, role });
 
       if (!res.ok) {
         throw new Error(res.error || `Gagal memuat pengguna (${res.status})`);
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload = res.data as any; // Backend response structure
+      const payload = res.data as any;
 
-      // Backend uses 'items' not 'data'
-      const array: AdminUser[] = payload.items || payload.data || [];
+      const array: Profile[] = payload.items || payload.data || [];
 
       const transformedUsers: User[] = array.map((u): User => ({
         id: u.id,
@@ -146,7 +147,6 @@ export default function UserManagement() {
         profil_url: u.profil_url || undefined,
       }));
 
-      // Backend pagination might have different structure
       const meta = payload.pagination || { page, limit: 10, total: transformedUsers.length, totalPages: 1 };
 
       setUsers(transformedUsers);
@@ -156,7 +156,6 @@ export default function UserManagement() {
         total: meta.total || meta.totalCount || transformedUsers.length,
         totalPages: meta.totalPages || 1
       });
-      // Backend uses 'visibility' not 'visibility_rules'
       setVisibility(payload.visibility || payload.visibility_rules || null);
 
     } catch (error) {
@@ -180,9 +179,9 @@ export default function UserManagement() {
   }, []);
 
   useEffect(() => {
-    fetchUsers(pagination.page, searchTerm, roleFilter);
+    fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, roleFilter]); // Only trigger on search/filter change, not pagination
+  }, [searchTerm, roleFilter, itemsPerPage]); // Only trigger on search/filter change, not pagination
 
   // Handler functions
   const handleSearch = (value: string) => {
@@ -195,9 +194,10 @@ export default function UserManagement() {
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
-  const handlePageChange = (newPage: number) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-    fetchUsers(newPage, searchTerm, roleFilter);
+  const handleItemsPerPageChange = (value: string) => {
+    const newValue = value === "all" ? "all" : parseInt(value);
+    setItemsPerPage(newValue);
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
   const handleAddUser = () => {
@@ -226,7 +226,7 @@ export default function UserManagement() {
     setNewUserData({
       email: user.email,
       full_name: user.full_name,
-      phone: user.phone,
+      phone: user.phone || "",
       role: user.role === 'admin' ? 'admin' : 'pengguna',
       password: "",
       address: user.address || "",
@@ -273,7 +273,7 @@ export default function UserManagement() {
         });
 
         // Delete via API (server-side)
-        const deleteResult = await adminUsersApi.remove(user.id);
+        const deleteResult = await usersAPI.remove(user.id);
 
         if (!deleteResult.ok) {
           throw new Error(deleteResult.error || 'Gagal menghapus pengguna');
@@ -289,7 +289,7 @@ export default function UserManagement() {
         });
 
         // Refresh data
-        fetchUsers(pagination.page, searchTerm, roleFilter);
+        fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
       } catch (error) {
         console.error("Error deleting user:", error);
         await Swal.fire({
@@ -328,21 +328,21 @@ export default function UserManagement() {
         // Update existing user via API
         const updatePayload: {
           full_name: string;
-          phone: string;
           email: string;
+          phone: string;
           address?: string;
           date_of_birth?: string;
           profil_url?: string;
         } = {
           full_name: newUserData.full_name,
-          phone: newUserData.phone,
           email: newUserData.email,
+          phone: newUserData.phone,
           address: newUserData.address || undefined,
           date_of_birth: newUserData.date_of_birth || undefined,
           profil_url: newUserData.profil_url || undefined,
         };
 
-        const updateResult = await adminUsersApi.update(selectedUser.id, updatePayload);
+        const updateResult = await usersAPI.update(selectedUser.id, updatePayload);
 
         if (!updateResult.ok) {
           throw new Error(updateResult.error || 'Gagal mengupdate pengguna');
@@ -350,7 +350,7 @@ export default function UserManagement() {
 
         // Update role if changed (using separate endpoint)
         if (newUserData.role !== selectedUser.role) {
-          const roleResult = await adminUsersApi.updateRole(selectedUser.id, newUserData.role);
+          const roleResult = await usersAPI.updateRole(selectedUser.id, newUserData.role);
           if (!roleResult.ok) {
             throw new Error(roleResult.error || 'Gagal mengupdate role pengguna');
           }
@@ -365,7 +365,7 @@ export default function UserManagement() {
         });
       } else {
         // Create new user via API (server-side creates auth + profile)
-        const createResult = await adminUsersApi.create({
+        const createResult = await usersAPI.create({
           email: newUserData.email,
           password: newUserData.password,
           full_name: newUserData.full_name,
@@ -404,7 +404,7 @@ export default function UserManagement() {
         profil_url: ""
       });
       setFormErrors({});
-      fetchUsers(pagination.page, searchTerm, roleFilter);
+      fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
 
     } catch (error: unknown) {
       console.error("Error saving user:", error);
@@ -649,7 +649,7 @@ export default function UserManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Cari berdasarkan nama atau email..."
+                placeholder="Cari berdasarkan nama atau nomor hp..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10 pr-4 py-2 border text-black/60 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-80"
@@ -724,50 +724,32 @@ export default function UserManagement() {
           </div>
         )}
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between text-black px-6 py-4 border-t border-gray-200">
-            <div className="text-sm text-gray-700">
-              Menampilkan {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} dari {pagination.total} pengguna
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Sebelumnya
-              </button>
-
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                .filter(page => page === 1 || page === pagination.totalPages || Math.abs(page - pagination.page) <= 1)
-                .map((page, index, array) => (
-                  <div key={page} className="flex items-center">
-                    {index > 0 && array[index - 1] !== page - 1 && (
-                      <span className="px-2 text-gray-500">...</span>
-                    )}
-                    <button
-                      onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 border rounded-md text-sm ${page === pagination.page
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                    >
-                      {page}
-                    </button>
-                  </div>
-                ))}
-
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Selanjutnya
-              </button>
-            </div>
+        {/* Items Per Page Selector & Pagination */}
+        <div className="flex flex-col sm:flex-row items-center justify-between text-black px-6 py-4 border-t border-gray-200 gap-4">
+          <div className="flex items-center gap-3">
+            <label htmlFor="itemsPerPage" className="text-sm text-gray-700 whitespace-nowrap">
+              Tampilkan:
+            </label>
+            <select
+              id="itemsPerPage"
+              value={itemsPerPage}
+              onChange={(e) => handleItemsPerPageChange(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="all">Semua</option>
+            </select>
+            <span className="text-sm text-gray-700">
+              {itemsPerPage === "all"
+                ? `Menampilkan semua ${pagination.total} pengguna`
+                : `Menampilkan ${Math.min(((pagination.page - 1) * pagination.limit) + 1, pagination.total)} - ${Math.min(pagination.page * pagination.limit, pagination.total)} dari ${pagination.total} pengguna`
+              }
+            </span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Add User Modal */}
@@ -1195,45 +1177,41 @@ export default function UserManagement() {
               </div>
 
               {/* Date of Birth Field */}
-              {selectedUser.date_of_birth && (
-                <div className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">Tanggal Lahir</span>
-                  </div>
-                  <p className="text-gray-900">{formatDate(selectedUser.date_of_birth)}</p>
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">Tanggal Lahir</span>
                 </div>
-              )}
+                <p className="text-gray-900">{formatDate(selectedUser.date_of_birth || "Belum di isi")}</p>
+              </div>
 
               {/* Profile Photo URL */}
-              {selectedUser.profil_url && (
-                <div className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Eye className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">Foto Profil</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src={selectedUser.profil_url}
-                      alt="Foto Profil"
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 rounded-full object-cover"
-                      onError={() => {
-                        // Handle error silently
-                      }}
-                    />
-                    <a
-                      href={selectedUser.profil_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm underline"
-                    >
-                      Lihat Foto Lengkap
-                    </a>
-                  </div>
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">Foto Profil</span>
                 </div>
-              )}
+                <div className="flex flex-col items-center gap-2">
+                  <Image
+                    src={selectedUser.profil_url || '/default-profile.png'}
+                    alt="Foto Profil"
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 rounded-full object-cover"
+                    onError={() => {
+                      // Handle error silently
+                    }}
+                  />
+                  <a
+                    href={selectedUser.profil_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white text-sm underline"
+                  >
+                    <button className="p-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg">Lihat Foto Lengkap</button>
+                  </a>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end pt-4 border-t">

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 // Removed unused specific category icons due to dynamic modules
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { adminModulesApi } from "@/lib/api/admin";
+import { modulesAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 interface AdminShellProps {
@@ -123,7 +123,7 @@ function AdminSidebar() {
     const load = async () => {
       // Try backend first
       try {
-        const res = await adminModulesApi.list();
+        const res = await modulesAPI.list();
         if (res.ok) {
           const dataAny = res.data as unknown as ModuleItem[] | { items?: ModuleItem[]; data?: ModuleItem[] };
           const items = Array.isArray(dataAny) ? dataAny : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
