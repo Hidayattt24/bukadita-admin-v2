@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Asus%20TUF%20Gaming/Documents/KULIAH/Pengabdian%20Website%20Posyandu/bukadita_backoffice/src/app/admin/kelola-modul/page.tsx"],"sourcesContent":["\"use client\";\r\n\r\nimport ModuleManagement from \"@/components/admin/ModuleManagement\";\r\n\r\nexport default function KelolaModulPage() {\r\n  return <ModuleManagement />;\r\n}"],"names":[],"mappings":";;;;;;;;;;AAAA;;;AAIe,SAAS;IACtB,qBAAO,6TAAC;;;;;AACV","debugId":null}}]
-}
