@@ -56,22 +56,27 @@ export default function AdminDashboardPage() {
     const loadStats = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         console.log('Loading dashboard stats from API...');
         const res = await adminAPI.dashboardStats();
-        
+
         if (res.ok && res.data) {
           console.log('Dashboard stats loaded successfully:', res.data);
           setStats(res.data as typeof stats);
+          // Don't set error if data is empty - it's a valid state
         } else {
-          const errorMsg = !res.ok && 'error' in res ? res.error : 'Failed to load dashboard stats';
+          const errorMsg = !res.ok && 'error' in res ? res.error : 'Gagal memuat data dashboard';
           console.error('Failed to load dashboard stats:', errorMsg);
-          setError(errorMsg);
+          // Only set error if it's actually a failure, not empty data
+          if (!res.ok) {
+            setError('Gagal memuat data dashboard. Coba refresh halaman.');
+          }
         }
       } catch (error) {
         console.error('Error loading dashboard stats:', error);
-        setError('Terjadi kesalahan saat memuat data dashboard');
+        // Only set error for actual errors, not empty data
+        setError('Terjadi kesalahan saat memuat data. Silakan refresh halaman.');
       } finally {
         setLoading(false);
       }
@@ -235,22 +240,30 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {stats?.module_completion_stats?.map((module, index) => (
-                <div key={module.module_id} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700">{module.module_title}</span>
-                    <span className="font-semibold text-gray-900">{module.total_users_completed}/{module.total_users_started}</span>
+            {stats?.module_completion_stats && stats.module_completion_stats.length > 0 ? (
+              <div className="space-y-4">
+                {stats.module_completion_stats.map((module, index) => (
+                  <div key={module.module_id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-700">{module.module_title}</span>
+                      <span className="font-semibold text-gray-900">{module.total_users_completed}/{module.total_users_started}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`${index % 4 === 0 ? 'bg-blue-500' : index % 4 === 1 ? 'bg-green-500' : index % 4 === 2 ? 'bg-purple-500' : 'bg-orange-500'} h-2 rounded-full transition-all duration-500`}
+                        style={{ width: `${module.completion_rate}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`${index % 4 === 0 ? 'bg-blue-500' : index % 4 === 1 ? 'bg-green-500' : index % 4 === 2 ? 'bg-purple-500' : 'bg-orange-500'} h-2 rounded-full transition-all duration-500`}
-                      style={{ width: `${module.completion_rate}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Belum ada modul yang dipublikasikan</p>
+                <p className="text-xs mt-1">Tambahkan modul untuk melihat statistik</p>
+              </div>
+            )}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm font-semibold">
                 <span className="text-gray-700">Total Pengguna</span>
@@ -273,6 +286,20 @@ export default function AdminDashboardPage() {
             <div>
               <h3 className="text-sm font-semibold text-red-900 mb-1">Error</h3>
               <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      ) : !loading && stats.total_users === 0 && stats.total_modules === 0 ? (
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">ℹ️</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-blue-900 mb-1">Belum Ada Aktivitas</h3>
+              <p className="text-sm text-blue-700">Sistem masih baru. Mulai tambahkan modul dan pengguna untuk melihat statistik aktivitas kader.</p>
             </div>
           </div>
         </div>

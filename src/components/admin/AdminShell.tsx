@@ -97,10 +97,12 @@ function AdminHeader() {
 
 function AdminSidebar() {
   const pathname = usePathname();
+  const { profile } = useAuth();
   // Dynamic modules loaded from localStorage (UI only for now)
   type ModuleItem = { id: string | number; title: string; materiCount?: number; quizCount?: number };
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
+  const [openUserManagement, setOpenUserManagement] = useState(false);
   const MODULES_STORAGE_KEY = 'admin_modules';
 
   // normalize path (remove trailing slash) and determine active state
@@ -194,14 +196,43 @@ function AdminSidebar() {
             <span className="font-medium">Dashboard</span>
           </Link>
 
-          <Link
-            href="/admin/kelola-pengguna"
-            className={`${itemBase} ${isActive("/admin/kelola-pengguna") ? itemActive : itemHover
-              }`}
-          >
-            <Users className="w-5 h-5 opacity-90" />
-            <span className="font-medium">Kelola Pengguna</span>
-          </Link>
+          {/* Kelola Pengguna - Dropdown untuk admin dan superadmin */}
+          {(profile?.role === 'admin' || profile?.role === 'superadmin') && (
+            <div>
+              <button
+                onClick={() => setOpenUserManagement(!openUserManagement)}
+                className={`${itemBase} w-full justify-between ${isActive("/admin/kelola-pengguna") ? itemActive : itemHover}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 opacity-90" />
+                  <span className="font-medium">Kelola Pengguna</span>
+                </div>
+                {openUserManagement ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+
+              {openUserManagement && (
+                <div className="mt-1 pl-6 flex flex-col gap-1">
+                  <Link
+                    href="/admin/kelola-pengguna?role=pengguna"
+                    className={`${itemBase} text-slate-100 text-sm ${pathname?.includes("/admin/kelola-pengguna") && pathname?.includes("role=pengguna") ? itemActive : itemHover}`}
+                  >
+                    <User className="w-4 h-4 opacity-80" />
+                    <span>Kelola Pengguna</span>
+                  </Link>
+
+                  {profile?.role === 'superadmin' && (
+                    <Link
+                      href="/admin/kelola-pengguna?role=admin"
+                      className={`${itemBase} text-slate-100 text-sm ${pathname?.includes("/admin/kelola-pengguna") && pathname?.includes("role=admin") ? itemActive : itemHover}`}
+                    >
+                      <Users className="w-4 h-4 opacity-80" />
+                      <span>Kelola Admin</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <Link
             href="/admin/kelola-modul"

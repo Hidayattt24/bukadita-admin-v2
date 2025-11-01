@@ -198,7 +198,7 @@ export const usersAPI = {
     if (params.limit) query.set("limit", String(params.limit));
     if (params.role) query.set("role", String(params.role));
     if (params.search) query.set("search", String(params.search));
-    return apiFetch<UsersListResponse>(`/api/v1/users?${query.toString()}`, {
+    return apiFetch<UsersListResponse>(`/api/v1/admin/users?${query.toString()}`, {
       method: "GET",
     });
   },
@@ -213,14 +213,14 @@ export const usersAPI = {
     date_of_birth?: string;
     profil_url?: string;
   }) => {
-    return apiFetch<Profile>(`/api/v1/users`, {
+    return apiFetch<Profile>(`/api/v1/admin/users`, {
       method: "POST",
       body: payload,
     });
   },
 
   get: async (id: string) => {
-    return apiFetch<Profile>(`/api/v1/users/${id}`, { method: "GET" });
+    return apiFetch<Profile>(`/api/v1/admin/users/${id}`, { method: "GET" });
   },
 
   update: async (
@@ -237,21 +237,21 @@ export const usersAPI = {
       >
     >
   ) => {
-    return apiFetch<Profile>(`/api/v1/users/${id}`, {
+    return apiFetch<Profile>(`/api/v1/admin/users/${id}`, {
       method: "PUT",
       body: payload,
     });
   },
 
   updateRole: async (id: string, role: "pengguna" | "admin") => {
-    return apiFetch<Profile>(`/api/v1/users/${id}/role`, {
-      method: "PUT",
+    return apiFetch<Profile>(`/api/v1/admin/users/${id}/role`, {
+      method: "PATCH",
       body: { role },
     });
   },
 
   remove: async (id: string) => {
-    return apiFetch<{ ok: boolean }>(`/api/v1/users/${id}`, {
+    return apiFetch<{ ok: boolean }>(`/api/v1/admin/users/${id}`, {
       method: "DELETE",
     });
   },
@@ -263,9 +263,9 @@ export const usersAPI = {
 
 export const adminAPI = {
   dashboardStats: async () =>
-    apiFetch(`/api/v1/admin/dashboard/stats`, { method: "GET" }),
+    apiFetch(`/api/v1/admin/progress/stats`, { method: "GET" }),
 
-  systemStats: async () => apiFetch(`/api/v1/admin/stats`, { method: "GET" }),
+  systemStats: async () => apiFetch(`/api/v1/admin/progress/stats`, { method: "GET" }),
 
   quizResults: async (
     params: {
@@ -607,7 +607,7 @@ export interface SubMateriOption {
 
 export const quizzesAPI = {
   getSubMateris: async () => {
-    return apiFetch<SubMateriOption[]>(`/api/v1/quizzes/admin/sub-materis`, {
+    return apiFetch<SubMateriOption[]>(`/api/v1/admin/quizzes/sub-materis`, {
       method: "GET",
     });
   },
@@ -628,14 +628,14 @@ export const quizzesAPI = {
     if (params.limit) query.set("limit", String(params.limit));
 
     return apiFetch<{ items?: Quiz[]; quizzes?: Quiz[]; pagination?: PaginationMeta }>(
-      `/api/v1/quizzes/admin/all?${query.toString()}`,
+      `/api/v1/admin/quizzes?${query.toString()}`,
       { method: "GET" }
     );
   },
 
   get: async (id: string | number) => {
     return apiFetch<Quiz>(
-      `/api/v1/quizzes/admin/${encodeURIComponent(String(id))}`,
+      `/api/v1/admin/quizzes/${encodeURIComponent(String(id))}`,
       { method: "GET" }
     );
   },
@@ -648,7 +648,7 @@ export const quizzesAPI = {
     passing_score?: number;
     published?: boolean;
   }) => {
-    return apiFetch<Quiz>(`/api/v1/quizzes/admin`, {
+    return apiFetch<Quiz>(`/api/v1/admin/quizzes`, {
       method: "POST",
       body: payload,
     });
@@ -664,7 +664,7 @@ export const quizzesAPI = {
       published?: boolean;
     }
   ) => {
-    return apiFetch<Quiz>(`/api/v1/quizzes/admin/${encodeURIComponent(String(id))}`, {
+    return apiFetch<Quiz>(`/api/v1/admin/quizzes/${encodeURIComponent(String(id))}`, {
       method: "PUT",
       body: payload,
     });
@@ -672,7 +672,7 @@ export const quizzesAPI = {
 
   remove: async (id: string | number) => {
     return apiFetch<{ ok: boolean }>(
-      `/api/v1/quizzes/admin/${encodeURIComponent(String(id))}`,
+      `/api/v1/admin/quizzes/${encodeURIComponent(String(id))}`,
       { method: "DELETE" }
     );
   },
@@ -689,7 +689,7 @@ export const quizzesAPI = {
     }
   ) => {
     return apiFetch<QuizQuestion>(
-      `/api/v1/quizzes/admin/${encodeURIComponent(String(quizId))}/questions`,
+      `/api/v1/admin/quizzes/${encodeURIComponent(String(quizId))}/questions`,
       {
         method: "POST",
         body: payload,
@@ -708,7 +708,7 @@ export const quizzesAPI = {
     }
   ) => {
     return apiFetch<QuizQuestion>(
-      `/api/v1/quizzes/admin/questions/${encodeURIComponent(String(questionId))}`,
+      `/api/v1/admin/quizzes/questions/${encodeURIComponent(String(questionId))}`,
       {
         method: "PUT",
         body: payload,
@@ -718,7 +718,7 @@ export const quizzesAPI = {
 
   removeQuestion: async (questionId: string | number) => {
     return apiFetch<{ ok: boolean }>(
-      `/api/v1/quizzes/admin/questions/${encodeURIComponent(String(questionId))}`,
+      `/api/v1/admin/quizzes/questions/${encodeURIComponent(String(questionId))}`,
       { method: "DELETE" }
     );
   },

@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Modal from "@/components/admin/shared/Modal";
 import StatCard from "@/components/admin/shared/StatCard";
 import Swal from "sweetalert2";
+import { useSearchParams } from "next/navigation";
 import {
   Users,
   Search,
@@ -25,7 +26,6 @@ import Image from "next/image";
 
 // Perluas tipe Profile dengan field opsional untuk tampilan
 interface User extends Profile {
-  last_sign_in_at?: string;
   address?: string;
   date_of_birth?: string;
   profil_url?: string;
@@ -39,6 +39,9 @@ interface PaginationData {
 }
 
 export default function UserManagement() {
+  const searchParams = useSearchParams();
+  const roleFromUrl = searchParams?.get("role") || "";
+
   // State management
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
@@ -50,7 +53,7 @@ export default function UserManagement() {
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">(10);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState(roleFromUrl);
   const [visibility, setVisibility] = useState<VisibilityRules | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -141,7 +144,6 @@ export default function UserManagement() {
         phone: u.phone || '',
         role: u.role,
         created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at || undefined,
         address: u.address || undefined,
         date_of_birth: u.date_of_birth || undefined,
         profil_url: u.profil_url || undefined,
@@ -178,6 +180,13 @@ export default function UserManagement() {
     }
   }, []);
 
+  // Update roleFilter when URL changes
+  useEffect(() => {
+    if (roleFromUrl !== roleFilter) {
+      setRoleFilter(roleFromUrl);
+    }
+  }, [roleFromUrl]);
+
   useEffect(() => {
     fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -201,11 +210,14 @@ export default function UserManagement() {
   };
 
   const handleAddUser = () => {
+    // Set default role based on current filter
+    const defaultRole = roleFilter === "admin" ? "admin" : "pengguna";
+
     setNewUserData({
       email: "",
       full_name: "",
       phone: "",
-      role: "pengguna",
+      role: defaultRole as "pengguna" | "admin",
       password: "",
       address: "",
       date_of_birth: "",
@@ -533,30 +545,6 @@ export default function UserManagement() {
           <span className="text-sm">{formatDate(row.created_at)}</span>
         </div>
       )
-    },
-    {
-      key: "last_sign_in_at",
-      label: "Login Terakhir",
-      render: (_: unknown, row: User) => {
-        const lastLogin = formatDateTime(row.last_sign_in_at);
-        const isNeverLoggedIn = !row.last_sign_in_at;
-
-        return (
-          <div className="flex items-center gap-2">
-            <Clock className={`w-4 h-4 ${isNeverLoggedIn ? 'text-gray-300' : 'text-blue-400'}`} />
-            <div className="flex flex-col">
-              <span className={`text-sm ${isNeverLoggedIn ? 'text-gray-400 italic' : 'text-gray-900'}`}>
-                {lastLogin}
-              </span>
-              {!isNeverLoggedIn && row.last_sign_in_at && (
-                <span className="text-xs text-gray-400">
-                  {formatDate(row.last_sign_in_at)}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      }
     }
   ];
 
@@ -592,16 +580,12 @@ export default function UserManagement() {
 
   // Statistics
   const totalUsers = pagination.total;
-  const adminUsers = users.filter(user => user.role === "admin").length;
+  const adminUsers = users.filter(user => user.role === "admin" || user.role === "superadmin").length;
+  const regularUsers = users.filter(user => user.role === "pengguna").length;
 
-  // Calculate users who logged in today
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const loggedInToday = users.filter(user => {
-    if (!user.last_sign_in_at) return false;
-    const lastLogin = new Date(user.last_sign_in_at);
-    return lastLogin >= todayStart;
-  }).length;
+  // Page title based on role filter
+  const pageTitle = roleFilter === "admin" ? "Kelola Admin" : roleFilter === "pengguna" ? "Kelola Pengguna" : "Kelola Pengguna";
+  const pageSubtitle = roleFilter === "admin" ? "Manajemen admin sistem" : roleFilter === "pengguna" ? "Manajemen pengguna biasa" : "Manajemen pengguna dan admin sistem";
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -610,10 +594,10 @@ export default function UserManagement() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <Users className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Kelola Pengguna</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
           </div>
         </div>
-        <p className="text-gray-600">Manajemen pengguna dan admin sistem</p>
+        <p className="text-gray-600">{pageSubtitle}</p>
       </div>
 
       {/* Statistics Cards */}
@@ -633,10 +617,10 @@ export default function UserManagement() {
         />
 
         <StatCard
-          title="Login Hari Ini"
-          value={loggedInToday}
-          icon={Clock}
-          color="orange"
+          title="Pengguna Biasa"
+          value={regularUsers}
+          icon={Users}
+          color="green"
         />
       </div>
 
@@ -656,19 +640,21 @@ export default function UserManagement() {
               />
             </div>
 
-            {/* Filter */}
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <select
-                value={roleFilter}
-                onChange={(e) => handleRoleFilter(e.target.value)}
-                className="pl-10 pr-8 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-              >
-                <option value="">Semua Role</option>
-                <option value="pengguna">Pengguna</option>
-                {canManageAdmin && <option value="admin">Admin</option>}
-              </select>
-            </div>
+            {/* Filter - Only show if no role filter from URL */}
+            {!roleFromUrl && (
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <select
+                  value={roleFilter}
+                  onChange={(e) => handleRoleFilter(e.target.value)}
+                  className="pl-10 pr-8 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                >
+                  <option value="">Semua Role</option>
+                  <option value="pengguna">Pengguna</option>
+                  {canManageAdmin && <option value="admin">Admin</option>}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Add User Button */}
@@ -677,7 +663,7 @@ export default function UserManagement() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            {canManageAdmin ? 'Tambah Pengguna/Admin' : 'Tambah Pengguna'}
+            {roleFilter === "admin" ? 'Tambah Admin' : roleFilter === "pengguna" ? 'Tambah Pengguna' : (canManageAdmin ? 'Tambah Pengguna/Admin' : 'Tambah Pengguna')}
           </button>
         </div>
       </div>
@@ -756,7 +742,7 @@ export default function UserManagement() {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Tambah Pengguna Baru"
+        title={roleFilter === "admin" ? "Tambah Admin Baru" : "Tambah Pengguna Baru"}
         size="lg"
       >
         <form onSubmit={handleSubmitUser} className="space-y-4 text-black/80">
@@ -923,7 +909,7 @@ export default function UserManagement() {
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Tambah Pengguna
+              {roleFilter === "admin" ? "Tambah Admin" : "Tambah Pengguna"}
             </button>
           </div>
         </form>
@@ -1157,14 +1143,6 @@ export default function UserManagement() {
                   <span className="text-sm font-medium text-gray-700">Tanggal Registrasi</span>
                 </div>
                 <p className="text-gray-900">{formatDate(selectedUser.created_at)}</p>
-              </div>
-
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Login Terakhir</span>
-                </div>
-                <p className="text-gray-900">{formatDateTime(selectedUser.last_sign_in_at)}</p>
               </div>
 
               {/* Address Field */}
