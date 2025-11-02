@@ -41,11 +41,12 @@ export interface ModuleItemRow {
 interface ModuleItemsPageProps {
   moduleId: string;
   resource: ResourceType;
+  filterByMaterialId?: string; // Optional: filter quiz by specific material
 }
 
 const STORAGE_PREFIX = "admin_module_resource_";
 
-export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageProps) {
+export default function ModuleItemsPage({ moduleId, resource, filterByMaterialId }: ModuleItemsPageProps) {
   const title = resource === "materi" ? "Materi" : "Kuis";
   const searchPlaceholder = resource === "materi" ? "Cari materi..." : "Cari kuis...";
   const storageKey = `${STORAGE_PREFIX}${resource}_${moduleId}`;
@@ -62,6 +63,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     title: string;
     module_title: string;
     display_title: string;
+    poin_count?: number;
   }
   const [subMateriOptions, setSubMateriOptions] = useState<SubMateriOption[]>([]);
 
@@ -75,7 +77,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   const [aSlug, setASlug] = useState(""); // materi optional
   const [aContent, setAContent] = useState(""); // materi
   const [aDescription, setADescription] = useState(""); // kuis
-  const [aSubMateriId, setASubMateriId] = useState(""); // kuis sub materi
+  const [aSubMateriId, setASubMateriId] = useState(""); // kuis sub materi - REQUIRED
   const [aTimeLimit, setATimeLimit] = useState<string>("30"); // kuis time limit in minutes
   const [aPassingScore, setAPassingScore] = useState<string>("70"); // kuis passing score
   const [aSubmitting, setASubmitting] = useState(false);
@@ -86,7 +88,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   const [eSlug, setESlug] = useState(""); // materi optional
   const [eContent, setEContent] = useState(""); // materi
   const [eDescription, setEDescription] = useState(""); // kuis
-  const [eSubMateriId, setESubMateriId] = useState(""); // kuis sub materi
+  const [eSubMateriId, setESubMateriId] = useState(""); // kuis sub materi - REQUIRED
   const [eTimeLimit, setETimeLimit] = useState<string>(""); // kuis time limit in seconds
   const [ePassingScore, setEPassingScore] = useState<string>(""); // kuis passing score
   const [eSubmitting, setESubmitting] = useState(false);
@@ -266,9 +268,16 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     }
 
     // Filter quizzes that belong to materials in this module
-    const moduleQuizzes = allQuizzes.filter(quiz => {
+    let moduleQuizzes = allQuizzes.filter(quiz => {
       return materialIds.size === 0 || materialIds.has(String(quiz.sub_materi_id));
     });
+
+    // If filterByMaterialId is provided, filter further to only show quiz for that material
+    if (filterByMaterialId) {
+      moduleQuizzes = moduleQuizzes.filter(quiz => {
+        return String(quiz.sub_materi_id) === String(filterByMaterialId);
+      });
+    }
 
     // Map quiz data to UI rows - fetch question count for each quiz
     const mapped: ModuleItemRow[] = await Promise.all(
@@ -326,38 +335,61 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     return true;
   }, [moduleId, storageKey]);
 
-  // Load sub-materi options for quiz dropdown - get materials from current module
+  // Load sub-materi options for quiz dropdown - get sub-materis with poin details
   useEffect(() => {
-    if (resource === "kuis") {
+    if (resource === "kuis" && moduleId) {
       const loadSubMateriOptions = async () => {
         try {
-          // Get materials from the current module to use as sub-materi options
-          const res = await materialsAPI.list({
-            module_id: moduleId,
-            limit: 100 // Get all materials in module
-          });
+          console.log('[ModuleItemsPage] Loading sub-materi options for module:', moduleId);
+          
+          // Use module detail endpoint to get all sub-materis (same as test-user-flow)
+          const res = await modulesAPI.get(moduleId);
 
-          if (res.ok && res.data.items) {
-            // Transform material data to match SubMateriOption interface
-            const options = res.data.items.map((material: MaterialRecord) => ({
-              id: material.id,
-              title: material.title,
-              module_title: currentModuleName || `Module ${moduleId}`,
-              display_title: `${currentModuleName || `Module ${moduleId}`} - ${material.title}`
-            }));
-            setSubMateriOptions(options);
+          console.log('[ModuleItemsPage] Module detail response:', res);
+
+          if (res.ok && res.data) {
+            // Get sub-materis from module detail (supports both snake_case and camelCase)
+            const subMateris = res.data.sub_materis || res.data.subMateris || [];
+            
+            console.log('[ModuleItemsPage] Found sub-materis:', subMateris.length);
+
+            // Fetch poin details for each sub materi to show count
+            const optionsWithPoinCount = await Promise.all(
+              subMateris.map(async (subMateri: any) => {
+                let poinCount = 0;
+                try {
+                  const materiDetail = await materialsAPI.get(subMateri.id);
+                  if (materiDetail.ok && materiDetail.data.poin_details) {
+                    poinCount = materiDetail.data.poin_details.length;
+                  }
+                } catch (error) {
+                  console.warn(`Failed to fetch poin count for ${subMateri.id}:`, error);
+                }
+
+                return {
+                  id: subMateri.id,
+                  title: subMateri.title,
+                  module_title: res.data.title || currentModuleName || `Module ${moduleId}`,
+                  display_title: `${subMateri.title}${poinCount > 0 ? ` (${poinCount} poin)` : ''}`,
+                  poin_count: poinCount
+                };
+              })
+            );
+            
+            setSubMateriOptions(optionsWithPoinCount);
+            console.log('[ModuleItemsPage] Sub-materi options set:', optionsWithPoinCount);
           } else {
-            console.warn('Failed to load materials for module:', res);
+            console.warn('[ModuleItemsPage] Failed to load module detail. Response:', res);
             setSubMateriOptions([]);
           }
         } catch (error) {
-          console.error('Failed to load sub-materi options:', error);
-          setSubMateriOptions([]); // Set empty array on error
+          console.error('[ModuleItemsPage] Error loading sub-materi options:', error);
+          setSubMateriOptions([]);
         }
       };
       loadSubMateriOptions();
     }
-  }, [resource, moduleId, currentModuleName]);
+  }, [resource, moduleId, currentModuleName, showAdd, showEdit]); // Re-run when form is opened
 
   // Load data from backend for both materi and kuis
   useEffect(() => {
@@ -801,6 +833,16 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         }
       }
 
+      // Validasi Sub Materi wajib dipilih
+      if (!aSubMateriId || aSubMateriId.trim() === '') {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Sub-Materi Wajib',
+          text: 'Silakan pilih sub-materi untuk kuis ini'
+        });
+        return;
+      }
+
       const timeLimitSeconds = parseInt(aTimeLimit) * 60; // convert minutes to seconds
       const passingScoreNum = parseInt(aPassingScore);
 
@@ -817,8 +859,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       try {
         // 1. Buat kuis terlebih dahulu
         const payload = {
-          module_id: moduleId, // Required by backend
-          sub_materi_id: aSubMateriId || undefined,
+          module_id: moduleId,
+          sub_materi_id: aSubMateriId, // Wajib untuk kuis per sub-materi
           title: titleVal,
           description: aDescription || undefined,
           time_limit_seconds: timeLimitSeconds,
@@ -972,11 +1014,11 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     }
 
     // Kuis: validate required fields
-    if (!eSubMateriId) {
+    if (!eSubMateriId || eSubMateriId.trim() === '') {
       await Swal.fire({
         icon: 'warning',
-        title: 'Peringatan',
-        text: 'Sub materi harus dipilih'
+        title: 'Sub-Materi Wajib',
+        text: 'Sub-materi harus dipilih untuk kuis'
       });
       return;
     }
@@ -1005,10 +1047,10 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     // Kuis: update via backend API
     setESubmitting(true);
     const payload = {
-      sub_materi_id: eSubMateriId,
+      sub_materi_id: eSubMateriId, // Wajib untuk kuis per sub-materi
       title: titleVal,
       description: eDescription || undefined,
-      time_limit_seconds: eTimeLimit ? timeLimitMinutes * 60 : undefined, // convert minutes to seconds
+      time_limit_seconds: eTimeLimit ? timeLimitMinutes * 60 : undefined,
       passing_score: ePassingScore ? passingScoreNum : undefined,
       published: ePublished,
     };
@@ -1200,24 +1242,32 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sub Materi (Opsional)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Sub-Materi untuk Kuis * <span className="text-red-500">(Wajib)</span>
+                  </label>
                   <select
                     value={aSubMateriId}
                     onChange={(e) => setASubMateriId(e.target.value)}
                     className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
                   >
-                    <option value="">Pilih Sub Materi (Opsional)</option>
+                    <option value="">-- Pilih Sub-Materi --</option>
                     {(Array.isArray(subMateriOptions) ? subMateriOptions : []).map((option) => (
                       <option key={option.id} value={option.id}>
-                        {option.title}
+                        {option.display_title}
                       </option>
                     ))}
-                    {subMateriOptions.length === 0 && (
-                      <option value="" disabled>
-                        Tidak ada materi tersedia
-                      </option>
-                    )}
                   </select>
+                  {subMateriOptions.length === 0 && (
+                    <p className="text-sm text-red-600 mt-1">
+                      ⚠️ Belum ada sub-materi. Silakan buat sub-materi terlebih dahulu.
+                    </p>
+                  )}
+                  {subMateriOptions.length > 0 && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      ✓ Tersedia {subMateriOptions.length} sub-materi untuk modul ini
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1500,22 +1550,24 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Sub Materi *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Sub-Materi untuk Kuis * <span className="text-red-500">(Wajib)</span>
+                </label>
                 <select
                   value={eSubMateriId}
                   onChange={(e) => setESubMateriId(e.target.value)}
                   className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="">Pilih Sub Materi</option>
+                  <option value="">-- Pilih Sub-Materi --</option>
                   {(Array.isArray(subMateriOptions) ? subMateriOptions : []).map((option) => (
                     <option key={option.id} value={option.id}>
-                      {option.title}
+                      {option.display_title}
                     </option>
                   ))}
                   {subMateriOptions.length === 0 && (
                     <option value="" disabled>
-                      Tidak ada materi tersedia
+                      Tidak ada sub-materi tersedia
                     </option>
                   )}
                 </select>

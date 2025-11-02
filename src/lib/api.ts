@@ -331,6 +331,12 @@ export const modulesAPI = {
     });
   },
 
+  get: async (id: string | number) => {
+    return apiFetch<any>(`/api/v1/modules/${encodeURIComponent(String(id))}`, {
+      method: "GET",
+    });
+  },
+
   create: async (payload: {
     title: string;
     description?: string;
@@ -651,7 +657,9 @@ export const poinsAPI = {
 
 export interface Quiz {
   id: string | number;
-  sub_materi_id: string | number;
+  module_id: string | number;
+  sub_materi_id?: string | number; // Now optional
+  quiz_type?: 'module' | 'sub_materi';
   title: string;
   description?: string;
   time_limit_seconds?: number;
@@ -719,6 +727,13 @@ export const quizzesAPI = {
   get: async (id: string | number) => {
     return apiFetch<Quiz>(
       `/api/v1/admin/quizzes/${encodeURIComponent(String(id))}`,
+      { method: "GET" }
+    );
+  },
+
+  getByMaterial: async (materialId: string | number) => {
+    return apiFetch<Quiz>(
+      `/api/v1/materials/${encodeURIComponent(String(materialId))}/quiz`,
       { method: "GET" }
     );
   },

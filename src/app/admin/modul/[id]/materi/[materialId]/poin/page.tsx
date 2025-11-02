@@ -14,8 +14,8 @@ export default function NestedMaterialPoinPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-red-500">
             <h2 className="text-lg font-semibold mb-2">Parameter Tidak Valid</h2>
-            <p>Module ID: {moduleId || 'Missing'}</p>
-            <p>Material ID: {materialId || 'Missing'}</p>
+            <p>Module ID: {moduleId || "Missing"}</p>
+            <p>Material ID: {materialId || "Missing"}</p>
           </div>
         </div>
       </div>
@@ -23,7 +23,8 @@ export default function NestedMaterialPoinPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Poin Management */}
       <MaterialPoinManager materialId={materialId} />
     </div>
   );

@@ -184,13 +184,10 @@ export default function MaterialPoinManager({
           return `<div data-block-id="${block.id}" data-block-type="text" data-block-order="${block.order}">${contentHtml}</div>`;
         } else if (block.type === "media") {
           // Create placeholder for media that will be replaced during preview
-          return `<div data-block-id="${
-            block.id
-          }" data-block-type="media" data-block-order="${
-            block.order
-          }" data-media-caption="${
-            block.caption || ""
-          }" class="media-placeholder">[MEDIA_PLACEHOLDER_${block.id}]</div>`;
+          return `<div data-block-id="${block.id
+            }" data-block-type="media" data-block-order="${block.order
+            }" data-media-caption="${block.caption || ""
+            }" class="media-placeholder">[MEDIA_PLACEHOLDER_${block.id}]</div>`;
         }
         return "";
       })
@@ -959,9 +956,57 @@ export default function MaterialPoinManager({
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Memuat materi...</div>
+      <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6 animate-pulse">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+              <div className="flex-1">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 animate-pulse">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-7 bg-gray-200 rounded w-48"></div>
+              <div className="h-10 bg-gray-200 rounded w-32"></div>
+            </div>
+
+            {/* Poin Items Skeleton */}
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="h-5 bg-gray-200 rounded w-2/3 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                      <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Loading Indicator */}
+          <div className="fixed bottom-8 right-8 bg-white rounded-full shadow-lg px-6 py-3 flex items-center gap-3 border border-gray-200">
+            <div className="relative w-5 h-5">
+              <div className="absolute inset-0 border-3 border-blue-200 rounded-full"></div>
+              <div className="absolute inset-0 border-3 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <span className="text-sm font-medium text-gray-700">Memuat materi...</span>
+          </div>
         </div>
       </div>
     );
@@ -969,9 +1014,17 @@ export default function MaterialPoinManager({
 
   if (!material) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
         <div className="flex items-center justify-center h-64">
-          <div className="text-red-500">Materi tidak ditemukan</div>
+          <div className="bg-white rounded-xl p-8 shadow-lg border border-red-200 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Materi Tidak Ditemukan</h3>
+            <p className="text-gray-600">Materi yang Anda cari tidak tersedia atau telah dihapus</p>
+          </div>
         </div>
       </div>
     );
@@ -1035,21 +1088,19 @@ export default function MaterialPoinManager({
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab("manage")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === "manage"
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "manage"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+                }`}
             >
               Kelola Poin
             </button>
             <button
               onClick={() => setActiveTab("preview")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === "preview"
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "preview"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+                }`}
             >
               Preview Materi
               {poins.length > 0 && (
@@ -1096,49 +1147,49 @@ export default function MaterialPoinManager({
                 </h2>
 
                 <div className="space-y-4 text-black">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Judul Poin *
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Masukkan judul poin..."
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Label Durasi
+                      Judul Poin *
                     </label>
                     <input
                       type="text"
-                      value={durationLabel}
-                      onChange={(e) => setDurationLabel(e.target.value)}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="contoh: Bacaan 5 menit"
+                      placeholder="Masukkan judul poin..."
+                      required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Durasi (menit)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={durationMinutes}
-                      onChange={(e) => setDurationMinutes(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Estimasi menit"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Label Durasi
+                      </label>
+                      <input
+                        type="text"
+                        value={durationLabel}
+                        onChange={(e) => setDurationLabel(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="contoh: Bacaan 5 menit"
+                      />
+                    </div>
 
-                  {/* <div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Durasi (menit)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={durationMinutes}
+                        onChange={(e) => setDurationMinutes(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Estimasi menit"
+                      />
+                    </div>
+
+                    {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Upload Media <span className="text-xs text-gray-500">(Max 10 files, 50MB per file)</span>
                     </label>
@@ -1153,417 +1204,417 @@ export default function MaterialPoinManager({
                       Supported: Images (JPEG, PNG, GIF, WebP), Videos (MP4, WebM, OGG, AVI, MOV), Audio (all formats), PDF
                     </div>
                   </div> */}
-                </div>
+                  </div>
 
-                {/* Existing Media (for Edit mode) */}
-                {editingPoin && existingMedia.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Media yang Sudah Ada
-                    </label>
+                  {/* Existing Media (for Edit mode) */}
+                  {editingPoin && existingMedia.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Media yang Sudah Ada
+                      </label>
 
-                    {/* Debug Information */}
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <details className="text-xs text-blue-800">
-                        <summary className="cursor-pointer font-medium">
-                          🔍 Debug Info (klik untuk expand)
-                        </summary>
-                        <div className="mt-2 space-y-2">
-                          <p>
-                            <strong>Media Count:</strong> {existingMedia.length}
-                          </p>
-                          {existingMedia.map((media, idx) => (
-                            <div
-                              key={media.id}
-                              className="p-2 bg-white rounded border"
-                            >
-                              <p>
-                                <strong>Media #{idx + 1}:</strong>
-                              </p>
-                              <p>
-                                <strong>ID:</strong> {media.id}
-                              </p>
-                              <p>
-                                <strong>Filename:</strong>{" "}
-                                {media.original_filename}
-                              </p>
-                              <p>
-                                <strong>MIME:</strong> {media.mime_type}
-                              </p>
-                              <p>
-                                <strong>Size:</strong>{" "}
-                                {media.file_size
-                                  ? `${(media.file_size / 1024 / 1024).toFixed(
+                      {/* Debug Information */}
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <details className="text-xs text-blue-800">
+                          <summary className="cursor-pointer font-medium">
+                            🔍 Debug Info (klik untuk expand)
+                          </summary>
+                          <div className="mt-2 space-y-2">
+                            <p>
+                              <strong>Media Count:</strong> {existingMedia.length}
+                            </p>
+                            {existingMedia.map((media, idx) => (
+                              <div
+                                key={media.id}
+                                className="p-2 bg-white rounded border"
+                              >
+                                <p>
+                                  <strong>Media #{idx + 1}:</strong>
+                                </p>
+                                <p>
+                                  <strong>ID:</strong> {media.id}
+                                </p>
+                                <p>
+                                  <strong>Filename:</strong>{" "}
+                                  {media.original_filename}
+                                </p>
+                                <p>
+                                  <strong>MIME:</strong> {media.mime_type}
+                                </p>
+                                <p>
+                                  <strong>Size:</strong>{" "}
+                                  {media.file_size
+                                    ? `${(media.file_size / 1024 / 1024).toFixed(
                                       2
                                     )} MB`
-                                  : "Unknown"}
-                              </p>
-                              <p>
-                                <strong>URL:</strong>
-                                <a
-                                  href={media.file_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline break-all"
-                                >
-                                  {media.file_url}
-                                </a>
-                                {media.file_url && (
-                                  <span className="ml-2">
-                                    <button
-                                      onClick={() => {
-                                        const testImg =
-                                          document.createElement("img");
-                                        testImg.onload = () => {
-                                          /* URL test success */
-                                        };
-                                        testImg.onerror = () => {
-                                          /* URL test failed */
-                                        };
-                                        testImg.src = media.file_url;
-                                      }}
-                                      className="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
-                                    >
-                                      Test URL
-                                    </button>
-                                  </span>
-                                )}
-                              </p>
-                              <p>
-                                <strong>Caption:</strong>{" "}
-                                {media.caption || "No caption"}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    </div>
-                    <div className="space-y-4">
-                      {existingMedia.map((media) => (
-                        <div
-                          key={media.id}
-                          className="p-4 bg-amber-50 rounded-lg border border-amber-200"
-                        >
-                          <div className="flex items-start gap-4">
-                            {/* Preview Media */}
-                            <div className="flex-shrink-0">
-                              {media.mime_type?.startsWith("image/") &&
-                              !imageErrors.has(media.id) ? (
-                                <Image
-                                  src={media.file_url}
-                                  alt={media.caption || media.original_filename}
-                                  width={80}
-                                  height={80}
-                                  className="w-20 h-20 object-cover rounded-lg border border-gray-300"
-                                  unoptimized
-                                  onError={(e) => {
-                                    console.error("Image load error:", {
-                                      media_id: media.id,
-                                      file_url: media.file_url,
-                                      mime_type: media.mime_type,
-                                      original_filename:
-                                        media.original_filename,
-                                      error: e,
-                                    });
-                                    setImageErrors((prev) =>
-                                      new Set(prev).add(media.id)
-                                    );
-                                  }}
-                                  onLoad={() => {
-                                    setImageErrors((prev) => {
-                                      const newSet = new Set(prev);
-                                      newSet.delete(media.id);
-                                      return newSet;
-                                    });
-                                  }}
-                                />
-                              ) : media.mime_type?.startsWith("image/") &&
-                                imageErrors.has(media.id) ? (
-                                <div className="w-20 h-20 bg-red-100 border border-red-200 rounded-lg flex flex-col items-center justify-center p-1">
-                                  <ImageIcon className="w-4 h-4 text-red-600 mb-1" />
+                                    : "Unknown"}
+                                </p>
+                                <p>
+                                  <strong>URL:</strong>
                                   <a
                                     href={media.file_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-red-600 hover:text-red-800 text-center leading-tight"
+                                    className="text-blue-600 hover:underline break-all"
                                   >
-                                    URL Error
+                                    {media.file_url}
                                   </a>
-                                </div>
-                              ) : (
-                                <div className="w-20 h-20 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center">
-                                  {media.mime_type?.startsWith("video/") ? (
-                                    <Video className="w-6 h-6 text-purple-600" />
-                                  ) : media.mime_type?.startsWith("audio/") ? (
-                                    <FileText className="w-6 h-6 text-blue-600" />
-                                  ) : media.mime_type === "application/pdf" ? (
-                                    <FileText className="w-6 h-6 text-red-600" />
-                                  ) : (
-                                    <FileText className="w-6 h-6 text-gray-600" />
+                                  {media.file_url && (
+                                    <span className="ml-2">
+                                      <button
+                                        onClick={() => {
+                                          const testImg =
+                                            document.createElement("img");
+                                          testImg.onload = () => {
+                                            /* URL test success */
+                                          };
+                                          testImg.onerror = () => {
+                                            /* URL test failed */
+                                          };
+                                          testImg.src = media.file_url;
+                                        }}
+                                        className="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
+                                      >
+                                        Test URL
+                                      </button>
+                                    </span>
                                   )}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Media Info & Caption */}
-                            <div className="flex-1 space-y-2">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  {media.original_filename}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {media.mime_type?.startsWith("image/")
-                                    ? "Gambar"
-                                    : media.mime_type?.startsWith("video/")
-                                    ? "Video"
-                                    : media.mime_type?.startsWith("audio/")
-                                    ? "Audio"
-                                    : media.mime_type === "application/pdf"
-                                    ? "PDF"
-                                    : "File"}{" "}
-                                  •
-                                  {media.file_size
-                                    ? ` ${(
+                                <p>
+                                  <strong>Caption:</strong>{" "}
+                                  {media.caption || "No caption"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                      <div className="space-y-4">
+                        {existingMedia.map((media) => (
+                          <div
+                            key={media.id}
+                            className="p-4 bg-amber-50 rounded-lg border border-amber-200"
+                          >
+                            <div className="flex items-start gap-4">
+                              {/* Preview Media */}
+                              <div className="flex-shrink-0">
+                                {media.mime_type?.startsWith("image/") &&
+                                  !imageErrors.has(media.id) ? (
+                                  <Image
+                                    src={media.file_url}
+                                    alt={media.caption || media.original_filename}
+                                    width={80}
+                                    height={80}
+                                    className="w-20 h-20 object-cover rounded-lg border border-gray-300"
+                                    unoptimized
+                                    onError={(e) => {
+                                      console.error("Image load error:", {
+                                        media_id: media.id,
+                                        file_url: media.file_url,
+                                        mime_type: media.mime_type,
+                                        original_filename:
+                                          media.original_filename,
+                                        error: e,
+                                      });
+                                      setImageErrors((prev) =>
+                                        new Set(prev).add(media.id)
+                                      );
+                                    }}
+                                    onLoad={() => {
+                                      setImageErrors((prev) => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(media.id);
+                                        return newSet;
+                                      });
+                                    }}
+                                  />
+                                ) : media.mime_type?.startsWith("image/") &&
+                                  imageErrors.has(media.id) ? (
+                                  <div className="w-20 h-20 bg-red-100 border border-red-200 rounded-lg flex flex-col items-center justify-center p-1">
+                                    <ImageIcon className="w-4 h-4 text-red-600 mb-1" />
+                                    <a
+                                      href={media.file_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-red-600 hover:text-red-800 text-center leading-tight"
+                                    >
+                                      URL Error
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <div className="w-20 h-20 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center">
+                                    {media.mime_type?.startsWith("video/") ? (
+                                      <Video className="w-6 h-6 text-purple-600" />
+                                    ) : media.mime_type?.startsWith("audio/") ? (
+                                      <FileText className="w-6 h-6 text-blue-600" />
+                                    ) : media.mime_type === "application/pdf" ? (
+                                      <FileText className="w-6 h-6 text-red-600" />
+                                    ) : (
+                                      <FileText className="w-6 h-6 text-gray-600" />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Media Info & Caption */}
+                              <div className="flex-1 space-y-2">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {media.original_filename}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {media.mime_type?.startsWith("image/")
+                                      ? "Gambar"
+                                      : media.mime_type?.startsWith("video/")
+                                        ? "Video"
+                                        : media.mime_type?.startsWith("audio/")
+                                          ? "Audio"
+                                          : media.mime_type === "application/pdf"
+                                            ? "PDF"
+                                            : "File"}{" "}
+                                    •
+                                    {media.file_size
+                                      ? ` ${(
                                         media.file_size /
                                         1024 /
                                         1024
                                       ).toFixed(2)} MB`
-                                    : " Unknown size"}
-                                </p>
+                                      : " Unknown size"}
+                                  </p>
+                                </div>
+
+                                {/* Caption Input */}
+                                <div>
+                                  <input
+                                    type="text"
+                                    value={media.caption || ""}
+                                    onChange={(e) =>
+                                      updateExistingMediaCaption(
+                                        media.id,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Edit caption untuk media ini..."
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  />
+                                </div>
                               </div>
 
-                              {/* Caption Input */}
-                              <div>
-                                <input
-                                  type="text"
-                                  value={media.caption || ""}
-                                  onChange={(e) =>
-                                    updateExistingMediaCaption(
-                                      media.id,
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Edit caption untuk media ini..."
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              {/* Delete Button */}
+                              <button
+                                type="button"
+                                onClick={() => markMediaForDeletion(media.id)}
+                                className="flex-shrink-0 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Hapus media"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Existing Media Tips */}
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-xs text-amber-700">
+                          📝 <strong>Media yang Ada:</strong> Edit caption atau
+                          hapus media yang tidak diperlukan. Perubahan akan
+                          disimpan saat Anda menekan &quot;Perbarui Poin&quot;.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Block Editor */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Konten Poin *
+                    </label>
+
+                    {/* Add Block Buttons */}
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={addTextBlock}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                          />
+                        </svg>
+                        Add Text
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addMediaBlock}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-md text-sm font-medium transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Add Media
+                      </button>
+                    </div>
+
+                    {/* Content Blocks */}
+                    <div className="space-y-4 border border-gray-200 rounded-lg p-4 min-h-[200px] bg-gray-50">
+                      {contentBlocks.map((block, index) => (
+                        <div key={block.id} className="group relative bg-white rounded-lg">
+                          {block.type === "text" ? (
+                            <div className="relative">
+                              <div className="flex items-center justify-between mb-2 px-4 pt-4">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-blue-600" />
+                                  <span className="text-sm font-medium text-gray-700">
+                                    Teks
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeBlock(block.id)}
+                                  className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
+                                  title="Hapus blok"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="px-4 pb-4">
+                                <RichTextEditor
+                                  value={block.content || ""}
+                                  onChange={(value) => updateTextBlock(block.id, value)}
+                                  placeholder="Tulis konten di sini..."
                                 />
                               </div>
                             </div>
+                          ) : (
+                            <div className="p-4">
+                              <MediaBlockEditor
+                                file={block.file}
+                                preview={block.preview}
+                                caption={block.caption}
+                                alignment={block.alignment || "center"}
+                                size={block.size || "medium"}
+                                onFileChange={(file) => updateMediaBlock(block.id, file)}
+                                onCaptionChange={(caption) => {
+                                  setContentBlocks((blocks) =>
+                                    blocks.map((b) =>
+                                      b.id === block.id ? { ...b, caption } : b
+                                    )
+                                  );
+                                }}
+                                onAlignmentChange={(alignment) => {
+                                  setContentBlocks((blocks) =>
+                                    blocks.map((b) =>
+                                      b.id === block.id ? { ...b, alignment } : b
+                                    )
+                                  );
+                                }}
+                                onSizeChange={(size) => {
+                                  setContentBlocks((blocks) =>
+                                    blocks.map((b) =>
+                                      b.id === block.id ? { ...b, size } : b
+                                    )
+                                  );
+                                }}
+                                onRemove={() => removeBlock(block.id)}
+                              />
+                            </div>
+                          )}
 
-                            {/* Delete Button */}
-                            <button
-                              type="button"
-                              onClick={() => markMediaForDeletion(media.id)}
-                              className="flex-shrink-0 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Hapus media"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          {/* Block Controls */}
+                          <div className="absolute -right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <div className="flex flex-col gap-1 bg-white border border-gray-300 rounded-lg shadow-lg p-1">
+                              {index > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => moveBlock(block.id, "up")}
+                                  className="p-2 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded transition-colors"
+                                  title="Pindah ke atas"
+                                >
+                                  <MoveUp className="w-4 h-4" />
+                                </button>
+                              )}
+                              {index < contentBlocks.length - 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => moveBlock(block.id, "down")}
+                                  className="p-2 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded transition-colors"
+                                  title="Pindah ke bawah"
+                                >
+                                  <MoveDown className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
-                    </div>
 
-                    {/* Existing Media Tips */}
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-xs text-amber-700">
-                        📝 <strong>Media yang Ada:</strong> Edit caption atau
-                        hapus media yang tidak diperlukan. Perubahan akan
-                        disimpan saat Anda menekan &quot;Perbarui Poin&quot;.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Block Editor */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Konten Poin *
-                  </label>
-
-                  {/* Add Block Buttons */}
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={addTextBlock}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition-colors"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                        />
-                      </svg>
-                      Add Text
-                    </button>
-                    <button
-                      type="button"
-                      onClick={addMediaBlock}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-md text-sm font-medium transition-colors"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Add Media
-                    </button>
-                  </div>
-
-                  {/* Content Blocks */}
-                  <div className="space-y-4 border border-gray-200 rounded-lg p-4 min-h-[200px] bg-gray-50">
-                    {contentBlocks.map((block, index) => (
-                      <div key={block.id} className="group relative bg-white rounded-lg">
-                        {block.type === "text" ? (
-                          <div className="relative">
-                            <div className="flex items-center justify-between mb-2 px-4 pt-4">
-                              <div className="flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-blue-600" />
-                                <span className="text-sm font-medium text-gray-700">
-                                  Teks
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeBlock(block.id)}
-                                className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
-                                title="Hapus blok"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <div className="px-4 pb-4">
-                              <RichTextEditor
-                                value={block.content || ""}
-                                onChange={(value) => updateTextBlock(block.id, value)}
-                                placeholder="Tulis konten di sini..."
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-4">
-                            <MediaBlockEditor
-                              file={block.file}
-                              preview={block.preview}
-                              caption={block.caption}
-                              alignment={block.alignment || "center"}
-                              size={block.size || "medium"}
-                              onFileChange={(file) => updateMediaBlock(block.id, file)}
-                              onCaptionChange={(caption) => {
-                                setContentBlocks((blocks) =>
-                                  blocks.map((b) =>
-                                    b.id === block.id ? { ...b, caption } : b
-                                  )
-                                );
-                              }}
-                              onAlignmentChange={(alignment) => {
-                                setContentBlocks((blocks) =>
-                                  blocks.map((b) =>
-                                    b.id === block.id ? { ...b, alignment } : b
-                                  )
-                                );
-                              }}
-                              onSizeChange={(size) => {
-                                setContentBlocks((blocks) =>
-                                  blocks.map((b) =>
-                                    b.id === block.id ? { ...b, size } : b
-                                  )
-                                );
-                              }}
-                              onRemove={() => removeBlock(block.id)}
-                            />
-                          </div>
-                        )}
-
-                        {/* Block Controls */}
-                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <div className="flex flex-col gap-1 bg-white border border-gray-300 rounded-lg shadow-lg p-1">
-                            {index > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => moveBlock(block.id, "up")}
-                                className="p-2 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded transition-colors"
-                                title="Pindah ke atas"
-                              >
-                                <MoveUp className="w-4 h-4" />
-                              </button>
-                            )}
-                            {index < contentBlocks.length - 1 && (
-                              <button
-                                type="button"
-                                onClick={() => moveBlock(block.id, "down")}
-                                className="p-2 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded transition-colors"
-                                title="Pindah ke bawah"
-                              >
-                                <MoveDown className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
+                      {contentBlocks.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>No content blocks yet.</p>
+                          <p className="text-sm">
+                            Click &ldquo;Add Text&rdquo; or &ldquo;Add
+                            Media&rdquo; to start creating content.
+                          </p>
                         </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
 
-                    {contentBlocks.length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>No content blocks yet.</p>
-                        <p className="text-sm">
-                          Click &ldquo;Add Text&rdquo; or &ldquo;Add
-                          Media&rdquo; to start creating content.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-2 text-xs text-gray-500">
-                    Use the block editor to create content with mixed text and
-                    media. Order will be preserved in the final display.
+                    <div className="mt-2 text-xs text-gray-500">
+                      Use the block editor to create content with mixed text and
+                      media. Order will be preserved in the final display.
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-3 mt-6">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition-colors disabled:opacity-60"
-                >
-                  {submitting
-                    ? getBlockMediaFiles().length > 0
-                      ? `Mengupload ${getBlockMediaFiles().length} file...`
-                      : "Menyimpan..."
-                    : editingPoin
-                    ? "Perbarui Poin"
-                    : "Simpan Poin"}
-                </button>
-                <button
-                  type="button"
-                  onClick={
-                    editingPoin
-                      ? handleCancelEdit
-                      : () => {
+                <div className="flex items-center gap-3 mt-6">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition-colors disabled:opacity-60"
+                  >
+                    {submitting
+                      ? getBlockMediaFiles().length > 0
+                        ? `Mengupload ${getBlockMediaFiles().length} file...`
+                        : "Menyimpan..."
+                      : editingPoin
+                        ? "Perbarui Poin"
+                        : "Simpan Poin"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={
+                      editingPoin
+                        ? handleCancelEdit
+                        : () => {
                           resetForm();
                           setShowAddPoin(false);
                         }
-                  }
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow transition-colors"
-                >
-                  Batal
-                </button>
-              </div>
+                    }
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow transition-colors"
+                  >
+                    Batal
+                  </button>
+                </div>
               </form>
 
               {/* Live Preview Section */}
@@ -1632,7 +1683,7 @@ export default function MaterialPoinManager({
                                 .map((media) => (
                                   <div key={media.id} className="flex-shrink-0">
                                     {media.mime_type?.startsWith("image/") &&
-                                    !imageErrors.has(media.id) ? (
+                                      !imageErrors.has(media.id) ? (
                                       <Image
                                         src={media.file_url}
                                         alt={
@@ -1663,8 +1714,8 @@ export default function MaterialPoinManager({
                                         ) ? (
                                           <Video className="w-6 h-6 text-purple-600" />
                                         ) : media.mime_type?.startsWith(
-                                            "audio/"
-                                          ) ? (
+                                          "audio/"
+                                        ) ? (
                                           <FileText className="w-6 h-6 text-blue-600" />
                                         ) : media.mime_type ===
                                           "application/pdf" ? (
