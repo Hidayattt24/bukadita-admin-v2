@@ -1,7 +1,12 @@
 "use client";
 
-import ProgressMonitoringPage from "@/components/admin/ProgressMonitoringPage";
+import AdminLayout from "@/components/admin/AdminLayout";
+import ProgressMonitoringPageNew from "@/components/admin/ProgressMonitoringPageNew";
 
 export default function ProgressPage() {
-  return <ProgressMonitoringPage />;
+  return (
+    <AdminLayout>
+      <ProgressMonitoringPageNew />
+    </AdminLayout>
+  );
 }

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import AdminLayout from "@/components/admin/AdminLayout";
 import UserManagement from "@/components/admin/UserManagementPage";
 
 export default function KelolaPenggunaPage() {
@@ -39,5 +40,9 @@ export default function KelolaPenggunaPage() {
     );
   }
 
-  return <UserManagement />;
+  return (
+    <AdminLayout>
+      <UserManagement />
+    </AdminLayout>
+  );
 }

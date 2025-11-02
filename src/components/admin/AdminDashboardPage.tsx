@@ -14,6 +14,20 @@ import {
   PieChart
 } from "lucide-react";
 import { adminAPI } from "@/lib/api";
+import dynamic from "next/dynamic";
+
+// Dynamic import untuk charts (client-side only)
+const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  ),
+});
 
 interface Activity {
   id: string | number;
@@ -184,93 +198,71 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activities */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Aktivitas Terbaru</h2>
-            </div>
+      {/* Charts Section */}
+      {!loading && stats.module_completion_stats && stats.module_completion_stats.length > 0 && (
+        <div className="mb-6">
+          <DashboardCharts
+            moduleStats={stats.module_completion_stats}
+            recentActivities={stats.recent_activities || []}
+            stats={{
+              total_users: stats.total_users,
+              active_users_today: stats.active_users_today,
+              new_users_this_week: stats.new_users_this_week,
+              total_modules: stats.total_modules,
+              total_quizzes: stats.total_quizzes,
+              completed_quizzes_total: stats.completed_quizzes_total,
+              passed_quizzes_total: stats.passed_quizzes_total,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Recent Activities - Full Width */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Aktivitas Terbaru</h2>
           </div>
-          <div className="p-6">
-            {loading ? (
-              <div className="text-center py-8 text-gray-500">
-                <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full mx-auto mb-2"></div>
-                <p className="text-sm">Memuat aktivitas...</p>
-              </div>
-            ) : stats.recent_activities && stats.recent_activities.length > 0 ? (
-              <div className="space-y-4">
-                {stats.recent_activities.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className={`w-10 h-10 rounded-full ${activity.passed ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-purple-600'} flex items-center justify-center text-white font-semibold flex-shrink-0`}>
-                      {activity.user.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.user}</p>
-                      <p className="text-sm text-gray-600">
-                        {activity.action} • <span className={activity.passed ? "text-green-600" : "text-blue-600"}>{activity.category}</span>
-                        {activity.score !== undefined && (
-                          <span className="ml-1 text-gray-500">({Math.round(activity.score)}%)</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full mx-auto mb-2"></div>
+              <p className="text-sm">Memuat aktivitas...</p>
+            </div>
+          ) : stats.recent_activities && stats.recent_activities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stats.recent_activities.map((activity) => (
+                <div key={activity.id} className="flex items-start gap-4 p-4 border border-gray-200 hover:border-blue-300 rounded-lg transition-all hover:shadow-md">
+                  <div className={`w-10 h-10 rounded-full ${activity.passed ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-purple-600'} flex items-center justify-center text-white font-semibold flex-shrink-0`}>
+                    {activity.user.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{activity.user}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {activity.action}
+                    </p>
+                    <p className={`text-xs font-medium mt-1 ${activity.passed ? "text-green-600" : "text-blue-600"}`}>
+                      {activity.category}
+                      {activity.score !== undefined && (
+                        <span className="ml-1 text-gray-500">({Math.round(activity.score)}%)</span>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
                       <Clock className="w-3 h-3" />
                       {activity.relative_time}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Activity className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">Belum ada aktivitas terbaru</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Category Statistics */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <PieChart className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Pengguna per Kategori</h2>
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="p-6">
-            {stats?.module_completion_stats && stats.module_completion_stats.length > 0 ? (
-              <div className="space-y-4">
-                {stats.module_completion_stats.map((module, index) => (
-                  <div key={module.module_id} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-gray-700">{module.module_title}</span>
-                      <span className="font-semibold text-gray-900">{module.total_users_completed}/{module.total_users_started}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`${index % 4 === 0 ? 'bg-blue-500' : index % 4 === 1 ? 'bg-green-500' : index % 4 === 2 ? 'bg-purple-500' : 'bg-orange-500'} h-2 rounded-full transition-all duration-500`}
-                        style={{ width: `${module.completion_rate}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">Belum ada modul yang dipublikasikan</p>
-                <p className="text-xs mt-1">Tambahkan modul untuk melihat statistik</p>
-              </div>
-            )}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between text-sm font-semibold">
-                <span className="text-gray-700">Total Pengguna</span>
-                <span className="text-gray-900">{stats.total_users}</span>
-              </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Activity className="w-12 h-12 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Belum ada aktivitas terbaru</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
