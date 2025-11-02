@@ -155,8 +155,7 @@ export const authAPI = {
         const json = await res.json().catch(() => null);
         return {
           ok: false,
-          error:
-            json?.error || json?.message || `Logout gagal (${res.status})`,
+          error: json?.error || json?.message || `Logout gagal (${res.status})`,
         };
       }
       return { ok: true };
@@ -198,9 +197,12 @@ export const usersAPI = {
     if (params.limit) query.set("limit", String(params.limit));
     if (params.role) query.set("role", String(params.role));
     if (params.search) query.set("search", String(params.search));
-    return apiFetch<UsersListResponse>(`/api/v1/admin/users?${query.toString()}`, {
-      method: "GET",
-    });
+    return apiFetch<UsersListResponse>(
+      `/api/v1/admin/users?${query.toString()}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   create: async (payload: {
@@ -265,7 +267,8 @@ export const adminAPI = {
   dashboardStats: async () =>
     apiFetch(`/api/v1/admin/progress/stats`, { method: "GET" }),
 
-  systemStats: async () => apiFetch(`/api/v1/admin/progress/stats`, { method: "GET" }),
+  systemStats: async () =>
+    apiFetch(`/api/v1/admin/progress/stats`, { method: "GET" }),
 
   quizResults: async (
     params: {
@@ -343,10 +346,13 @@ export const modulesAPI = {
     id: string | number,
     payload: { title?: string; description?: string; published?: boolean }
   ) => {
-    return apiFetch<Module>(`/api/v1/modules/${encodeURIComponent(String(id))}`, {
-      method: "PUT",
-      body: payload,
-    });
+    return apiFetch<Module>(
+      `/api/v1/modules/${encodeURIComponent(String(id))}`,
+      {
+        method: "PUT",
+        body: payload,
+      }
+    );
   },
 
   remove: async (id: string | number) => {
@@ -360,6 +366,27 @@ export const modulesAPI = {
 // ============================================================================
 // MATERIALS (SUB-MATERIS) API
 // ============================================================================
+
+// Helper function to normalize Material response from backend
+function normalizeMaterialResponse<T extends Material | Material[]>(
+  data: any
+): T {
+  if (Array.isArray(data)) {
+    return data.map((item) => {
+      if (item.poinDetails && !item.poin_details) {
+        item.poin_details = item.poinDetails;
+        delete item.poinDetails;
+      }
+      return item;
+    }) as T;
+  } else if (data && typeof data === "object") {
+    if (data.poinDetails && !data.poin_details) {
+      data.poin_details = data.poinDetails;
+      delete data.poinDetails;
+    }
+  }
+  return data as T;
+}
 
 export interface Material {
   id: string | number;
@@ -381,21 +408,50 @@ export interface MaterialsListResponse {
 }
 
 export const materialsAPI = {
-  list: async (params: { module_id?: string | number; page?: number; limit?: number }) => {
+  list: async (params: {
+    module_id?: string | number;
+    page?: number;
+    limit?: number;
+  }) => {
     const query = new URLSearchParams();
     if (params.module_id) query.set("module_id", String(params.module_id));
     if (params.page) query.set("page", String(params.page));
     if (params.limit) query.set("limit", String(params.limit));
 
-    return apiFetch<MaterialsListResponse>(`/api/v1/materials?${query.toString()}`, {
-      method: "GET",
-    });
+    const response = await apiFetch<MaterialsListResponse>(
+      `/api/v1/materials?${query.toString()}`,
+      {
+        method: "GET",
+      }
+    );
+
+    // Normalize response
+    if (response.ok && response.data) {
+      if (response.data.items) {
+        response.data.items = normalizeMaterialResponse(response.data.items);
+      }
+      if (response.data.data) {
+        response.data.data = normalizeMaterialResponse(response.data.data);
+      }
+    }
+
+    return response;
   },
 
   get: async (id: string | number) => {
-    return apiFetch<Material>(`/api/v1/materials/${encodeURIComponent(String(id))}`, {
-      method: "GET",
-    });
+    const response = await apiFetch<Material>(
+      `/api/v1/materials/${encodeURIComponent(String(id))}`,
+      {
+        method: "GET",
+      }
+    );
+
+    // Normalize backend response: map poinDetails (camelCase) to poin_details (snake_case)
+    if (response.ok && response.data) {
+      response.data = normalizeMaterialResponse(response.data);
+    }
+
+    return response;
   },
 
   create: async (payload: {
@@ -404,8 +460,16 @@ export const materialsAPI = {
     module_id: string;
     slug?: string;
     published?: boolean;
-  }) =>
-    apiFetch<Material>(`/api/v1/materials`, { method: "POST", body: payload }),
+  }) => {
+    const response = await apiFetch<Material>(`/api/v1/materials`, {
+      method: "POST",
+      body: payload,
+    });
+    if (response.ok && response.data) {
+      response.data = normalizeMaterialResponse(response.data);
+    }
+    return response;
+  },
 
   update: async (
     id: string | number,
@@ -416,11 +480,19 @@ export const materialsAPI = {
       published?: boolean;
       module_id?: string;
     }
-  ) =>
-    apiFetch<Material>(`/api/v1/materials/${encodeURIComponent(String(id))}`, {
-      method: "PUT",
-      body: payload,
-    }),
+  ) => {
+    const response = await apiFetch<Material>(
+      `/api/v1/materials/${encodeURIComponent(String(id))}`,
+      {
+        method: "PUT",
+        body: payload,
+      }
+    );
+    if (response.ok && response.data) {
+      response.data = normalizeMaterialResponse(response.data);
+    }
+    return response;
+  },
 
   remove: async (id: string | number) =>
     apiFetch<{ ok: boolean }>(
@@ -462,15 +534,18 @@ export interface Poin {
 export const poinsAPI = {
   list: async (subMateriId: string | number) => {
     return apiFetch<{ items: Poin[] }>(
-      `/api/v1/materials/${encodeURIComponent(String(subMateriId))}/poins`,
+      `/api/v1/materials/${encodeURIComponent(String(subMateriId))}/points`,
       { method: "GET" }
     );
   },
 
   get: async (id: string | number) => {
-    return apiFetch<Poin>(`/api/v1/materials/poins/${encodeURIComponent(String(id))}`, {
-      method: "GET",
-    });
+    return apiFetch<Poin>(
+      `/api/v1/materials/points/${encodeURIComponent(String(id))}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   create: async (
@@ -483,13 +558,13 @@ export const poinsAPI = {
       duration_minutes?: number;
     }
   ) => {
-    return apiFetch<Poin>(
-      `/api/v1/materials/${encodeURIComponent(String(subMateriId))}/poins`,
-      {
-        method: "POST",
-        body: payload,
-      }
-    );
+    return apiFetch<Poin>(`/api/v1/materials/points`, {
+      method: "POST",
+      body: {
+        sub_materi_id: String(subMateriId),
+        ...payload,
+      },
+    });
   },
 
   update: async (
@@ -502,15 +577,18 @@ export const poinsAPI = {
       duration_minutes?: number;
     }
   ) => {
-    return apiFetch<Poin>(`/api/v1/materials/poins/${encodeURIComponent(String(id))}`, {
-      method: "PUT",
-      body: payload,
-    });
+    return apiFetch<Poin>(
+      `/api/v1/materials/points/${encodeURIComponent(String(id))}`,
+      {
+        method: "PUT",
+        body: payload,
+      }
+    );
   },
 
   remove: async (id: string | number) => {
     return apiFetch<{ ok: boolean }>(
-      `/api/v1/materials/poins/${encodeURIComponent(String(id))}`,
+      `/api/v1/materials/points/${encodeURIComponent(String(id))}`,
       { method: "DELETE" }
     );
   },
@@ -518,22 +596,26 @@ export const poinsAPI = {
   // Media management
   listMedia: async (poinId: string | number) => {
     return apiFetch<MediaItem[]>(
-      `/api/v1/materials/poins/${encodeURIComponent(String(poinId))}/media`,
+      `/api/v1/materials/points/${encodeURIComponent(String(poinId))}/media`,
       { method: "GET" }
     );
   },
 
-  uploadMedia: async (poinId: string | number, files: File[], captions?: string[]) => {
+  uploadMedia: async (
+    poinId: string | number,
+    files: File[],
+    captions?: string[]
+  ) => {
     const formData = new FormData();
     files.forEach((file, index) => {
-      formData.append("media", file);
+      formData.append("file", file); // Changed from "media" to "file" to match backend
       if (captions && captions[index]) {
         formData.append(`caption_${index}`, captions[index]);
       }
     });
 
     return apiFetch<MediaItem[]>(
-      `/api/v1/materials/poins/${encodeURIComponent(String(poinId))}/media`,
+      `/api/v1/materials/points/${encodeURIComponent(String(poinId))}/media`,
       {
         method: "POST",
         body: formData,
@@ -547,7 +629,7 @@ export const poinsAPI = {
     payload: { caption?: string; order_index?: number }
   ) => {
     return apiFetch<MediaItem>(
-      `/api/v1/materials/poins/media/${encodeURIComponent(String(mediaId))}`,
+      `/api/v1/materials/points/media/${encodeURIComponent(String(mediaId))}`,
       {
         method: "PUT",
         body: payload,
@@ -557,7 +639,7 @@ export const poinsAPI = {
 
   removeMedia: async (mediaId: string | number) => {
     return apiFetch<{ ok: boolean }>(
-      `/api/v1/materials/poins/media/${encodeURIComponent(String(mediaId))}`,
+      `/api/v1/materials/points/media/${encodeURIComponent(String(mediaId))}`,
       { method: "DELETE" }
     );
   },
@@ -627,10 +709,11 @@ export const quizzesAPI = {
     if (params.page) query.set("page", String(params.page));
     if (params.limit) query.set("limit", String(params.limit));
 
-    return apiFetch<{ items?: Quiz[]; quizzes?: Quiz[]; pagination?: PaginationMeta }>(
-      `/api/v1/admin/quizzes?${query.toString()}`,
-      { method: "GET" }
-    );
+    return apiFetch<{
+      items?: Quiz[];
+      quizzes?: Quiz[];
+      pagination?: PaginationMeta;
+    }>(`/api/v1/admin/quizzes?${query.toString()}`, { method: "GET" });
   },
 
   get: async (id: string | number) => {
@@ -664,10 +747,13 @@ export const quizzesAPI = {
       published?: boolean;
     }
   ) => {
-    return apiFetch<Quiz>(`/api/v1/admin/quizzes/${encodeURIComponent(String(id))}`, {
-      method: "PUT",
-      body: payload,
-    });
+    return apiFetch<Quiz>(
+      `/api/v1/admin/quizzes/${encodeURIComponent(String(id))}`,
+      {
+        method: "PUT",
+        body: payload,
+      }
+    );
   },
 
   remove: async (id: string | number) => {
@@ -708,7 +794,9 @@ export const quizzesAPI = {
     }
   ) => {
     return apiFetch<QuizQuestion>(
-      `/api/v1/admin/quizzes/questions/${encodeURIComponent(String(questionId))}`,
+      `/api/v1/admin/quizzes/questions/${encodeURIComponent(
+        String(questionId)
+      )}`,
       {
         method: "PUT",
         body: payload,
@@ -718,7 +806,9 @@ export const quizzesAPI = {
 
   removeQuestion: async (questionId: string | number) => {
     return apiFetch<{ ok: boolean }>(
-      `/api/v1/admin/quizzes/questions/${encodeURIComponent(String(questionId))}`,
+      `/api/v1/admin/quizzes/questions/${encodeURIComponent(
+        String(questionId)
+      )}`,
       { method: "DELETE" }
     );
   },
@@ -740,9 +830,12 @@ export const progressAPI = {
   },
 
   getModuleProgress: async (moduleId: string) => {
-    return apiFetch(`/api/v1/progress/modules/${encodeURIComponent(moduleId)}`, {
-      method: "GET",
-    });
+    return apiFetch(
+      `/api/v1/progress/modules/${encodeURIComponent(moduleId)}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   getSubMateriProgress: async (subMateriId: string) => {
@@ -754,4 +847,3 @@ export const progressAPI = {
     );
   },
 };
-

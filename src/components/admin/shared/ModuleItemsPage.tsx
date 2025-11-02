@@ -100,41 +100,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load poin with complete media data (same as MaterialPoinManager)
-  const loadPoinWithMedia = async (poinId: string | number) => {
-    try {
-      const { apiFetch } = await import('@/lib/api/client');
-
-      const res = await apiFetch<PoinDetailRecord>(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}`, {
-        method: "GET"
-      });
-
-      if (res.ok) {
-        // Backend now includes media by default, but if not present, get from direct endpoint
-        if (!res.data.poin_media || res.data.poin_media.length === 0) {
-          try {
-            const { apiFetch: apiFetch2 } = await import('@/lib/api/client');
-            const mediaRes = await apiFetch2<MediaItem[]>(`/api/v1/materials/poins/${encodeURIComponent(String(poinId))}/media`, {
-              method: "GET"
-            });
-
-            if (mediaRes.ok && mediaRes.data) {
-              res.data.poin_media = mediaRes.data;
-            }
-          } catch (mediaError) {
-            console.warn('Error fetching media:', mediaError);
-          }
-        }
-
-        return res.data;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error('Error in loadPoinWithMedia:', error);
-      return null;
-    }
-  };
+  // Backend doesn't have endpoint to get single poin, so we use data from material response
+  // This helper is no longer needed as backend returns complete data
 
   // Fetch module name if not provided
   useEffect(() => {
@@ -628,29 +595,14 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         }
       }
 
-      // Only fetch if we don't have complete data
+      // Fetch material with poin details
       try {
         const poinRes = await materialsAPI.get(row.id);
         if (poinRes.ok && poinRes.data.poin_details) {
-          // Only load media for poins that don't have it yet
-          const poinsWithMedia = await Promise.all(
-            poinRes.data.poin_details.map(async (poin) => {
-              // Check if this poin already has media
-              if (poin.poin_media && poin.poin_media.length > 0) {
-                return poin;
-              }
-
-              const poinWithMedia = await loadPoinWithMedia(poin.id);
-              if (poinWithMedia) {
-                return poinWithMedia;
-              }
-              return poin;
-            })
-          );
-
+          // Backend already returns complete data with media references
           const updatedRow = {
             ...row,
-            poinDetails: poinsWithMedia
+            poinDetails: poinRes.data.poin_details
           };
           setPreviewItem(updatedRow);
           setShowPreview(true);

@@ -32,3 +32,28 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Live Preview Content Styles */
+.preview-content p,
+.preview-content div,
+.preview-content span,
+.preview-content li,
+.preview-content h1,
+.preview-content h2,
+.preview-content h3,
+.preview-content h4,
+.preview-content h5,
+.preview-content h6,
+.preview-content strong,
+.preview-content em,
+.preview-content code {
+  color: #111827 !important;
+}
+
+.preview-content a {
+  color: #2563eb !important;
+}
+
+.preview-content a:hover {
+  color: #1d4ed8 !important;
+}

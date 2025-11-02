@@ -98,7 +98,12 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
   const generateMediaHtml = (media: MediaItem): string => {
     const mimeType = media.mime_type;
 
-    if (mimeType?.startsWith('image/')) {
+    // Handle both full mime types (image/png) and simple types (image)
+    const isImage = mimeType?.startsWith('image/') || mimeType === 'image';
+    const isVideo = mimeType?.startsWith('video/') || mimeType === 'video';
+    const isAudio = mimeType?.startsWith('audio/') || mimeType === 'audio';
+
+    if (isImage) {
       return `
         <div class="my-4">
           <div class="relative">
@@ -109,7 +114,7 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
               loading="lazy"
               style="display: none;"
               onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
-              onerror="this.style.display='none'; this.nextElementSibling.innerHTML='<div class=&quot;bg-gray-100 rounded-lg flex items-center justify-center h-32&quot;><div class=&quot;text-center text-gray-500&quot;><p class=&quot;text-sm&quot;>Gambar tidak dapat dimuat</p></div></div>';"
+              onerror="this.style.display='none'; this.nextElementSibling.innerHTML='<div class=&quot;bg-gray-100 rounded-lg flex items-center justify-center h-32&quot;><div class=&quot;text-center text-gray-900&quot;><p class=&quot;text-sm&quot;>Gambar tidak dapat dimuat</p></div></div>';"
             />
             <div class="bg-gray-50 rounded-lg flex items-center justify-center h-32">
               <div class="text-center text-gray-500">
@@ -123,7 +128,7 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
       `;
     }
 
-    if (mimeType?.startsWith('video/')) {
+    if (isVideo) {
       return `
         <div class="my-4">
           <video src="${media.file_url}" controls class="w-full max-w-3xl rounded-lg shadow-sm" preload="metadata">
@@ -134,7 +139,7 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
       `;
     }
 
-    if (mimeType?.startsWith('audio/')) {
+    if (isAudio) {
       return `
         <div class="my-4">
           <audio src="${media.file_url}" controls class="w-full max-w-md" preload="metadata">Browser tidak mendukung audio.</audio>
@@ -159,7 +164,12 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
   const renderMediaItem = (media: MediaItem) => {
     const mimeType = media.mime_type;
 
-    if (mimeType?.startsWith('image/')) {
+    // Handle both full mime types (image/png) and simple types (image)
+    const isImage = mimeType?.startsWith('image/') || mimeType === 'image';
+    const isVideo = mimeType?.startsWith('video/') || mimeType === 'video';
+    const isAudio = mimeType?.startsWith('audio/') || mimeType === 'audio';
+
+    if (isImage) {
       if (imageErrors.has(media.id)) {
         return (
           <div className="bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center h-32">
@@ -194,7 +204,7 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
       );
     }
 
-    if (mimeType?.startsWith('video/')) {
+    if (isVideo) {
       return (
         <div>
           <video src={media.file_url} controls className="w-full max-w-3xl rounded-lg shadow-sm" preload="metadata">
@@ -205,7 +215,7 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
       );
     }
 
-    if (mimeType?.startsWith('audio/')) {
+    if (isAudio) {
       return (
         <div>
           <audio src={media.file_url} controls className="w-full max-w-md" preload="metadata">Browser tidak mendukung audio.</audio>
@@ -250,7 +260,7 @@ export default function MaterialPreview({ poins, materialTitle }: MaterialPrevie
                 </div>
               </div>
 
-              <div className="prose prose-sm max-w-none text-gray-700">
+              <div className="prose prose-sm max-w-none preview-content">
                 {/* Always show processed HTML if it has meaningful content, otherwise use fallback */}
                 {processedHtml && processedHtml !== poin.content_html ? (
                   <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
