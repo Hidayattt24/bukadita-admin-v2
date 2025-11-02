@@ -28,7 +28,6 @@ import Image from "next/image";
 interface User extends Profile {
   address?: string;
   date_of_birth?: string;
-  profil_url?: string;
 }
 
 interface PaginationData {
@@ -67,8 +66,7 @@ export default function UserManagement() {
     role: "pengguna" as "pengguna" | "admin",
     password: "",
     address: "",
-    date_of_birth: "",
-    profil_url: ""
+    date_of_birth: ""
   });
 
   // Helpers: validation
@@ -105,13 +103,6 @@ export default function UserManagement() {
       const today = new Date();
       if (birthDate > today) {
         errors.date_of_birth = "Tanggal lahir tidak boleh di masa depan";
-      }
-    }
-    if (newUserData.profil_url) {
-      try {
-        new URL(newUserData.profil_url);
-      } catch {
-        errors.profil_url = "Format URL tidak valid";
       }
     }
     setFormErrors(errors);
@@ -876,24 +867,6 @@ export default function UserManagement() {
             />
             {formErrors.date_of_birth && (
               <p className="text-red-500 text-xs mt-1">{formErrors.date_of_birth}</p>
-            )}
-          </div>
-
-          {/* Profile URL Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL Foto Profil (Opsional)
-            </label>
-            <input
-              type="url"
-              value={newUserData.profil_url}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, profil_url: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.profil_url ? 'border-red-500' : 'border-gray-300'
-                }`}
-              placeholder="https://example.com/profile.jpg"
-            />
-            {formErrors.profil_url && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.profil_url}</p>
             )}
           </div>
 

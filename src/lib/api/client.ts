@@ -77,6 +77,36 @@ export async function apiFetch<T = unknown>(
     const res = await fetch(url, init);
     const json = await res.json().catch(() => null);
     if (!res.ok) {
+      // Check for token expired error
+      if (json && typeof json === "object") {
+        const j = json as Record<string, unknown>;
+        if (j.code === "AUTH_TOKEN_EXPIRED" || j.code === "AUTH_INVALID_TOKEN" || res.status === 401) {
+          // Token expired, trigger logout
+          if (typeof window !== "undefined") {
+            // Clear storage
+            try {
+              sessionStorage.removeItem("admin_access_token");
+              sessionStorage.removeItem("admin_refresh_token");
+              sessionStorage.removeItem("admin_profile");
+            } catch {}
+            
+            // Show notification
+            import("sweetalert2").then((Swal) => {
+              Swal.default.fire({
+                icon: "warning",
+                title: "Sesi Berakhir",
+                text: "Sesi login Anda telah berakhir. Silakan login kembali.",
+                confirmButtonText: "Login",
+                allowOutsideClick: false,
+              }).then(() => {
+                // Redirect to login
+                window.location.href = "/login";
+              });
+            });
+          }
+        }
+      }
+      
       // Prefer 'message' when available; handle boolean error flags gracefully
       let msg: unknown = undefined;
       if (json && typeof json === "object") {

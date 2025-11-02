@@ -428,10 +428,10 @@ export const materialsAPI = {
     // Normalize response
     if (response.ok && response.data) {
       if (response.data.items) {
-        response.data.items = normalizeMaterialResponse(response.data.items);
+        response.data.items = normalizeMaterialResponse<Material[]>(response.data.items);
       }
       if (response.data.data) {
-        response.data.data = normalizeMaterialResponse(response.data.data);
+        response.data.data = normalizeMaterialResponse<Material[]>(response.data.data);
       }
     }
 
@@ -724,7 +724,8 @@ export const quizzesAPI = {
   },
 
   create: async (payload: {
-    sub_materi_id: string | number;
+    module_id: string | number;
+    sub_materi_id?: string | number;
     title: string;
     description?: string;
     time_limit_seconds?: number;
@@ -805,6 +806,16 @@ export const quizzesAPI = {
   },
 
   removeQuestion: async (questionId: string | number) => {
+    return apiFetch<{ ok: boolean }>(
+      `/api/v1/admin/quizzes/questions/${encodeURIComponent(
+        String(questionId)
+      )}`,
+      { method: "DELETE" }
+    );
+  },
+
+  // Alias for removeQuestion
+  deleteQuestion: async (questionId: string | number) => {
     return apiFetch<{ ok: boolean }>(
       `/api/v1/admin/quizzes/questions/${encodeURIComponent(
         String(questionId)

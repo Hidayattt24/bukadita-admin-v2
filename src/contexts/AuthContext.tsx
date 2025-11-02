@@ -191,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
+  const logout = async (showMessage = false) => {
     try {
       console.log('🚪 Logging out...');
 
@@ -215,6 +215,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch { }
       console.log('✅ Logout successful');
+
+      // Show message if requested
+      if (showMessage && typeof window !== 'undefined') {
+        const Swal = (await import('sweetalert2')).default;
+        await Swal.fire({
+          icon: 'info',
+          title: 'Logout Berhasil',
+          text: 'Anda telah keluar dari sistem.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     } catch (error) {
       console.error('❌ Logout error:', error);
       // Still clear local state even if backend logout fails

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import type React from "react";
 import Swal from "sweetalert2";
-import { RefreshCw, Plus, Edit, X } from "lucide-react";
+import { RefreshCw, Plus, Edit, X, Trash2 } from "lucide-react";
 import DataTable from "./DataTable";
 import { materialsAPI, quizzesAPI, modulesAPI, type Material, type Quiz, type Poin, type MediaItem } from "@/lib/api";
 import MaterialPreview from "../MaterialPreview";
@@ -617,6 +617,28 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
         setPreviewItem(row);
         setShowPreview(true);
       }
+    } else if (resource === "kuis") {
+      // Preview quiz with questions
+      try {
+        const quizRes = await quizzesAPI.get(row.id);
+        if (quizRes.ok) {
+          const updatedRow = {
+            ...row,
+            description: quizRes.data.description,
+            questionCount: quizRes.data.questions?.length || 0,
+            questions: quizRes.data.questions || []
+          };
+          setPreviewItem(updatedRow as any);
+          setShowPreview(true);
+        } else {
+          setPreviewItem(row);
+          setShowPreview(true);
+        }
+      } catch (error) {
+        console.error('Error loading quiz preview:', error);
+        setPreviewItem(row);
+        setShowPreview(true);
+      }
     }
   };
 
@@ -795,7 +817,8 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       try {
         // 1. Buat kuis terlebih dahulu
         const payload = {
-          sub_materi_id: aSubMateriId,
+          module_id: moduleId, // Required by backend
+          sub_materi_id: aSubMateriId || undefined,
           title: titleVal,
           description: aDescription || undefined,
           time_limit_seconds: timeLimitSeconds,
@@ -875,7 +898,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
       setEPassingScore('');
       setESubMateriId('');
 
-      // Fetch quiz details to get current sub_materi_id, time_limit, and passing_score
+      // Fetch quiz details to get current sub_materi_id, time_limit, passing_score, and questions
       try {
         const quizDetailsRes = await quizzesAPI.get(row.id);
         if (quizDetailsRes.ok) {
@@ -883,6 +906,20 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
           setESubMateriId(String(quiz.sub_materi_id || ''));
           setETimeLimit(String(quiz.time_limit_seconds ? Math.floor(quiz.time_limit_seconds / 60) : '')); // convert seconds to minutes
           setEPassingScore(String(quiz.passing_score || ''));
+
+          // Load existing questions for editing
+          if (quiz.questions && quiz.questions.length > 0) {
+            const loadedQuestions: TempQuestion[] = quiz.questions.map((q) => ({
+              id: String(q.id), // Use actual question ID from backend
+              question_text: q.question_text,
+              options: q.options || [],
+              correct_answer_index: q.correct_answer_index,
+              explanation: q.explanation || '',
+            }));
+            setQuestions(loadedQuestions);
+          } else {
+            setQuestions([]);
+          }
         }
       } catch (error) {
         console.warn('Failed to fetch quiz details for editing:', error);
@@ -977,22 +1014,83 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
     };
 
     const res = await quizzesAPI.update(editingItem.id, payload);
-    setESubmitting(false);
 
     if (!res.ok) {
+      setESubmitting(false);
       await Swal.fire({ icon: 'error', title: 'Gagal', text: formatServerError(res as unknown as { ok: false; status: number; error: string; raw?: unknown }) || 'Gagal memperbarui kuis' });
       return;
     }
+
+    // Update questions if any
+    if (questions.length > 0) {
+      try {
+        // Get existing questions from backend to compare
+        const quizDetailsRes = await quizzesAPI.get(editingItem.id);
+        const existingQuestionIds = quizDetailsRes.ok && quizDetailsRes.data.questions
+          ? quizDetailsRes.data.questions.map(q => String(q.id))
+          : [];
+
+        // Update or create questions
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const validOptions = q.options.filter(opt => opt.trim());
+
+          const questionPayload = {
+            question_text: q.question_text.trim(),
+            options: validOptions,
+            correct_answer_index: Math.min(q.correct_answer_index, validOptions.length - 1),
+            explanation: q.explanation?.trim() || undefined,
+            order_index: i + 1
+          };
+
+          // Check if this is an existing question (ID is numeric from backend)
+          const isExistingQuestion = existingQuestionIds.includes(q.id);
+
+          if (isExistingQuestion) {
+            // Update existing question
+            await quizzesAPI.updateQuestion(q.id, questionPayload);
+          } else {
+            // Create new question
+            await quizzesAPI.addQuestion(editingItem.id, questionPayload);
+          }
+        }
+
+        // Delete questions that were removed (exist in backend but not in current questions array)
+        const currentQuestionIds = questions.map(q => q.id);
+        const questionsToDelete = existingQuestionIds.filter(id => !currentQuestionIds.includes(id));
+
+        for (const questionId of questionsToDelete) {
+          await quizzesAPI.deleteQuestion(questionId);
+        }
+      } catch (error) {
+        console.error('Error updating questions:', error);
+        setESubmitting(false);
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Kuis Tersimpan',
+          text: 'Kuis berhasil diperbarui, tetapi ada masalah saat memperbarui soal. Silakan coba edit lagi.',
+        });
+        return;
+      }
+    }
+
+    setESubmitting(false);
 
     // Small delay to ensure database commit is complete
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Force refetch to ensure UI is up to date with fresh data
     await refetchQuizList(true); // bypassCache=true untuk memastikan data terbaru
-    await Swal.fire({ icon: 'success', title: 'Tersimpan', timer: 900, showConfirmButton: false });
+
+    const message = questions.length > 0
+      ? `Kuis berhasil diperbarui dengan ${questions.length} soal`
+      : 'Kuis berhasil diperbarui';
+
+    await Swal.fire({ icon: 'success', title: 'Tersimpan', text: message, timer: 1500, showConfirmButton: false });
 
     // Reset edit form and close
     setETitle(''); setEDescription(''); setESubMateriId(''); setETimeLimit(''); setEPassingScore(''); setEPublished(false);
+    setQuestions([]); // Reset questions
     setShowEdit(false); setEditingItem(null);
   };
 
@@ -1102,14 +1200,13 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sub Materi *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sub Materi (Opsional)</label>
                   <select
                     value={aSubMateriId}
                     onChange={(e) => setASubMateriId(e.target.value)}
                     className="w-full px-3 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
                   >
-                    <option value="">Pilih Sub Materi</option>
+                    <option value="">Pilih Sub Materi (Opsional)</option>
                     {(Array.isArray(subMateriOptions) ? subMateriOptions : []).map((option) => (
                       <option key={option.id} value={option.id}>
                         {option.title}
@@ -1463,11 +1560,181 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
                 </label>
               </div>
 
-              <div>
+              {/* Questions Section - Same as Add Form */}
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-md font-semibold text-gray-900">Soal Kuis ({questions.length})</h3>
+                  <button
+                    type="button"
+                    onClick={addNewQuestion}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tambah Soal
+                  </button>
+                </div>
+
+                {/* Questions List */}
+                {questions.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {questions.map((question, index) => (
+                      <div key={question.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Soal {index + 1}: {question.question_text || 'Belum diisi'}
+                            </h4>
+                            <div className="text-sm text-gray-600">
+                              {question.options.filter(opt => opt.trim()).length} opsi jawaban
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <button
+                              type="button"
+                              onClick={() => editQuestion(question.id)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit soal"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteQuestion(question.id)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus soal"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {questions.length === 0 && (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <p className="text-gray-500 mb-2">Belum ada soal</p>
+                    <p className="text-sm text-gray-400">Klik "Tambah Soal" untuk menambahkan soal kuis</p>
+                  </div>
+                )}
+
+                {/* Question Form - Same as Add Form */}
+                {showQuestionForm && editingQuestionId && (() => {
+                  const currentEditingQuestion = questions.find(q => q.id === editingQuestionId);
+                  if (!currentEditingQuestion) return null;
+
+                  return (
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+                      <h4 className="font-medium text-gray-900 mb-3">
+                        {questions.findIndex(q => q.id === editingQuestionId) >= 0
+                          ? `Edit Soal ${questions.findIndex(q => q.id === editingQuestionId) + 1}`
+                          : 'Edit Soal'}
+                      </h4>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Pertanyaan *</label>
+                          <textarea
+                            value={currentEditingQuestion.question_text}
+                            onChange={(e) => updateQuestion(editingQuestionId!, { question_text: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows={3}
+                            placeholder="Masukkan pertanyaan..."
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Opsi Jawaban *</label>
+                          {currentEditingQuestion.options.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center gap-2 mb-2">
+                              <input
+                                type="radio"
+                                name={`correct_edit_${editingQuestionId}`}
+                                checked={currentEditingQuestion.correct_answer_index === optionIndex}
+                                onChange={() => updateQuestion(editingQuestionId!, { correct_answer_index: optionIndex })}
+                                className="w-4 h-4 text-blue-600"
+                              />
+                              <input
+                                type="text"
+                                value={option}
+                                onChange={(e) => {
+                                  const newOptions = [...currentEditingQuestion.options];
+                                  newOptions[optionIndex] = e.target.value;
+                                  updateQuestion(editingQuestionId!, { options: newOptions });
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={`Opsi ${optionIndex + 1}...`}
+                              />
+                              {currentEditingQuestion.options.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newOptions = currentEditingQuestion.options.filter((_, i) => i !== optionIndex);
+                                    const newCorrectIndex = currentEditingQuestion.correct_answer_index >= newOptions.length
+                                      ? newOptions.length - 1
+                                      : currentEditingQuestion.correct_answer_index;
+                                    updateQuestion(editingQuestionId!, {
+                                      options: newOptions,
+                                      correct_answer_index: newCorrectIndex
+                                    });
+                                  }}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {currentEditingQuestion.options.length < 6 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOptions = [...currentEditingQuestion.options, ""];
+                                updateQuestion(editingQuestionId!, { options: newOptions });
+                              }}
+                              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            >
+                              + Tambah Opsi
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Penjelasan (opsional)</label>
+                          <textarea
+                            value={currentEditingQuestion.explanation || ""}
+                            onChange={(e) => updateQuestion(editingQuestionId!, { explanation: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows={2}
+                            placeholder="Penjelasan jawaban yang benar..."
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowQuestionForm(false);
+                              setEditingQuestionId(null);
+                            }}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors"
+                          >
+                            Selesai
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="mt-6">
                 <button type="submit" disabled={eSubmitting} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow disabled:opacity-60">
                   {eSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
-                <button type="button" onClick={() => { setShowEdit(false); setEditingItem(null); }} className="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 shadow">
+                <button type="button" onClick={() => { setShowEdit(false); setEditingItem(null); setQuestions([]); }} className="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 shadow">
                   Batal
                 </button>
               </div>
@@ -1497,17 +1764,96 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
 
             {/* Modal Content */}
             <div className="overflow-y-auto flex-1">
-              {previewItem.poinDetails && previewItem.poinDetails.length > 0 ? (
-                <MaterialPreview
-                  poins={previewItem.poinDetails}
-                  materialTitle={previewItem.title}
-                />
+              {resource === "materi" ? (
+                previewItem.poinDetails && previewItem.poinDetails.length > 0 ? (
+                  <MaterialPreview
+                    poins={previewItem.poinDetails}
+                    materialTitle={previewItem.title}
+                  />
+                ) : (
+                  <div className="px-6 py-8 text-center">
+                    <p className="text-gray-500 italic text-lg">Belum ada poin yang dibuat</p>
+                    <p className="text-sm text-gray-400 mt-2">
+                      Tambahkan poin pembelajaran untuk melihat preview lengkap
+                    </p>
+                  </div>
+                )
               ) : (
-                <div className="px-6 py-8 text-center">
-                  <p className="text-gray-500 italic text-lg">Belum ada poin yang dibuat</p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    Tambahkan poin pembelajaran untuk melihat preview lengkap
-                  </p>
+                // Quiz Preview
+                <div className="p-6">
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">{previewItem.title}</h2>
+                      {previewItem.description && (
+                        <p className="text-gray-600">{previewItem.description}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-600">Jumlah Soal</p>
+                        <p className="text-2xl font-bold text-blue-600">{previewItem.questionCount || 0}</p>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-600">Status</p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {previewItem.published ? 'Terbit' : 'Draft'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {(previewItem as any).questions && (previewItem as any).questions.length > 0 ? (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Daftar Soal</h3>
+                        <div className="space-y-4">
+                          {(previewItem as any).questions.map((q: any, index: number) => (
+                            <div key={q.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <div className="flex items-start gap-3">
+                                <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                  {index + 1}
+                                </span>
+                                <div className="flex-1">
+                                  <p className="font-medium text-gray-900 mb-3">{q.question_text}</p>
+                                  <div className="space-y-2">
+                                    {q.options && q.options.map((option: string, optIndex: number) => (
+                                      <div
+                                        key={optIndex}
+                                        className={`flex items-center gap-2 p-2 rounded ${q.correct_answer_index === optIndex
+                                            ? 'bg-green-100 border border-green-300'
+                                            : 'bg-white border border-gray-200'
+                                          }`}
+                                      >
+                                        <span className="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-semibold">
+                                          {String.fromCharCode(65 + optIndex)}
+                                        </span>
+                                        <span className={q.correct_answer_index === optIndex ? 'font-medium text-green-700' : 'text-gray-700'}>
+                                          {option}
+                                        </span>
+                                        {q.correct_answer_index === optIndex && (
+                                          <span className="ml-auto text-green-600 text-sm font-semibold">✓ Benar</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {q.explanation && (
+                                    <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                                      <p className="text-sm text-gray-700">
+                                        <span className="font-semibold text-blue-700">Penjelasan:</span> {q.explanation}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p className="italic">Belum ada soal yang dibuat</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1613,7 +1959,7 @@ export default function ModuleItemsPage({ moduleId, resource }: ModuleItemsPageP
             onAdd={onAdd}
             onEdit={onEdit}
             onDelete={onDelete}
-            onView={resource === "materi" ? onPreview : undefined}
+            onView={onPreview}
             onCustomAction={onTambahPoin}
             customActionIcon={<Plus className="w-4 h-4" />}
             customActionTitle={resource === "materi" ? "Tambah Poin" : "Tambah Soal"}
