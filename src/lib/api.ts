@@ -56,8 +56,8 @@ export type LoginSuccess = {
 };
 
 const API_BASE = getApiBase();
-const LOGIN_URL = process.env.LOGIN_URL || `${API_BASE}/auth/login`;
-const LOGOUT_URL = process.env.LOGOUT_URL || `${API_BASE}/auth/logout`;
+const LOGIN_URL = process.env.LOGIN_URL || `${API_BASE}/api/v1/auth/login`;
+const LOGOUT_URL = process.env.LOGOUT_URL || `${API_BASE}/api/v1/auth/logout`;
 
 export const authAPI = {
   login: async (
