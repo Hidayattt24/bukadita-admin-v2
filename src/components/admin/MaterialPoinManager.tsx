@@ -184,10 +184,13 @@ export default function MaterialPoinManager({
           return `<div data-block-id="${block.id}" data-block-type="text" data-block-order="${block.order}">${contentHtml}</div>`;
         } else if (block.type === "media") {
           // Create placeholder for media that will be replaced during preview
-          return `<div data-block-id="${block.id
-            }" data-block-type="media" data-block-order="${block.order
-            }" data-media-caption="${block.caption || ""
-            }" class="media-placeholder">[MEDIA_PLACEHOLDER_${block.id}]</div>`;
+          return `<div data-block-id="${
+            block.id
+          }" data-block-type="media" data-block-order="${
+            block.order
+          }" data-media-caption="${
+            block.caption || ""
+          }" class="media-placeholder">[MEDIA_PLACEHOLDER_${block.id}]</div>`;
         }
         return "";
       })
@@ -597,7 +600,7 @@ export default function MaterialPoinManager({
 
       if (res.ok) {
         const createdPoin = res.data;
-        let finalPoin = createdPoin;
+        const finalPoin = createdPoin;
 
         // Step 2: If there are media files, upload them one by one
         if (mediaFiles.length > 0) {
@@ -621,15 +624,22 @@ export default function MaterialPoinManager({
                   mediaMapping[mediaFile.blockId] = uploadedMediaItem.id;
                 }
               }
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error("Failed to upload media:", error);
+
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "Gagal mengupload file media";
+              const isStorageError =
+                error instanceof Error && error.message?.includes("bucket");
 
               // Show specific error to user
               await Swal.fire({
                 icon: "error",
                 title: "Gagal Upload Media",
-                text: error.message || "Gagal mengupload file media",
-                footer: error.message?.includes("bucket")
+                text: errorMessage,
+                footer: isStorageError
                   ? '<a href="https://github.com/yourusername/bukadita/blob/main/bukadita-api-v2/SETUP_STORAGE.md" target="_blank">Lihat panduan setup storage</a>'
                   : undefined,
               });
@@ -824,15 +834,22 @@ export default function MaterialPoinManager({
           ) {
             newMediaIds.push((newMediaResponse as { id: string }).id);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Failed to upload media during update:", error);
+
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Gagal mengupload file media";
+          const isStorageError =
+            error instanceof Error && error.message?.includes("bucket");
 
           // Show specific error to user
           await Swal.fire({
             icon: "error",
             title: "Gagal Upload Media",
-            text: error.message || "Gagal mengupload file media",
-            footer: error.message?.includes("bucket")
+            text: errorMessage,
+            footer: isStorageError
               ? '<a href="https://github.com/yourusername/bukadita/blob/main/bukadita-api-v2/SETUP_STORAGE.md" target="_blank">Lihat panduan setup storage</a>'
               : undefined,
           });
@@ -1005,7 +1022,9 @@ export default function MaterialPoinManager({
               <div className="absolute inset-0 border-3 border-blue-200 rounded-full"></div>
               <div className="absolute inset-0 border-3 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
             </div>
-            <span className="text-sm font-medium text-gray-700">Memuat materi...</span>
+            <span className="text-sm font-medium text-gray-700">
+              Memuat materi...
+            </span>
           </div>
         </div>
       </div>
@@ -1018,12 +1037,26 @@ export default function MaterialPoinManager({
         <div className="flex items-center justify-center h-64">
           <div className="bg-white rounded-xl p-8 shadow-lg border border-red-200 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Materi Tidak Ditemukan</h3>
-            <p className="text-gray-600">Materi yang Anda cari tidak tersedia atau telah dihapus</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Materi Tidak Ditemukan
+            </h3>
+            <p className="text-gray-600">
+              Materi yang Anda cari tidak tersedia atau telah dihapus
+            </p>
           </div>
         </div>
       </div>
@@ -1088,19 +1121,21 @@ export default function MaterialPoinManager({
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab("manage")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "manage"
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "manage"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+              }`}
             >
               Kelola Poin
             </button>
             <button
               onClick={() => setActiveTab("preview")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "preview"
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "preview"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+              }`}
             >
               Preview Materi
               {poins.length > 0 && (
@@ -1221,7 +1256,8 @@ export default function MaterialPoinManager({
                           </summary>
                           <div className="mt-2 space-y-2">
                             <p>
-                              <strong>Media Count:</strong> {existingMedia.length}
+                              <strong>Media Count:</strong>{" "}
+                              {existingMedia.length}
                             </p>
                             {existingMedia.map((media, idx) => (
                               <div
@@ -1244,9 +1280,11 @@ export default function MaterialPoinManager({
                                 <p>
                                   <strong>Size:</strong>{" "}
                                   {media.file_size
-                                    ? `${(media.file_size / 1024 / 1024).toFixed(
-                                      2
-                                    )} MB`
+                                    ? `${(
+                                        media.file_size /
+                                        1024 /
+                                        1024
+                                      ).toFixed(2)} MB`
                                     : "Unknown"}
                                 </p>
                                 <p>
@@ -1299,10 +1337,12 @@ export default function MaterialPoinManager({
                               {/* Preview Media */}
                               <div className="flex-shrink-0">
                                 {media.mime_type?.startsWith("image/") &&
-                                  !imageErrors.has(media.id) ? (
+                                !imageErrors.has(media.id) ? (
                                   <Image
                                     src={media.file_url}
-                                    alt={media.caption || media.original_filename}
+                                    alt={
+                                      media.caption || media.original_filename
+                                    }
                                     width={80}
                                     height={80}
                                     className="w-20 h-20 object-cover rounded-lg border border-gray-300"
@@ -1345,9 +1385,12 @@ export default function MaterialPoinManager({
                                   <div className="w-20 h-20 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center">
                                     {media.mime_type?.startsWith("video/") ? (
                                       <Video className="w-6 h-6 text-purple-600" />
-                                    ) : media.mime_type?.startsWith("audio/") ? (
+                                    ) : media.mime_type?.startsWith(
+                                        "audio/"
+                                      ) ? (
                                       <FileText className="w-6 h-6 text-blue-600" />
-                                    ) : media.mime_type === "application/pdf" ? (
+                                    ) : media.mime_type ===
+                                      "application/pdf" ? (
                                       <FileText className="w-6 h-6 text-red-600" />
                                     ) : (
                                       <FileText className="w-6 h-6 text-gray-600" />
@@ -1366,19 +1409,19 @@ export default function MaterialPoinManager({
                                     {media.mime_type?.startsWith("image/")
                                       ? "Gambar"
                                       : media.mime_type?.startsWith("video/")
-                                        ? "Video"
-                                        : media.mime_type?.startsWith("audio/")
-                                          ? "Audio"
-                                          : media.mime_type === "application/pdf"
-                                            ? "PDF"
-                                            : "File"}{" "}
+                                      ? "Video"
+                                      : media.mime_type?.startsWith("audio/")
+                                      ? "Audio"
+                                      : media.mime_type === "application/pdf"
+                                      ? "PDF"
+                                      : "File"}{" "}
                                     •
                                     {media.file_size
                                       ? ` ${(
-                                        media.file_size /
-                                        1024 /
-                                        1024
-                                      ).toFixed(2)} MB`
+                                          media.file_size /
+                                          1024 /
+                                          1024
+                                        ).toFixed(2)} MB`
                                       : " Unknown size"}
                                   </p>
                                 </div>
@@ -1478,7 +1521,10 @@ export default function MaterialPoinManager({
                     {/* Content Blocks */}
                     <div className="space-y-4 border border-gray-200 rounded-lg p-4 min-h-[200px] bg-gray-50">
                       {contentBlocks.map((block, index) => (
-                        <div key={block.id} className="group relative bg-white rounded-lg">
+                        <div
+                          key={block.id}
+                          className="group relative bg-white rounded-lg"
+                        >
                           {block.type === "text" ? (
                             <div className="relative">
                               <div className="flex items-center justify-between mb-2 px-4 pt-4">
@@ -1500,7 +1546,9 @@ export default function MaterialPoinManager({
                               <div className="px-4 pb-4">
                                 <RichTextEditor
                                   value={block.content || ""}
-                                  onChange={(value) => updateTextBlock(block.id, value)}
+                                  onChange={(value) =>
+                                    updateTextBlock(block.id, value)
+                                  }
                                   placeholder="Tulis konten di sini..."
                                 />
                               </div>
@@ -1513,7 +1561,9 @@ export default function MaterialPoinManager({
                                 caption={block.caption}
                                 alignment={block.alignment || "center"}
                                 size={block.size || "medium"}
-                                onFileChange={(file) => updateMediaBlock(block.id, file)}
+                                onFileChange={(file) =>
+                                  updateMediaBlock(block.id, file)
+                                }
                                 onCaptionChange={(caption) => {
                                   setContentBlocks((blocks) =>
                                     blocks.map((b) =>
@@ -1524,7 +1574,9 @@ export default function MaterialPoinManager({
                                 onAlignmentChange={(alignment) => {
                                   setContentBlocks((blocks) =>
                                     blocks.map((b) =>
-                                      b.id === block.id ? { ...b, alignment } : b
+                                      b.id === block.id
+                                        ? { ...b, alignment }
+                                        : b
                                     )
                                   );
                                 }}
@@ -1597,8 +1649,8 @@ export default function MaterialPoinManager({
                         ? `Mengupload ${getBlockMediaFiles().length} file...`
                         : "Menyimpan..."
                       : editingPoin
-                        ? "Perbarui Poin"
-                        : "Simpan Poin"}
+                      ? "Perbarui Poin"
+                      : "Simpan Poin"}
                   </button>
                   <button
                     type="button"
@@ -1606,9 +1658,9 @@ export default function MaterialPoinManager({
                       editingPoin
                         ? handleCancelEdit
                         : () => {
-                          resetForm();
-                          setShowAddPoin(false);
-                        }
+                            resetForm();
+                            setShowAddPoin(false);
+                          }
                     }
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow transition-colors"
                   >
@@ -1683,7 +1735,7 @@ export default function MaterialPoinManager({
                                 .map((media) => (
                                   <div key={media.id} className="flex-shrink-0">
                                     {media.mime_type?.startsWith("image/") &&
-                                      !imageErrors.has(media.id) ? (
+                                    !imageErrors.has(media.id) ? (
                                       <Image
                                         src={media.file_url}
                                         alt={
@@ -1714,8 +1766,8 @@ export default function MaterialPoinManager({
                                         ) ? (
                                           <Video className="w-6 h-6 text-purple-600" />
                                         ) : media.mime_type?.startsWith(
-                                          "audio/"
-                                        ) ? (
+                                            "audio/"
+                                          ) ? (
                                           <FileText className="w-6 h-6 text-blue-600" />
                                         ) : media.mime_type ===
                                           "application/pdf" ? (

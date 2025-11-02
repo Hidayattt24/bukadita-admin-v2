@@ -175,7 +175,7 @@ export default function ModuleItemsPage({
     ok: false;
     status: number;
     error: string;
-    raw?: any;
+    raw?: unknown;
   }) => {
     const j =
       res.raw && typeof res.raw === "object"
@@ -429,7 +429,7 @@ export default function ModuleItemsPage({
 
             // Fetch poin details for each sub materi to show count
             const optionsWithPoinCount = await Promise.all(
-              subMateris.map(async (subMateri: any) => {
+              subMateris.map(async (subMateri: Material) => {
                 let poinCount = 0;
                 try {
                   const materiDetail = await materialsAPI.get(subMateri.id);
@@ -632,10 +632,10 @@ export default function ModuleItemsPage({
     return filtered;
   }, [rows, statusFilter, searchTerm]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type ColumnDef = {
     key: string;
     label: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     render?: (value: any, row: ModuleItemRow) => React.ReactNode;
   };
   const columns: ColumnDef[] = useMemo(() => {
@@ -773,6 +773,7 @@ export default function ModuleItemsPage({
             questionCount: quizRes.data.questions?.length || 0,
             questions: quizRes.data.questions || [],
           };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setPreviewItem(updatedRow as any);
           setShowPreview(true);
         } else {
@@ -2070,7 +2071,7 @@ export default function ModuleItemsPage({
                   <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                     <p className="text-gray-500 mb-2">Belum ada soal</p>
                     <p className="text-sm text-gray-400">
-                      Klik "Tambah Soal" untuk menambahkan soal kuis
+                      Klik &quot;Tambah Soal&quot; untuk menambahkan soal kuis
                     </p>
                   </div>
                 )}
@@ -2343,14 +2344,18 @@ export default function ModuleItemsPage({
                       </div>
                     </div>
 
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {(previewItem as any).questions &&
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                     (previewItem as any).questions.length > 0 ? (
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">
                           Daftar Soal
                         </h3>
                         <div className="space-y-4">
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                           {(previewItem as any).questions.map(
+                            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                             (q: any, index: number) => (
                               <div
                                 key={q.id}

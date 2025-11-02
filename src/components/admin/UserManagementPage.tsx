@@ -20,7 +20,7 @@ import {
   Phone,
   Shield,
   Clock,
-  MapPin
+  MapPin,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -47,7 +47,7 @@ export default function UserManagement() {
     page: 1,
     limit: 10,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">(10);
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,8 @@ export default function UserManagement() {
     role: "pengguna" as "pengguna" | "admin",
     password: "",
     address: "",
-    date_of_birth: ""
+    date_of_birth: "",
+    profil_url: "",
   });
 
   // Helpers: validation
@@ -91,7 +92,10 @@ export default function UserManagement() {
     } else if (!validatePhone(newUserData.phone)) {
       errors.phone = "Format nomor telepon tidak valid";
     }
-    if (!isEditModalOpen && (!newUserData.password || newUserData.password.length < 6)) {
+    if (
+      !isEditModalOpen &&
+      (!newUserData.password || newUserData.password.length < 6)
+    ) {
       errors.password = "Password minimal 6 karakter";
     }
     // Validasi untuk field opsional
@@ -111,65 +115,82 @@ export default function UserManagement() {
   const { profile: currentProfile } = useAuth();
 
   // Fetch users from new backend with visibility rules
-  const fetchUsers = useCallback(async (page = 1, search = "", role = "", limit: number | "all" = 10) => {
-    setLoading(true);
+  const fetchUsers = useCallback(
+    async (page = 1, search = "", role = "", limit: number | "all" = 10) => {
+      setLoading(true);
 
-    try {
-      // If "all" is selected, use a very large limit (e.g., 10000)
-      const actualLimit = limit === "all" ? 10000 : limit;
-      const res = await usersAPI.list({ page: limit === "all" ? 1 : page, limit: actualLimit, search, role });
+      try {
+        // If "all" is selected, use a very large limit (e.g., 10000)
+        const actualLimit = limit === "all" ? 10000 : limit;
+        const res = await usersAPI.list({
+          page: limit === "all" ? 1 : page,
+          limit: actualLimit,
+          search,
+          role,
+        });
 
-      if (!res.ok) {
-        throw new Error(res.error || `Gagal memuat pengguna (${res.status})`);
+        if (!res.ok) {
+          throw new Error(res.error || `Gagal memuat pengguna (${res.status})`);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const payload = res.data as any;
+
+        const array: Profile[] = payload.items || payload.data || [];
+
+        const transformedUsers: User[] = array.map(
+          (u): User => ({
+            id: u.id,
+            email: u.email || "",
+            full_name: u.full_name || "",
+            phone: u.phone || "",
+            role: u.role,
+            created_at: u.created_at,
+            address: u.address || undefined,
+            date_of_birth: u.date_of_birth || undefined,
+            profil_url: u.profil_url || undefined,
+          })
+        );
+
+        const meta = payload.pagination || {
+          page,
+          limit: 10,
+          total: transformedUsers.length,
+          totalPages: 1,
+        };
+
+        setUsers(transformedUsers);
+        setPagination({
+          page: meta.page || meta.currentPage || page,
+          limit: meta.limit || 10,
+          total: meta.total || meta.totalCount || transformedUsers.length,
+          totalPages: meta.totalPages || 1,
+        });
+        setVisibility(payload.visibility || payload.visibility_rules || null);
+      } catch (error) {
+        console.error("❌ Error fetching users from backend:", error);
+
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Terjadi kesalahan saat memuat data pengguna";
+
+        await Swal.fire({
+          icon: "error",
+          title: "Error!",
+          text: errorMessage,
+          confirmButtonColor: "#3b82f6",
+        });
+
+        // Set empty state on error
+        setUsers([]);
+        setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
+      } finally {
+        setLoading(false);
       }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload = res.data as any;
-
-      const array: Profile[] = payload.items || payload.data || [];
-
-      const transformedUsers: User[] = array.map((u): User => ({
-        id: u.id,
-        email: u.email || '',
-        full_name: u.full_name || '',
-        phone: u.phone || '',
-        role: u.role,
-        created_at: u.created_at,
-        address: u.address || undefined,
-        date_of_birth: u.date_of_birth || undefined,
-        profil_url: u.profil_url || undefined,
-      }));
-
-      const meta = payload.pagination || { page, limit: 10, total: transformedUsers.length, totalPages: 1 };
-
-      setUsers(transformedUsers);
-      setPagination({
-        page: meta.page || meta.currentPage || page,
-        limit: meta.limit || 10,
-        total: meta.total || meta.totalCount || transformedUsers.length,
-        totalPages: meta.totalPages || 1
-      });
-      setVisibility(payload.visibility || payload.visibility_rules || null);
-
-    } catch (error) {
-      console.error("❌ Error fetching users from backend:", error);
-
-      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat data pengguna';
-
-      await Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: errorMessage,
-        confirmButtonColor: '#3b82f6'
-      });
-
-      // Set empty state on error
-      setUsers([]);
-      setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Update roleFilter when URL changes
   useEffect(() => {
@@ -186,18 +207,18 @@ export default function UserManagement() {
   // Handler functions
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
   const handleRoleFilter = (role: string) => {
     setRoleFilter(role);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
   const handleItemsPerPageChange = (value: string) => {
     const newValue = value === "all" ? "all" : parseInt(value);
     setItemsPerPage(newValue);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
   const handleAddUser = () => {
@@ -212,7 +233,7 @@ export default function UserManagement() {
       password: "",
       address: "",
       date_of_birth: "",
-      profil_url: ""
+      profil_url: "",
     });
     setFormErrors({});
     setIsAddModalOpen(true);
@@ -230,11 +251,11 @@ export default function UserManagement() {
       email: user.email,
       full_name: user.full_name,
       phone: user.phone || "",
-      role: user.role === 'admin' ? 'admin' : 'pengguna',
+      role: user.role === "admin" ? "admin" : "pengguna",
       password: "",
       address: user.address || "",
       date_of_birth: user.date_of_birth || "",
-      profil_url: user.profil_url || ""
+      profil_url: user.profil_url || "",
     });
     setFormErrors({});
     setIsEditModalOpen(true);
@@ -242,7 +263,7 @@ export default function UserManagement() {
 
   const handleDeleteUser = async (user: User) => {
     const result = await Swal.fire({
-      title: 'Hapus Pengguna?',
+      title: "Hapus Pengguna?",
       html: `
         <div class="text-left">
           <p>Apakah Anda yakin ingin menghapus pengguna:</p>
@@ -253,42 +274,42 @@ export default function UserManagement() {
           <p class="text-red-600 text-sm mt-2">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
         </div>
       `,
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Ya, Hapus!',
-      cancelButtonText: 'Batal',
-      reverseButtons: true
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal",
+      reverseButtons: true,
     });
 
     if (result.isConfirmed) {
       try {
         // Show loading
         Swal.fire({
-          title: 'Menghapus...',
-          text: 'Sedang menghapus pengguna',
+          title: "Menghapus...",
+          text: "Sedang menghapus pengguna",
           allowOutsideClick: false,
           showConfirmButton: false,
           willOpen: () => {
             Swal.showLoading();
-          }
+          },
         });
 
         // Delete via API (server-side)
         const deleteResult = await usersAPI.remove(user.id);
 
         if (!deleteResult.ok) {
-          throw new Error(deleteResult.error || 'Gagal menghapus pengguna');
+          throw new Error(deleteResult.error || "Gagal menghapus pengguna");
         }
 
         // Success
         await Swal.fire({
-          icon: 'success',
-          title: 'Berhasil!',
+          icon: "success",
+          title: "Berhasil!",
           text: `Pengguna "${user.full_name}" berhasil dihapus`,
-          confirmButtonColor: '#10b981',
-          timer: 2000
+          confirmButtonColor: "#10b981",
+          timer: 2000,
         });
 
         // Refresh data
@@ -296,10 +317,10 @@ export default function UserManagement() {
       } catch (error) {
         console.error("Error deleting user:", error);
         await Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: 'Gagal menghapus pengguna. Silakan coba lagi.',
-          confirmButtonColor: '#3b82f6'
+          icon: "error",
+          title: "Error!",
+          text: "Gagal menghapus pengguna. Silakan coba lagi.",
+          confirmButtonColor: "#3b82f6",
         });
       }
     }
@@ -318,13 +339,15 @@ export default function UserManagement() {
 
       // Show loading
       Swal.fire({
-        title: isEditing ? 'Mengupdate...' : 'Menambahkan...',
-        text: isEditing ? 'Sedang mengupdate pengguna' : 'Sedang menambahkan pengguna baru',
+        title: isEditing ? "Mengupdate..." : "Menambahkan...",
+        text: isEditing
+          ? "Sedang mengupdate pengguna"
+          : "Sedang menambahkan pengguna baru",
         allowOutsideClick: false,
         showConfirmButton: false,
         willOpen: () => {
           Swal.showLoading();
-        }
+        },
       });
 
       if (isEditing && selectedUser) {
@@ -345,26 +368,34 @@ export default function UserManagement() {
           profil_url: newUserData.profil_url || undefined,
         };
 
-        const updateResult = await usersAPI.update(selectedUser.id, updatePayload);
+        const updateResult = await usersAPI.update(
+          selectedUser.id,
+          updatePayload
+        );
 
         if (!updateResult.ok) {
-          throw new Error(updateResult.error || 'Gagal mengupdate pengguna');
+          throw new Error(updateResult.error || "Gagal mengupdate pengguna");
         }
 
         // Update role if changed (using separate endpoint)
         if (newUserData.role !== selectedUser.role) {
-          const roleResult = await usersAPI.updateRole(selectedUser.id, newUserData.role);
+          const roleResult = await usersAPI.updateRole(
+            selectedUser.id,
+            newUserData.role
+          );
           if (!roleResult.ok) {
-            throw new Error(roleResult.error || 'Gagal mengupdate role pengguna');
+            throw new Error(
+              roleResult.error || "Gagal mengupdate role pengguna"
+            );
           }
         }
 
         await Swal.fire({
-          icon: 'success',
-          title: 'Berhasil!',
-          text: 'Data pengguna berhasil diupdate',
-          confirmButtonColor: '#10b981',
-          timer: 2000
+          icon: "success",
+          title: "Berhasil!",
+          text: "Data pengguna berhasil diupdate",
+          confirmButtonColor: "#10b981",
+          timer: 2000,
         });
       } else {
         // Create new user via API (server-side creates auth + profile)
@@ -380,15 +411,15 @@ export default function UserManagement() {
         });
 
         if (!createResult.ok) {
-          throw new Error(createResult.error || 'Gagal menambahkan pengguna');
+          throw new Error(createResult.error || "Gagal menambahkan pengguna");
         }
 
         await Swal.fire({
-          icon: 'success',
-          title: 'Berhasil!',
-          text: 'Pengguna baru berhasil ditambahkan',
-          confirmButtonColor: '#10b981',
-          timer: 2000
+          icon: "success",
+          title: "Berhasil!",
+          text: "Pengguna baru berhasil ditambahkan",
+          confirmButtonColor: "#10b981",
+          timer: 2000,
         });
       }
 
@@ -404,26 +435,25 @@ export default function UserManagement() {
         password: "",
         address: "",
         date_of_birth: "",
-        profil_url: ""
+        profil_url: "",
       });
       setFormErrors({});
       fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
-
     } catch (error: unknown) {
       console.error("Error saving user:", error);
 
       let errorMessage = "Gagal menyimpan data pengguna. Silakan coba lagi.";
 
-      if (error && typeof error === 'object' && 'message' in error) {
+      if (error && typeof error === "object" && "message" in error) {
         const apiError = error as { message: string };
         errorMessage = apiError.message;
       }
 
       await Swal.fire({
-        icon: 'error',
-        title: 'Error!',
+        icon: "error",
+        title: "Error!",
         text: errorMessage,
-        confirmButtonColor: '#3b82f6'
+        confirmButtonColor: "#3b82f6",
       });
     }
   };
@@ -437,7 +467,7 @@ export default function UserManagement() {
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     });
   };
 
@@ -467,13 +497,13 @@ export default function UserManagement() {
       month: "short",
       year: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
   const getNestedValue = (obj: User, key: string): unknown => {
-    if (key.includes('.')) {
-      const keys = key.split('.');
+    if (key.includes(".")) {
+      const keys = key.split(".");
       let value: unknown = obj;
       for (const k of keys) {
         value = (value as Record<string, unknown>)?.[k];
@@ -492,17 +522,19 @@ export default function UserManagement() {
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
           {getAvatarText(row.full_name)}
         </div>
-      )
+      ),
     },
     {
       key: "profile.full_name",
       label: "Nama Lengkap",
       render: (_: unknown, row: User) => (
         <div>
-          <div className="font-medium text-gray-900">{row.full_name || "Tidak ada nama"}</div>
+          <div className="font-medium text-gray-900">
+            {row.full_name || "Tidak ada nama"}
+          </div>
           <div className="text-sm text-gray-500">{row.email}</div>
         </div>
-      )
+      ),
     },
     {
       key: "profile.phone",
@@ -512,20 +544,27 @@ export default function UserManagement() {
           <Phone className="w-4 h-4 text-gray-400" />
           <span className="text-sm">{row.phone || "-"}</span>
         </div>
-      )
+      ),
     },
     {
       key: "profile.role",
       label: "Role",
       render: (_: unknown, row: User) => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.role === "admin"
-          ? "bg-purple-100 text-purple-800"
-          : "bg-blue-100 text-blue-800"
-          }`}>
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            row.role === "admin"
+              ? "bg-purple-100 text-purple-800"
+              : "bg-blue-100 text-blue-800"
+          }`}
+        >
           <Shield className="w-3 h-3 mr-1" />
-          {row.role === "admin" ? "Admin" : row.role === "superadmin" ? "Superadmin" : "Pengguna"}
+          {row.role === "admin"
+            ? "Admin"
+            : row.role === "superadmin"
+            ? "Superadmin"
+            : "Pengguna"}
         </span>
-      )
+      ),
     },
     {
       key: "profile.created_at",
@@ -535,11 +574,11 @@ export default function UserManagement() {
           <Calendar className="w-4 h-4 text-gray-400" />
           <span className="text-sm">{formatDate(row.created_at)}</span>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
-  const canManageAdmin = Boolean(visibility?.allowed_roles?.includes('admin'));
+  const canManageAdmin = Boolean(visibility?.allowed_roles?.includes("admin"));
   const isSelf = (u: User) => currentProfile?.id === u.id;
 
   const actionButtons = (user: User) => (
@@ -560,7 +599,11 @@ export default function UserManagement() {
       </button>
       <button
         onClick={() => handleDeleteUser(user)}
-        className={`p-1 rounded transition-colors ${isSelf(user) ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'}`}
+        className={`p-1 rounded transition-colors ${
+          isSelf(user)
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-red-600 hover:bg-red-50"
+        }`}
         title={isSelf(user) ? "Tidak dapat menghapus akun sendiri" : "Hapus"}
         disabled={isSelf(user)}
       >
@@ -571,12 +614,24 @@ export default function UserManagement() {
 
   // Statistics
   const totalUsers = pagination.total;
-  const adminUsers = users.filter(user => user.role === "admin" || user.role === "superadmin").length;
-  const regularUsers = users.filter(user => user.role === "pengguna").length;
+  const adminUsers = users.filter(
+    (user) => user.role === "admin" || user.role === "superadmin"
+  ).length;
+  const regularUsers = users.filter((user) => user.role === "pengguna").length;
 
   // Page title based on role filter
-  const pageTitle = roleFilter === "admin" ? "Kelola Admin" : roleFilter === "pengguna" ? "Kelola Pengguna" : "Kelola Pengguna";
-  const pageSubtitle = roleFilter === "admin" ? "Manajemen admin sistem" : roleFilter === "pengguna" ? "Manajemen pengguna biasa" : "Manajemen pengguna dan admin sistem";
+  const pageTitle =
+    roleFilter === "admin"
+      ? "Kelola Admin"
+      : roleFilter === "pengguna"
+      ? "Kelola Pengguna"
+      : "Kelola Pengguna";
+  const pageSubtitle =
+    roleFilter === "admin"
+      ? "Manajemen admin sistem"
+      : roleFilter === "pengguna"
+      ? "Manajemen pengguna biasa"
+      : "Manajemen pengguna dan admin sistem";
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -654,7 +709,13 @@ export default function UserManagement() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            {roleFilter === "admin" ? 'Tambah Admin' : roleFilter === "pengguna" ? 'Tambah Pengguna' : (canManageAdmin ? 'Tambah Pengguna/Admin' : 'Tambah Pengguna')}
+            {roleFilter === "admin"
+              ? "Tambah Admin"
+              : roleFilter === "pengguna"
+              ? "Tambah Pengguna"
+              : canManageAdmin
+              ? "Tambah Pengguna/Admin"
+              : "Tambah Pengguna"}
           </button>
         </div>
       </div>
@@ -687,8 +748,16 @@ export default function UserManagement() {
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     {columns.map((column) => (
-                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                        {column.render ? column.render(getNestedValue(user, column.key), user) : String(getNestedValue(user, column.key) || '')}
+                      <td
+                        key={column.key}
+                        className="px-6 py-4 whitespace-nowrap"
+                      >
+                        {column.render
+                          ? column.render(
+                              getNestedValue(user, column.key),
+                              user
+                            )
+                          : String(getNestedValue(user, column.key) || "")}
                       </td>
                     ))}
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -704,7 +773,10 @@ export default function UserManagement() {
         {/* Items Per Page Selector & Pagination */}
         <div className="flex flex-col sm:flex-row items-center justify-between text-black px-6 py-4 border-t border-gray-200 gap-4">
           <div className="flex items-center gap-3">
-            <label htmlFor="itemsPerPage" className="text-sm text-gray-700 whitespace-nowrap">
+            <label
+              htmlFor="itemsPerPage"
+              className="text-sm text-gray-700 whitespace-nowrap"
+            >
               Tampilkan:
             </label>
             <select
@@ -722,8 +794,13 @@ export default function UserManagement() {
             <span className="text-sm text-gray-700">
               {itemsPerPage === "all"
                 ? `Menampilkan semua ${pagination.total} pengguna`
-                : `Menampilkan ${Math.min(((pagination.page - 1) * pagination.limit) + 1, pagination.total)} - ${Math.min(pagination.page * pagination.limit, pagination.total)} dari ${pagination.total} pengguna`
-              }
+                : `Menampilkan ${Math.min(
+                    (pagination.page - 1) * pagination.limit + 1,
+                    pagination.total
+                  )} - ${Math.min(
+                    pagination.page * pagination.limit,
+                    pagination.total
+                  )} dari ${pagination.total} pengguna`}
             </span>
           </div>
         </div>
@@ -733,7 +810,9 @@ export default function UserManagement() {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title={roleFilter === "admin" ? "Tambah Admin Baru" : "Tambah Pengguna Baru"}
+        title={
+          roleFilter === "admin" ? "Tambah Admin Baru" : "Tambah Pengguna Baru"
+        }
         size="lg"
       >
         <form onSubmit={handleSubmitUser} className="space-y-4 text-black/80">
@@ -746,9 +825,12 @@ export default function UserManagement() {
               <input
                 type="email"
                 value={newUserData.email}
-                onChange={(e) => setNewUserData(prev => ({ ...prev, email: e.target.value }))}
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                onChange={(e) =>
+                  setNewUserData((prev) => ({ ...prev, email: e.target.value }))
+                }
+                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  formErrors.email ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="contoh@email.com"
                 required
               />
@@ -765,14 +847,22 @@ export default function UserManagement() {
             <input
               type="text"
               value={newUserData.full_name}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, full_name: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.full_name ? 'border-red-500' : 'border-gray-300'
-                }`}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  full_name: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.full_name ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="Masukkan nama lengkap"
               required
             />
             {formErrors.full_name && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.full_name}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {formErrors.full_name}
+              </p>
             )}
           </div>
 
@@ -785,9 +875,12 @@ export default function UserManagement() {
               <input
                 type="tel"
                 value={newUserData.phone}
-                onChange={(e) => setNewUserData(prev => ({ ...prev, phone: e.target.value }))}
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                onChange={(e) =>
+                  setNewUserData((prev) => ({ ...prev, phone: e.target.value }))
+                }
+                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  formErrors.phone ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="08123456789"
                 required
               />
@@ -803,7 +896,12 @@ export default function UserManagement() {
             </label>
             <select
               value={newUserData.role}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, role: e.target.value as "pengguna" | "admin" }))}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  role: e.target.value as "pengguna" | "admin",
+                }))
+              }
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
@@ -819,9 +917,15 @@ export default function UserManagement() {
             <input
               type="password"
               value={newUserData.password}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, password: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.password ? 'border-red-500' : 'border-gray-300'
-                }`}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  password: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.password ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="Minimal 6 karakter"
               required
             />
@@ -837,9 +941,12 @@ export default function UserManagement() {
             </label>
             <textarea
               value={newUserData.address}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, address: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${formErrors.address ? 'border-red-500' : 'border-gray-300'
-                }`}
+              onChange={(e) =>
+                setNewUserData((prev) => ({ ...prev, address: e.target.value }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                formErrors.address ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="Masukkan alamat lengkap (maksimal 500 karakter)"
               rows={3}
               maxLength={500}
@@ -860,13 +967,47 @@ export default function UserManagement() {
             <input
               type="date"
               value={newUserData.date_of_birth}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, date_of_birth: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.date_of_birth ? 'border-red-500' : 'border-gray-300'
-                }`}
-              max={new Date().toISOString().split('T')[0]} // Tidak boleh di masa depan
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  date_of_birth: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.date_of_birth ? "border-red-500" : "border-gray-300"
+              }`}
+              max={new Date().toISOString().split("T")[0]} // Tidak boleh di masa depan
             />
             {formErrors.date_of_birth && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.date_of_birth}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {formErrors.date_of_birth}
+              </p>
+            )}
+          </div>
+
+          {/* Profile URL Field - Add */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              URL Foto Profil (Opsional)
+            </label>
+            <input
+              type="url"
+              value={newUserData.profil_url}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  profil_url: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.profil_url ? "border-red-500" : "border-gray-300"
+              }`}
+              placeholder="https://example.com/profile.jpg"
+            />
+            {formErrors.profil_url && (
+              <p className="text-red-500 text-xs mt-1">
+                {formErrors.profil_url}
+              </p>
             )}
           </div>
 
@@ -905,9 +1046,12 @@ export default function UserManagement() {
               <input
                 type="email"
                 value={newUserData.email}
-                onChange={(e) => setNewUserData(prev => ({ ...prev, email: e.target.value }))}
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                onChange={(e) =>
+                  setNewUserData((prev) => ({ ...prev, email: e.target.value }))
+                }
+                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  formErrors.email ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="contoh@email.com"
                 required
               />
@@ -924,14 +1068,22 @@ export default function UserManagement() {
             <input
               type="text"
               value={newUserData.full_name}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, full_name: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.full_name ? 'border-red-500' : 'border-gray-300'
-                }`}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  full_name: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.full_name ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="Masukkan nama lengkap"
               required
             />
             {formErrors.full_name && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.full_name}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {formErrors.full_name}
+              </p>
             )}
           </div>
 
@@ -944,9 +1096,12 @@ export default function UserManagement() {
               <input
                 type="tel"
                 value={newUserData.phone}
-                onChange={(e) => setNewUserData(prev => ({ ...prev, phone: e.target.value }))}
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                onChange={(e) =>
+                  setNewUserData((prev) => ({ ...prev, phone: e.target.value }))
+                }
+                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  formErrors.phone ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="08123456789"
                 required
               />
@@ -962,7 +1117,12 @@ export default function UserManagement() {
             </label>
             <select
               value={newUserData.role}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, role: e.target.value as "pengguna" | "admin" }))}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  role: e.target.value as "pengguna" | "admin",
+                }))
+              }
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
@@ -978,7 +1138,12 @@ export default function UserManagement() {
             <input
               type="password"
               value={newUserData.password}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, password: e.target.value }))}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  password: e.target.value,
+                }))
+              }
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Kosongkan jika tidak ingin mengubah password"
             />
@@ -994,9 +1159,12 @@ export default function UserManagement() {
             </label>
             <textarea
               value={newUserData.address}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, address: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${formErrors.address ? 'border-red-500' : 'border-gray-300'
-                }`}
+              onChange={(e) =>
+                setNewUserData((prev) => ({ ...prev, address: e.target.value }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                formErrors.address ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="Masukkan alamat lengkap (maksimal 500 karakter)"
               rows={3}
               maxLength={500}
@@ -1017,13 +1185,21 @@ export default function UserManagement() {
             <input
               type="date"
               value={newUserData.date_of_birth}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, date_of_birth: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.date_of_birth ? 'border-red-500' : 'border-gray-300'
-                }`}
-              max={new Date().toISOString().split('T')[0]} // Tidak boleh di masa depan
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  date_of_birth: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.date_of_birth ? "border-red-500" : "border-gray-300"
+              }`}
+              max={new Date().toISOString().split("T")[0]} // Tidak boleh di masa depan
             />
             {formErrors.date_of_birth && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.date_of_birth}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {formErrors.date_of_birth}
+              </p>
             )}
           </div>
 
@@ -1035,13 +1211,21 @@ export default function UserManagement() {
             <input
               type="url"
               value={newUserData.profil_url}
-              onChange={(e) => setNewUserData(prev => ({ ...prev, profil_url: e.target.value }))}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.profil_url ? 'border-red-500' : 'border-gray-300'
-                }`}
+              onChange={(e) =>
+                setNewUserData((prev) => ({
+                  ...prev,
+                  profil_url: e.target.value,
+                }))
+              }
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.profil_url ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="https://example.com/profile.jpg"
             />
             {formErrors.profil_url && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.profil_url}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {formErrors.profil_url}
+              </p>
             )}
           </div>
 
@@ -1078,15 +1262,24 @@ export default function UserManagement() {
                 {getAvatarText(selectedUser.full_name)}
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">{selectedUser.full_name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {selectedUser.full_name}
+                </h3>
                 <p className="text-gray-600">{selectedUser.email}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selectedUser.role === "admin"
-                    ? "bg-purple-100 text-purple-800"
-                    : "bg-blue-100 text-blue-800"
-                    }`}>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      selectedUser.role === "admin"
+                        ? "bg-purple-100 text-purple-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
                     <Shield className="w-3 h-3 mr-1" />
-                    {selectedUser.role === "admin" ? "Admin" : selectedUser.role === "superadmin" ? "Superadmin" : "Pengguna"}
+                    {selectedUser.role === "admin"
+                      ? "Admin"
+                      : selectedUser.role === "superadmin"
+                      ? "Superadmin"
+                      : "Pengguna"}
                   </span>
                 </div>
               </div>
@@ -1097,15 +1290,21 @@ export default function UserManagement() {
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Nomor Telepon</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Nomor Telepon
+                  </span>
                 </div>
-                <p className="text-gray-900">{selectedUser.phone || "Tidak ada nomor telepon"}</p>
+                <p className="text-gray-900">
+                  {selectedUser.phone || "Tidak ada nomor telepon"}
+                </p>
               </div>
 
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Mail className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Email</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Email
+                  </span>
                 </div>
                 <p className="text-gray-900">{selectedUser.email}</p>
               </div>
@@ -1113,38 +1312,52 @@ export default function UserManagement() {
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Tanggal Registrasi</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Tanggal Registrasi
+                  </span>
                 </div>
-                <p className="text-gray-900">{formatDate(selectedUser.created_at)}</p>
+                <p className="text-gray-900">
+                  {formatDate(selectedUser.created_at)}
+                </p>
               </div>
 
               {/* Address Field */}
               <div className="p-4 border border-gray-200 rounded-lg md:col-span-2">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Alamat</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Alamat
+                  </span>
                 </div>
-                <p className="text-gray-900">{selectedUser.address || "Tidak ada alamat"}</p>
+                <p className="text-gray-900">
+                  {selectedUser.address || "Tidak ada alamat"}
+                </p>
               </div>
 
               {/* Date of Birth Field */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Tanggal Lahir</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Tanggal Lahir
+                  </span>
                 </div>
-                <p className="text-gray-900">{formatDate(selectedUser.date_of_birth || "Belum di isi")}</p>
+                <p className="text-gray-900">
+                  {formatDate(selectedUser.date_of_birth || "Belum di isi")}
+                </p>
               </div>
 
               {/* Profile Photo URL */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Eye className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Foto Profil</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Foto Profil
+                  </span>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <Image
-                    src={selectedUser.profil_url || '/default-profile.png'}
+                    src={selectedUser.profil_url || "/default-profile.png"}
                     alt="Foto Profil"
                     width={64}
                     height={64}
@@ -1159,7 +1372,9 @@ export default function UserManagement() {
                     rel="noopener noreferrer"
                     className="text-white text-sm underline"
                   >
-                    <button className="p-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg">Lihat Foto Lengkap</button>
+                    <button className="p-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg">
+                      Lihat Foto Lengkap
+                    </button>
                   </a>
                 </div>
               </div>

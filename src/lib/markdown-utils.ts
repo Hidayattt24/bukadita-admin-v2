@@ -7,30 +7,34 @@
  */
 
 export function parseMarkdownToHtml(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
 
   // Split by lines
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   const htmlLines: string[] = [];
 
-  for (let line of lines) {
+  for (const line of lines) {
     // Check for headings (must be at start of line)
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    
+
     if (headingMatch) {
       const level = headingMatch[1].length; // Number of # symbols
       const content = headingMatch[2].trim();
-      htmlLines.push(`<h${level} class="markdown-heading markdown-h${level}">${escapeHtml(content)}</h${level}>`);
-    } else if (line.trim() === '') {
+      htmlLines.push(
+        `<h${level} class="markdown-heading markdown-h${level}">${escapeHtml(
+          content
+        )}</h${level}>`
+      );
+    } else if (line.trim() === "") {
       // Empty line
-      htmlLines.push('<br>');
+      htmlLines.push("<br>");
     } else {
       // Regular text - preserve the line
       htmlLines.push(`<p class="markdown-paragraph">${escapeHtml(line)}</p>`);
     }
   }
 
-  return htmlLines.join('\n');
+  return htmlLines.join("\n");
 }
 
 /**
@@ -38,18 +42,18 @@ export function parseMarkdownToHtml(text: string): string {
  * Preserves newlines and basic formatting
  */
 export function textToHtml(text: string): string {
-  if (!text) return '';
-  
+  if (!text) return "";
+
   // Preserve newlines by converting to <br>
   return text
-    .split('\n')
-    .map(line => {
-      if (line.trim() === '') {
-        return '<br>';
+    .split("\n")
+    .map((line) => {
+      if (line.trim() === "") {
+        return "<br>";
       }
       return `<p class="mb-2">${escapeHtml(line)}</p>`;
     })
-    .join('\n');
+    .join("\n");
 }
 
 /**
@@ -63,32 +67,36 @@ export function textToHtml(text: string): string {
  * - Newlines preserved
  */
 export function parseEnhancedMarkdown(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
 
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   const htmlLines: string[] = [];
   let inList = false;
   let inOrderedList = false;
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-    
+    const line = lines[i];
+
     // Check for headings
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
     if (headingMatch) {
       // Close any open lists
       if (inList) {
-        htmlLines.push('</ul>');
+        htmlLines.push("</ul>");
         inList = false;
       }
       if (inOrderedList) {
-        htmlLines.push('</ol>');
+        htmlLines.push("</ol>");
         inOrderedList = false;
       }
-      
+
       const level = headingMatch[1].length;
       const content = parseInlineMarkdown(headingMatch[2].trim());
-      htmlLines.push(`<h${level} class="font-bold text-${7-level}xl mb-3 mt-4">${content}</h${level}>`);
+      htmlLines.push(
+        `<h${level} class="font-bold text-${
+          7 - level
+        }xl mb-3 mt-4">${content}</h${level}>`
+      );
       continue;
     }
 
@@ -96,7 +104,7 @@ export function parseEnhancedMarkdown(text: string): string {
     const unorderedListMatch = line.match(/^[\-\*]\s+(.+)$/);
     if (unorderedListMatch) {
       if (inOrderedList) {
-        htmlLines.push('</ol>');
+        htmlLines.push("</ol>");
         inOrderedList = false;
       }
       if (!inList) {
@@ -112,7 +120,7 @@ export function parseEnhancedMarkdown(text: string): string {
     const orderedListMatch = line.match(/^(\d+)\.\s+(.+)$/);
     if (orderedListMatch) {
       if (inList) {
-        htmlLines.push('</ul>');
+        htmlLines.push("</ul>");
         inList = false;
       }
       if (!inOrderedList) {
@@ -125,19 +133,19 @@ export function parseEnhancedMarkdown(text: string): string {
     }
 
     // Close lists if we're in one and hit a non-list line
-    if ((inList || inOrderedList) && line.trim() !== '') {
+    if ((inList || inOrderedList) && line.trim() !== "") {
       if (inList) {
-        htmlLines.push('</ul>');
+        htmlLines.push("</ul>");
         inList = false;
       }
       if (inOrderedList) {
-        htmlLines.push('</ol>');
+        htmlLines.push("</ol>");
         inOrderedList = false;
       }
     }
 
     // Empty line
-    if (line.trim() === '') {
+    if (line.trim() === "") {
       htmlLines.push('<div class="h-4"></div>'); // Spacer
       continue;
     }
@@ -149,13 +157,13 @@ export function parseEnhancedMarkdown(text: string): string {
 
   // Close any remaining lists
   if (inList) {
-    htmlLines.push('</ul>');
+    htmlLines.push("</ul>");
   }
   if (inOrderedList) {
-    htmlLines.push('</ol>');
+    htmlLines.push("</ol>");
   }
 
-  return htmlLines.join('\n');
+  return htmlLines.join("\n");
 }
 
 /**
@@ -163,15 +171,27 @@ export function parseEnhancedMarkdown(text: string): string {
  */
 function parseInlineMarkdown(text: string): string {
   let result = escapeHtml(text);
-  
+
   // Bold: **text** or __text__
-  result = result.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>');
-  result = result.replace(/__(.+?)__/g, '<strong class="font-bold">$1</strong>');
-  
+  result = result.replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong class="font-bold">$1</strong>'
+  );
+  result = result.replace(
+    /__(.+?)__/g,
+    '<strong class="font-bold">$1</strong>'
+  );
+
   // Italic: *text* or _text_ (but not if already in bold)
-  result = result.replace(/(?<!\*)\*([^\*]+?)\*(?!\*)/g, '<em class="italic">$1</em>');
-  result = result.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em class="italic">$1</em>');
-  
+  result = result.replace(
+    /(?<!\*)\*([^\*]+?)\*(?!\*)/g,
+    '<em class="italic">$1</em>'
+  );
+  result = result.replace(
+    /(?<!_)_([^_]+?)_(?!_)/g,
+    '<em class="italic">$1</em>'
+  );
+
   return result;
 }
 
@@ -179,7 +199,7 @@ function parseInlineMarkdown(text: string): string {
  * Escape HTML special characters
  */
 function escapeHtml(text: string): string {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
@@ -188,16 +208,22 @@ function escapeHtml(text: string): string {
  * Render content with markdown support
  * Auto-detects if content has markdown syntax
  */
-export function renderContent(text: string, enableMarkdown: boolean = true): string {
-  if (!text) return '';
-  
+export function renderContent(
+  text: string,
+  enableMarkdown: boolean = true
+): string {
+  if (!text) return "";
+
   if (!enableMarkdown) {
     return textToHtml(text);
   }
-  
+
   // Check if content has markdown syntax
-  const hasMarkdown = /^#{1,6}\s|^\*\s|^-\s|^\d+\.\s|\*\*.+?\*\*|__.+?__|(?<!\*)\*[^\*]+?\*(?!\*)/.test(text);
-  
+  const hasMarkdown =
+    /^#{1,6}\s|^\*\s|^-\s|^\d+\.\s|\*\*.+?\*\*|__.+?__|(?<!\*)\*[^\*]+?\*(?!\*)/.test(
+      text
+    );
+
   if (hasMarkdown) {
     return parseEnhancedMarkdown(text);
   } else {
@@ -210,19 +236,19 @@ export function renderContent(text: string, enableMarkdown: boolean = true): str
  * Used when loading content for editing
  */
 export function stripHtmlTags(html: string): string {
-  if (!html) return '';
-  
+  if (!html) return "";
+
   // Create a temporary div to parse HTML
-  const temp = document.createElement('div');
+  const temp = document.createElement("div");
   temp.innerHTML = html;
-  
+
   // Get text content (this automatically strips all HTML tags)
-  let text = temp.textContent || temp.innerText || '';
-  
+  let text = temp.textContent || temp.innerText || "";
+
   // Clean up extra whitespace and newlines
-  text = text.replace(/\n\n+/g, '\n\n'); // Collapse multiple newlines to double
+  text = text.replace(/\n\n+/g, "\n\n"); // Collapse multiple newlines to double
   text = text.trim();
-  
+
   return text;
 }
 
@@ -231,55 +257,54 @@ export function stripHtmlTags(html: string): string {
  * This preserves the structure but removes HTML tags
  */
 export function htmlToMarkdown(html: string): string {
-  if (!html) return '';
-  
+  if (!html) return "";
+
   let text = html;
-  
+
   // Replace heading tags with markdown syntax
-  text = text.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
-  text = text.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
-  text = text.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
-  text = text.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n');
-  text = text.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '##### $1\n\n');
-  text = text.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '###### $1\n\n');
-  
+  text = text.replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n");
+  text = text.replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n");
+  text = text.replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n");
+  text = text.replace(/<h4[^>]*>(.*?)<\/h4>/gi, "#### $1\n\n");
+  text = text.replace(/<h5[^>]*>(.*?)<\/h5>/gi, "##### $1\n\n");
+  text = text.replace(/<h6[^>]*>(.*?)<\/h6>/gi, "###### $1\n\n");
+
   // Replace strong/bold tags with markdown
-  text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-  text = text.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-  
+  text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**");
+  text = text.replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**");
+
   // Replace em/italic tags with markdown
-  text = text.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
-  text = text.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
-  
+  text = text.replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*");
+  text = text.replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*");
+
   // Replace list items
-  text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
-  
+  text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n");
+
   // Remove ul/ol tags
-  text = text.replace(/<\/?ul[^>]*>/gi, '\n');
-  text = text.replace(/<\/?ol[^>]*>/gi, '\n');
-  
+  text = text.replace(/<\/?ul[^>]*>/gi, "\n");
+  text = text.replace(/<\/?ol[^>]*>/gi, "\n");
+
   // Replace <br> and </p> with newlines
-  text = text.replace(/<br\s*\/?>/gi, '\n');
-  text = text.replace(/<\/p>/gi, '\n');
-  text = text.replace(/<p[^>]*>/gi, '');
-  
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+  text = text.replace(/<\/p>/gi, "\n");
+  text = text.replace(/<p[^>]*>/gi, "");
+
   // Replace <div> with newlines
-  text = text.replace(/<\/div>/gi, '\n');
-  text = text.replace(/<div[^>]*>/gi, '');
-  
+  text = text.replace(/<\/div>/gi, "\n");
+  text = text.replace(/<div[^>]*>/gi, "");
+
   // Remove any remaining HTML tags
-  text = text.replace(/<[^>]+>/g, '');
-  
+  text = text.replace(/<[^>]+>/g, "");
+
   // Decode HTML entities
-  const temp = document.createElement('div');
+  const temp = document.createElement("div");
   temp.innerHTML = text;
-  text = temp.textContent || temp.innerText || '';
-  
+  text = temp.textContent || temp.innerText || "";
+
   // Clean up whitespace
-  text = text.replace(/\n\n\n+/g, '\n\n'); // Max 2 consecutive newlines
-  text = text.replace(/^\n+|\n+$/g, ''); // Remove leading/trailing newlines
+  text = text.replace(/\n\n\n+/g, "\n\n"); // Max 2 consecutive newlines
+  text = text.replace(/^\n+|\n+$/g, ""); // Remove leading/trailing newlines
   text = text.trim();
-  
+
   return text;
 }
-

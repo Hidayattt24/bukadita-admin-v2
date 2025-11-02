@@ -316,6 +316,8 @@ export interface Module {
   materiCount?: number;
   quizCount?: number;
   created_at?: string;
+  sub_materis?: Material[]; // snake_case from API
+  subMateris?: Material[]; // camelCase variant
 }
 
 export interface ModulesListResponse {
@@ -332,9 +334,12 @@ export const modulesAPI = {
   },
 
   get: async (id: string | number) => {
-    return apiFetch<any>(`/api/v1/modules/${encodeURIComponent(String(id))}`, {
-      method: "GET",
-    });
+    return apiFetch<Module>(
+      `/api/v1/modules/${encodeURIComponent(String(id))}`,
+      {
+        method: "GET",
+      }
+    );
   },
 
   create: async (payload: {
@@ -375,6 +380,7 @@ export const modulesAPI = {
 
 // Helper function to normalize Material response from backend
 function normalizeMaterialResponse<T extends Material | Material[]>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 ): T {
   if (Array.isArray(data)) {
