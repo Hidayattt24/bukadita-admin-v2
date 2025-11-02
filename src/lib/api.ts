@@ -434,10 +434,14 @@ export const materialsAPI = {
     // Normalize response
     if (response.ok && response.data) {
       if (response.data.items) {
-        response.data.items = normalizeMaterialResponse<Material[]>(response.data.items);
+        response.data.items = normalizeMaterialResponse<Material[]>(
+          response.data.items
+        );
       }
       if (response.data.data) {
-        response.data.data = normalizeMaterialResponse<Material[]>(response.data.data);
+        response.data.data = normalizeMaterialResponse<Material[]>(
+          response.data.data
+        );
       }
     }
 
@@ -659,7 +663,7 @@ export interface Quiz {
   id: string | number;
   module_id: string | number;
   sub_materi_id?: string | number; // Now optional
-  quiz_type?: 'module' | 'sub_materi';
+  quiz_type?: "module" | "sub_materi";
   title: string;
   description?: string;
   time_limit_seconds?: number;
