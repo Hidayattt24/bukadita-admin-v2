@@ -152,43 +152,46 @@ export default function RichTextEditor({
   ];
 
   return (
-    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm hover:border-blue-400 transition-colors">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300 flex-wrap">
+    <div className="rounded-xl overflow-hidden bg-white shadow-sm">
+      {/* Toolbar - Clean design */}
+      <div className="flex items-center gap-1.5 p-2 bg-gray-50 flex-wrap">
         {toolbarButtons.map((button, index) => (
           <button
             key={index}
             type="button"
             onClick={button.action}
-            className="p-2.5 hover:bg-white hover:shadow-md rounded-md transition-all duration-200 group relative border border-transparent hover:border-blue-300"
+            className="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-150 group relative"
             title={button.label}
           >
-            <button.icon className="w-5 h-5 text-gray-700 group-hover:text-blue-600" />
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
+            <button.icon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
+            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1.5 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
               {button.label}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Text Area */}
+      {/* Text Area - No borders inside */}
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-4 min-h-[400px] resize-y focus:outline-none text-base leading-relaxed"
+        className="w-full p-5 min-h-[400px] resize-y text-base leading-relaxed bg-white"
         style={{
           fontFamily: "system-ui, -apple-system, sans-serif",
           lineHeight: "1.8",
+          border: "none",
+          outline: "none",
+          boxShadow: "none",
         }}
       />
 
-      {/* Helper Text */}
-      <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-gray-200">
+      {/* Helper Text - Clean design */}
+      <div className="px-4 py-2.5 bg-blue-50/50">
         <div className="flex items-center gap-2">
           <svg
-            className="w-4 h-4 text-blue-600"
+            className="w-4 h-4 text-blue-600 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -200,12 +203,12 @@ export default function RichTextEditor({
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <span className="text-sm font-medium text-gray-700">
-            Mendukung Markdown: <span className="text-blue-600">**bold**</span>,{" "}
-            <span className="text-blue-600">*italic*</span>,{" "}
-            <span className="text-blue-600"># heading</span>,{" "}
-            <span className="text-blue-600">- list</span>,{" "}
-            <span className="text-blue-600">[link](url)</span>
+          <span className="text-xs text-gray-600">
+            Mendukung Markdown:{" "}
+            <span className="text-blue-600 font-medium">**bold**</span>,{" "}
+            <span className="text-blue-600 font-medium">*italic*</span>,{" "}
+            <span className="text-blue-600 font-medium"># heading</span>,{" "}
+            <span className="text-blue-600 font-medium">- list</span>
           </span>
         </div>
       </div>
