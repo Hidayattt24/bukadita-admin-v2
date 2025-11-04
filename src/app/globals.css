@@ -25,10 +25,57 @@ body {
   font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Performance optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Disable color transitions to improve scroll performance */
+button,
+a,
+input,
+select,
+textarea,
+[class*="hover:"],
+[class*="transition"] {
+  transition: none !important;
+}
+
+/* Only allow opacity transitions for critical UI feedback */
+.transition-opacity {
+  transition: opacity 0.15s ease !important;
+}
+
+/* Optimize scrolling performance */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Reduce repaints - Use GPU acceleration selectively */
+table,
+.table-container {
+  will-change: auto;
+  contain: layout style paint;
+}
+
+/* Optimize hover states - instant feedback without animation */
+button:hover,
+a:hover {
+  transition-duration: 0s;
+}
+
 /* Utility classes */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -90,9 +137,4 @@ body {
 
 .animate-shimmer {
   animation: shimmer 3s infinite;
-}
-
-/* Smooth transitions for all interactive elements */
-* {
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

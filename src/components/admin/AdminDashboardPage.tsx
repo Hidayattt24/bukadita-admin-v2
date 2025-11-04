@@ -103,15 +103,15 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 via-gray-100 to-blue-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header with enhanced styling */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-3">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+          <div className="p-3 bg-blue-600 rounded-2xl shadow-md">
             <BarChart3 className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold text-blue-600">
               Dashboard Analytics
             </h1>
             <p className="text-gray-600 text-sm mt-1">
@@ -121,15 +121,15 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Main Statistics Grid - Enhanced */}
+      {/* Main Statistics Grid - Optimized */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Pengguna */}
-        <div className="group bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-blue-400">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-white/20 rounded-xl">
               <Users className="w-7 h-7" />
             </div>
-            <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full font-semibold">
+            <span className="text-xs bg-white/20 px-3 py-1.5 rounded-full font-semibold">
               Total Users
             </span>
           </div>
@@ -146,12 +146,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Total Materi */}
-        <div className="group bg-gradient-to-br from-green-500 via-green-600 to-green-700 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-green-400">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-white/20 rounded-xl">
               <BookOpen className="w-7 h-7" />
             </div>
-            <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full font-semibold">
+            <span className="text-xs bg-white/20 px-3 py-1.5 rounded-full font-semibold">
               Learning
             </span>
           </div>
@@ -168,12 +168,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Total Kuis */}
-        <div className="group bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-purple-400">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-white/20 rounded-xl">
               <FileText className="w-7 h-7" />
             </div>
-            <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full font-semibold">
+            <span className="text-xs bg-white/20 px-3 py-1.5 rounded-full font-semibold">
               Assessment
             </span>
           </div>
@@ -190,12 +190,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Completion Rate */}
-        <div className="group bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-orange-400">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-white/20 rounded-xl">
               <TrendingUp className="w-7 h-7" />
             </div>
-            <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full font-semibold">
+            <span className="text-xs bg-white/20 px-3 py-1.5 rounded-full font-semibold">
               Success Rate
             </span>
           </div>
@@ -214,9 +214,9 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Secondary Statistics - Enhanced */}
+      {/* Secondary Statistics - Optimized */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-5 shadow-lg border-2 border-blue-100 hover:border-blue-300 transition-all hover:shadow-xl">
+        <div className="bg-white rounded-2xl p-5 shadow-md border border-blue-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-600 mb-1">
@@ -234,13 +234,13 @@ export default function AdminDashboardPage() {
                   : "0% dari total"}
               </p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl">
+            <div className="p-4 bg-blue-100 rounded-2xl">
               <Activity className="w-8 h-8 text-blue-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-lg border-2 border-green-100 hover:border-green-300 transition-all hover:shadow-xl">
+        <div className="bg-white rounded-2xl p-5 shadow-md border border-green-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-600 mb-1">
@@ -253,13 +253,13 @@ export default function AdminDashboardPage() {
                 Total percobaan kuis
               </p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl">
+            <div className="p-4 bg-green-100 rounded-2xl">
               <Award className="w-8 h-8 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-lg border-2 border-purple-100 hover:border-purple-300 transition-all hover:shadow-xl">
+        <div className="bg-white rounded-2xl p-5 shadow-md border border-purple-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-600 mb-1">
@@ -272,13 +272,13 @@ export default function AdminDashboardPage() {
                 7 hari terakhir
               </p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl">
+            <div className="p-4 bg-purple-100 rounded-2xl">
               <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-lg border-2 border-orange-100 hover:border-orange-300 transition-all hover:shadow-xl">
+        <div className="bg-white rounded-2xl p-5 shadow-md border border-orange-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-600 mb-1">
@@ -297,7 +297,7 @@ export default function AdminDashboardPage() {
                   : "0% pass rate"}
               </p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl">
+            <div className="p-4 bg-orange-100 rounded-2xl">
               <Clock className="w-8 h-8 text-orange-600" />
             </div>
           </div>

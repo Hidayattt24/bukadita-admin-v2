@@ -158,11 +158,11 @@ export default function DashboardCharts({
 
   return (
     <div className="space-y-6">
-      {/* Module Completion Chart - Enhanced */}
-      <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-2xl shadow-lg border-2 border-blue-100 p-8 hover:shadow-xl transition-shadow duration-300">
+      {/* Module Completion Chart - Optimized */}
+      <div className="bg-white rounded-2xl shadow-md border border-blue-100 p-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md">
+            <div className="p-3 bg-blue-600 rounded-xl shadow-sm">
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -227,10 +227,10 @@ export default function DashboardCharts({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Activity Trend Chart - Enhanced with Area */}
-        <div className="bg-gradient-to-br from-purple-50 via-white to-pink-50 rounded-2xl shadow-lg border-2 border-purple-100 p-6 hover:shadow-xl transition-shadow duration-300">
+        {/* Activity Trend Chart - Optimized */}
+        <div className="bg-white rounded-2xl shadow-md border border-purple-100 p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-md">
+            <div className="p-3 bg-purple-600 rounded-xl shadow-sm">
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -264,10 +264,10 @@ export default function DashboardCharts({
           </ResponsiveContainer>
         </div>
 
-        {/* Quiz Performance Pie Chart - Enhanced with Radial */}
-        <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50 rounded-2xl shadow-lg border-2 border-green-100 p-6 hover:shadow-xl transition-shadow duration-300">
+        {/* Quiz Performance Pie Chart - Optimized */}
+        <div className="bg-white rounded-2xl shadow-md border border-green-100 p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
+            <div className="p-3 bg-green-600 rounded-xl shadow-sm">
               <Award className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -345,10 +345,10 @@ export default function DashboardCharts({
         </div>
       </div>
 
-      {/* User Overview Bar Chart - Enhanced Horizontal */}
-      <div className="bg-gradient-to-br from-cyan-50 via-white to-blue-50 rounded-2xl shadow-lg border-2 border-cyan-100 p-8 hover:shadow-xl transition-shadow duration-300">
+      {/* User Overview Bar Chart - Optimized */}
+      <div className="bg-white rounded-2xl shadow-md border border-cyan-100 p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-md">
+          <div className="p-3 bg-cyan-600 rounded-xl shadow-sm">
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>

@@ -86,7 +86,7 @@ export default function DataTable<T = any>({
           {onAdd && (
             <button
               onClick={onAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <Plus className="w-4 h-4" />
               Tambah
@@ -95,8 +95,8 @@ export default function DataTable<T = any>({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table - Optimized for performance */}
+      <div className="overflow-x-auto table-container">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -127,7 +127,7 @@ export default function DataTable<T = any>({
               </tr>
             ) : (
               paginatedData.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
+                <tr key={index}>
                   {columns.map((column) => (
                     <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -140,7 +140,7 @@ export default function DataTable<T = any>({
                         {onCustomAction && (
                           <button
                             onClick={() => onCustomAction(item)}
-                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-purple-300 text-purple-600 hover:bg-purple-400/80 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-purple-300 text-purple-600 hover:bg-purple-400 rounded"
                             title={customActionTitle}
                           >
                             {customActionIcon || <Plus className="w-4 h-4" />}
@@ -150,7 +150,7 @@ export default function DataTable<T = any>({
                         {onView && (
                           <button
                             onClick={() => onView(item)}
-                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-blue-300 text-blue-600 hover:bg-blue-400/80 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-blue-300 text-blue-600 hover:bg-blue-400 rounded"
                             title="Lihat"
                           >
                             <Eye className="w-4 h-4" />
@@ -160,7 +160,7 @@ export default function DataTable<T = any>({
                         {onEdit && (
                           <button
                             onClick={() => onEdit(item)}
-                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-green-300 text-green-600 hover:bg-green-400/80 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-green-300 text-green-600 hover:bg-green-400 rounded"
                             title="Edit"
                           >
                             <Edit className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default function DataTable<T = any>({
                         {onDelete && (
                           <button
                             onClick={() => onDelete(item)}
-                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-red-300 text-red-600 hover:bg-red-400/80 rounded transition-colors"
+                            className="flex items-center justify-center gap-2 px-3 py-1 w-20 bg-red-300 text-red-600 hover:bg-red-400 rounded"
                             title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />
