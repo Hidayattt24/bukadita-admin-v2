@@ -19,13 +19,19 @@ import {
   Award,
   Activity,
 } from "lucide-react";
-import { progressService, type QuizAttemptSummary, type UserProgress } from "@/lib/api/progress";
+import {
+  progressService,
+  type QuizAttemptSummary,
+  type UserProgress,
+} from "@/lib/api/progress";
 import { modulesAPI, type Module } from "@/lib/api";
 
 type ModuleItem = Module;
 
 export default function ProgressMonitoringPageNew() {
-  const [activeTab, setActiveTab] = useState<"attempts" | "progress">("attempts");
+  const [activeTab, setActiveTab] = useState<"attempts" | "progress">(
+    "attempts"
+  );
   const [attempts, setAttempts] = useState<QuizAttemptSummary[]>([]);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [modules, setModules] = useState<ModuleItem[]>([]);
@@ -50,7 +56,10 @@ export default function ProgressMonitoringPageNew() {
       try {
         const res = await modulesAPI.list();
         if (res.ok) {
-          const data = res.data as { items?: ModuleItem[]; data?: ModuleItem[] };
+          const data = res.data as {
+            items?: ModuleItem[];
+            data?: ModuleItem[];
+          };
           const items = data.items || data.data || [];
           setModules(items);
         }
@@ -91,7 +100,11 @@ export default function ProgressMonitoringPageNew() {
           const res = await progressService.getQuizAttempts(params);
           if (res.ok) {
             setAttempts(res.data.items);
-            setTotalPages(Math.ceil(res.data.pagination.total / res.data.pagination.limit) || 1);
+            setTotalPages(
+              Math.ceil(
+                res.data.pagination.total / res.data.pagination.limit
+              ) || 1
+            );
           }
         } else {
           const params = {
@@ -103,12 +116,20 @@ export default function ProgressMonitoringPageNew() {
           const res = await progressService.getAllUsersProgress(params);
           if (res.ok) {
             setUserProgress(res.data.items);
-            setTotalPages(Math.ceil(res.data.pagination.total / res.data.pagination.limit) || 1);
+            setTotalPages(
+              Math.ceil(
+                res.data.pagination.total / res.data.pagination.limit
+              ) || 1
+            );
           }
         }
       } catch (error) {
         console.error("Error loading data:", error);
-        await Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal memuat data' });
+        await Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Gagal memuat data",
+        });
       } finally {
         setLoading(false);
       }
@@ -123,27 +144,54 @@ export default function ProgressMonitoringPageNew() {
       if (res.ok) {
         const attempt = res.data;
 
-        const answersHtml = attempt.answers?.map((answer, index) => `
-          <div class="mb-4 p-3 border rounded ${answer.is_correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
-            <div class="font-medium mb-2">${index + 1}. ${answer.question_text || 'Pertanyaan ' + (index + 1)}</div>
+        const answersHtml =
+          attempt.answers
+            ?.map(
+              (answer, index) => `
+          <div class="mb-4 p-3 border rounded ${
+            answer.is_correct
+              ? "bg-green-50 border-green-200"
+              : "bg-red-50 border-red-200"
+          }">
+            <div class="font-medium mb-2">${index + 1}. ${
+                answer.question_text || "Pertanyaan " + (index + 1)
+              }</div>
             <div class="text-sm">
-              <div class="mb-1">Jawaban: ${answer.selected_option || `Opsi ${answer.selected_index + 1}`}</div>
-              ${answer.correct_option ? `<div class="text-green-700">Jawaban benar: ${answer.correct_option}</div>` : ''}
-              <div class="font-medium ${answer.is_correct ? 'text-green-700' : 'text-red-700'}">
-                ${answer.is_correct ? '✓ Benar' : '✗ Salah'}
+              <div class="mb-1">Jawaban: ${
+                answer.selected_option || `Opsi ${answer.selected_index + 1}`
+              }</div>
+              ${
+                answer.correct_option
+                  ? `<div class="text-green-700">Jawaban benar: ${answer.correct_option}</div>`
+                  : ""
+              }
+              <div class="font-medium ${
+                answer.is_correct ? "text-green-700" : "text-red-700"
+              }">
+                ${answer.is_correct ? "✓ Benar" : "✗ Salah"}
               </div>
             </div>
           </div>
-        `).join('') || 'Tidak ada detail jawaban';
+        `
+            )
+            .join("") || "Tidak ada detail jawaban";
 
         await Swal.fire({
-          title: `Detail Attempt - ${attempt.quiz_title || 'Kuis'}`,
+          title: `Detail Attempt - ${attempt.quiz_title || "Kuis"}`,
           html: `
             <div class="text-left">
               <div class="mb-4 p-4 bg-gray-50 rounded">
-                <div><strong>User:</strong> ${attempt.user_full_name || 'Unknown'} (${attempt.user_email || 'No email'})</div>
-                <div><strong>Skor:</strong> ${attempt.score || 0}/${attempt.total_questions || 0} (${attempt.passed ? 'LULUS' : 'TIDAK LULUS'})</div>
-                <div><strong>Waktu:</strong> ${attempt.started_at ? new Date(attempt.started_at).toLocaleString('id-ID') : 'Unknown'}</div>
+                <div><strong>User:</strong> ${
+                  attempt.user_full_name || "Unknown"
+                } (${attempt.user_email || "No email"})</div>
+                <div><strong>Skor:</strong> ${attempt.score || 0}/${
+            attempt.total_questions || 0
+          } (${attempt.passed ? "LULUS" : "TIDAK LULUS"})</div>
+                <div><strong>Waktu:</strong> ${
+                  attempt.started_at
+                    ? new Date(attempt.started_at).toLocaleString("id-ID")
+                    : "Unknown"
+                }</div>
               </div>
               <div class="max-h-96 overflow-y-auto">
                 ${answersHtml}
@@ -151,12 +199,16 @@ export default function ProgressMonitoringPageNew() {
             </div>
           `,
           width: 800,
-          confirmButtonText: 'Tutup',
+          confirmButtonText: "Tutup",
         });
       }
     } catch (error) {
       console.error("Error loading attempt detail:", error);
-      await Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal memuat detail attempt' });
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Gagal memuat detail attempt",
+      });
     }
   };
 
@@ -169,8 +221,12 @@ export default function ProgressMonitoringPageNew() {
             <BarChart3 className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Monitoring Progress & Attempts</h1>
-            <p className="text-gray-600 mt-1">Pantau progress pengguna dan hasil kuis secara real-time</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Monitoring Progress & Attempts
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Pantau progress pengguna dan hasil kuis secara real-time
+            </p>
           </div>
         </div>
       </div>
@@ -215,7 +271,9 @@ export default function ProgressMonitoringPageNew() {
               <Trophy className="w-8 h-8" />
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold">{stats.completed_quizzes_total}</p>
+              <p className="text-3xl font-bold">
+                {stats.completed_quizzes_total}
+              </p>
               <p className="text-purple-100 text-sm mt-1">Kuis Diselesaikan</p>
             </div>
           </div>
@@ -231,7 +289,9 @@ export default function ProgressMonitoringPageNew() {
               <Target className="w-8 h-8" />
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold">{Math.round(stats.average_completion_rate)}%</p>
+              <p className="text-3xl font-bold">
+                {Math.round(stats.average_completion_rate)}%
+              </p>
               <p className="text-orange-100 text-sm mt-1">Completion Rate</p>
             </div>
           </div>
@@ -356,13 +416,17 @@ export default function ProgressMonitoringPageNew() {
                         {/* User Info */}
                         <div className="flex items-center gap-4 flex-1">
                           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                            {(attempt.user_full_name || 'U').charAt(0).toUpperCase()}
+                            {(attempt.user_full_name || "U")
+                              .charAt(0)
+                              .toUpperCase()}
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold text-gray-900 text-lg">
-                              {attempt.user_full_name || 'Unknown User'}
+                              {attempt.user_full_name || "Unknown User"}
                             </h3>
-                            <p className="text-sm text-gray-500">{attempt.user_email}</p>
+                            <p className="text-sm text-gray-500">
+                              {attempt.user_email}
+                            </p>
                             <p className="text-sm font-medium text-blue-600 mt-1">
                               {attempt.quiz_title || `Quiz ${attempt.quiz_id}`}
                             </p>
@@ -373,7 +437,8 @@ export default function ProgressMonitoringPageNew() {
                         <div className="flex items-center gap-6">
                           <div className="text-center">
                             <div className="text-2xl font-bold text-gray-900">
-                              {attempt.correct_answers || 0}/{attempt.total_questions || 0}
+                              {attempt.correct_answers || 0}/
+                              {attempt.total_questions || 0}
                             </div>
                             <div className="text-sm text-gray-500">Benar</div>
                             <div className="text-lg font-semibold text-blue-600 mt-1">
@@ -388,14 +453,18 @@ export default function ProgressMonitoringPageNew() {
                                 <div className="p-3 bg-green-100 rounded-full">
                                   <CheckCircle className="w-8 h-8 text-green-600" />
                                 </div>
-                                <span className="text-xs font-semibold text-green-700">LULUS</span>
+                                <span className="text-xs font-semibold text-green-700">
+                                  LULUS
+                                </span>
                               </div>
                             ) : (
                               <div className="flex flex-col items-center gap-2">
                                 <div className="p-3 bg-red-100 rounded-full">
                                   <XCircle className="w-8 h-8 text-red-600" />
                                 </div>
-                                <span className="text-xs font-semibold text-red-700">TIDAK LULUS</span>
+                                <span className="text-xs font-semibold text-red-700">
+                                  TIDAK LULUS
+                                </span>
                               </div>
                             )}
                           </div>
@@ -404,10 +473,16 @@ export default function ProgressMonitoringPageNew() {
                           <div className="flex flex-col gap-2">
                             <div className="text-sm text-gray-500 flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              {attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString('id-ID') : 'Belum selesai'}
+                              {attempt.completed_at
+                                ? new Date(
+                                    attempt.completed_at
+                                  ).toLocaleDateString("id-ID")
+                                : "Belum selesai"}
                             </div>
                             <button
-                              onClick={() => handleViewAttemptDetail(attempt.id)}
+                              onClick={() =>
+                                handleViewAttemptDetail(attempt.id)
+                              }
                               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg text-sm font-medium"
                             >
                               <Eye className="w-4 h-4" />
@@ -422,44 +497,60 @@ export default function ProgressMonitoringPageNew() {
                   {attempts.length === 0 && (
                     <div className="py-16 text-center text-gray-500">
                       <Trophy className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                      <p className="text-lg font-medium">Tidak ada data attempt kuis ditemukan</p>
-                      <p className="text-sm mt-2">Coba ubah filter atau tambahkan data baru</p>
+                      <p className="text-lg font-medium">
+                        Tidak ada data attempt kuis ditemukan
+                      </p>
+                      <p className="text-sm mt-2">
+                        Coba ubah filter atau tambahkan data baru
+                      </p>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="space-y-6">
                   {userProgress.map((user) => (
-                    <div key={user.user_id} className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-lg transition-all bg-gradient-to-r from-white to-gray-50">
+                    <div
+                      key={user.user_id}
+                      className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-lg transition-all bg-gradient-to-r from-white to-gray-50"
+                    >
                       <div className="flex items-center gap-4 mb-4">
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
-                          {(user.user_full_name || 'U').charAt(0).toUpperCase()}
+                          {(user.user_full_name || "U").charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-bold text-gray-900">
-                            {user.user_full_name || 'Unknown User'}
+                            {user.user_full_name || "Unknown User"}
                           </h3>
-                          <p className="text-sm text-gray-500">{user.user_email}</p>
+                          <p className="text-sm text-gray-500">
+                            {user.user_email}
+                          </p>
                         </div>
                       </div>
 
-                      {user.module_progress && user.module_progress.length > 0 ? (
+                      {user.module_progress &&
+                      user.module_progress.length > 0 ? (
                         <div className="space-y-4">
                           {user.module_progress.map((moduleProgress) => (
-                            <div key={moduleProgress.module_id} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                            <div
+                              key={moduleProgress.module_id}
+                              className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm"
+                            >
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
                                   <BookOpen className="w-5 h-5 text-blue-600" />
                                   <span className="font-semibold text-gray-900">
-                                    {moduleProgress.module_title || `Module ${moduleProgress.module_id}`}
+                                    {moduleProgress.module_title ||
+                                      `Module ${moduleProgress.module_id}`}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-                                    moduleProgress.completed 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-yellow-100 text-yellow-700'
-                                  }`}>
+                                  <span
+                                    className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
+                                      moduleProgress.completed
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-yellow-100 text-yellow-700"
+                                    }`}
+                                  >
                                     {moduleProgress.completion_percentage}%
                                   </span>
                                   {moduleProgress.completed && (
@@ -470,11 +561,13 @@ export default function ProgressMonitoringPageNew() {
                               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                                 <div
                                   className={`h-3 rounded-full transition-all duration-500 ${
-                                    moduleProgress.completed 
-                                      ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                                      : 'bg-gradient-to-r from-yellow-500 to-orange-500'
+                                    moduleProgress.completed
+                                      ? "bg-gradient-to-r from-green-500 to-green-600"
+                                      : "bg-gradient-to-r from-yellow-500 to-orange-500"
                                   }`}
-                                  style={{ width: `${moduleProgress.completion_percentage}%` }}
+                                  style={{
+                                    width: `${moduleProgress.completion_percentage}%`,
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -483,7 +576,9 @@ export default function ProgressMonitoringPageNew() {
                       ) : (
                         <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl">
                           <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                          <p className="text-sm">Belum ada progress yang tercatat</p>
+                          <p className="text-sm">
+                            Belum ada progress yang tercatat
+                          </p>
                         </div>
                       )}
                     </div>
@@ -492,8 +587,12 @@ export default function ProgressMonitoringPageNew() {
                   {userProgress.length === 0 && (
                     <div className="py-16 text-center text-gray-500">
                       <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                      <p className="text-lg font-medium">Tidak ada data progress pengguna ditemukan</p>
-                      <p className="text-sm mt-2">Coba ubah filter atau tambahkan data baru</p>
+                      <p className="text-lg font-medium">
+                        Tidak ada data progress pengguna ditemukan
+                      </p>
+                      <p className="text-sm mt-2">
+                        Coba ubah filter atau tambahkan data baru
+                      </p>
                     </div>
                   )}
                 </div>
@@ -535,8 +634,8 @@ export default function ProgressMonitoringPageNew() {
                         onClick={() => setCurrentPage(pageNum)}
                         className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${
                           currentPage === pageNum
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                            : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+                            ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
+                            : "bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300"
                         }`}
                       >
                         {pageNum}
@@ -545,7 +644,9 @@ export default function ProgressMonitoringPageNew() {
                   })}
                 </div>
                 <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 border-2 border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >

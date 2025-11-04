@@ -474,10 +474,7 @@ export default function MaterialPoinManager({
     }
   };
 
-  const addNewMediaToPoin = async (
-    poinId: string | number,
-    file: File
-  ) => {
+  const addNewMediaToPoin = async (poinId: string | number, file: File) => {
     try {
       const formData = new FormData();
       formData.append("file", file); // Changed from 'media' to 'file' to match backend

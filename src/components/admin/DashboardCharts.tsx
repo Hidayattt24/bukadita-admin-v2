@@ -127,7 +127,11 @@ export default function DashboardCharts({
   ];
 
   // Custom Tooltip Component
-  const CustomTooltip = ({ active, payload, label }: {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
     active?: boolean;
     payload?: Array<{ name: string; value: number; color: string }>;
     label?: string;
@@ -289,7 +293,10 @@ export default function DashboardCharts({
                 cy="50%"
                 labelLine={false}
                 label={(entry) => {
-                  const item = entry as unknown as { name: string; percent: number };
+                  const item = entry as unknown as {
+                    name: string;
+                    percent: number;
+                  };
                   const percentValue = (item.percent * 100).toFixed(1);
                   return `${item.name}\n${percentValue}%`;
                 }}

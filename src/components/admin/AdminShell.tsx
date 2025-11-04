@@ -58,9 +58,7 @@ function AdminHeader() {
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">
-              Admin Panel
-            </h1>
+            <h1 className="text-xl font-bold text-white">Admin Panel</h1>
             <p className="text-xs text-white/80 font-medium">
               Bukadita - Buku Kader Digital Posyandu
             </p>
@@ -171,8 +169,7 @@ function AdminSidebar() {
 
   const itemBase =
     "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium";
-  const itemActive =
-    "bg-white/20 text-white shadow-md";
+  const itemActive = "bg-white/20 text-white shadow-md";
   const itemHover = "hover:bg-white/10";
 
   // Load modules from backend (preferred) with fallback to localStorage; subscribe to changes
@@ -282,7 +279,7 @@ function AdminSidebar() {
 
       {/* Scrollable Navigation */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-6 pt-8">
-        <nav className="space-y-2"  >
+        <nav className="space-y-2">
           {/* Dashboard */}
           <Link
             href="/admin/dashboard"
@@ -436,7 +433,11 @@ function AdminSidebar() {
                         open ? "bg-white/20" : "bg-white/10"
                       }`}
                     >
-                      <Folder className={`w-5 h-5 ${open ? "text-white" : "text-white/80"}`} />
+                      <Folder
+                        className={`w-5 h-5 ${
+                          open ? "text-white" : "text-white/80"
+                        }`}
+                      />
                     </div>
                     <span
                       className={`flex-1 text-left font-semibold text-sm leading-relaxed ${
@@ -451,7 +452,11 @@ function AdminSidebar() {
                         open ? "rotate-180" : ""
                       }`}
                     >
-                      <ChevronDown className={`w-5 h-5 ${open ? "text-white" : "text-white/60"}`} />
+                      <ChevronDown
+                        className={`w-5 h-5 ${
+                          open ? "text-white" : "text-white/60"
+                        }`}
+                      />
                     </div>
                   </button>
 

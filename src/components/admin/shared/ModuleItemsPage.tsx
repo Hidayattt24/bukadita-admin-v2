@@ -168,8 +168,8 @@ export default function ModuleItemsPage({
     return () => {
       isCancelled = true;
     };
-  }, [moduleId]); 
-  
+  }, [moduleId]);
+
   // Helper to format server error from our apiFetch union result
   const formatServerError = (res: {
     ok: false;

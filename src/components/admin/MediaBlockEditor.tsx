@@ -87,7 +87,9 @@ export default function MediaBlockEditor({
             <p className="text-sm text-gray-600 mb-1">
               Klik untuk upload gambar atau video
             </p>
-            <p className="text-xs text-gray-500">PNG, JPG, GIF, MP4, WebM (Max 50MB)</p>
+            <p className="text-xs text-gray-500">
+              PNG, JPG, GIF, MP4, WebM (Max 50MB)
+            </p>
           </div>
           <input
             type="file"
@@ -99,7 +101,9 @@ export default function MediaBlockEditor({
       ) : (
         <div className="space-y-3">
           {/* Preview */}
-          <div className={`${alignmentClasses[alignment]} ${sizeClasses[size]}`}>
+          <div
+            className={`${alignmentClasses[alignment]} ${sizeClasses[size]}`}
+          >
             {isImage && (preview || file) && !imageError ? (
               <div className="relative rounded-lg overflow-hidden bg-gray-100">
                 <Image
@@ -175,7 +179,9 @@ export default function MediaBlockEditor({
               <select
                 value={size}
                 onChange={(e) =>
-                  onSizeChange(e.target.value as "small" | "medium" | "large" | "full")
+                  onSizeChange(
+                    e.target.value as "small" | "medium" | "large" | "full"
+                  )
                 }
                 className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
