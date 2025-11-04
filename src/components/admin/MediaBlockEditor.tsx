@@ -8,7 +8,6 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Maximize2,
   Image as ImageIcon,
 } from "lucide-react";
 

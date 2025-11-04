@@ -14,7 +14,6 @@ import {
   RefreshCw,
   TrendingUp,
   Filter,
-  Download,
   BarChart3,
   Target,
   Award,

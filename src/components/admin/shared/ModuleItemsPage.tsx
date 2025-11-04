@@ -12,7 +12,6 @@ import {
   type Material,
   type Quiz,
   type Poin,
-  type MediaItem,
 } from "@/lib/api";
 import MaterialPreview from "../MaterialPreview";
 
@@ -169,8 +168,9 @@ export default function ModuleItemsPage({
     return () => {
       isCancelled = true;
     };
-  }, [moduleId]); // Helper to format server error from our apiFetch union result
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }, [moduleId]); 
+  
+  // Helper to format server error from our apiFetch union result
   const formatServerError = (res: {
     ok: false;
     status: number;
@@ -396,10 +396,12 @@ export default function ModuleItemsPage({
 
       try {
         localStorage.setItem(storageKey, JSON.stringify(mapped));
-      } catch {}
+      } catch {
+        // Ignore storage errors
+      }
       return true;
     },
-    [moduleId, storageKey]
+    [moduleId, storageKey, filterByMaterialId]
   );
 
   // Load sub-materi options for quiz dropdown - get sub-materis with poin details

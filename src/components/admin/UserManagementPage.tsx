@@ -19,7 +19,6 @@ import {
   Mail,
   Phone,
   Shield,
-  Clock,
   MapPin,
 } from "lucide-react";
 import Image from "next/image";
@@ -197,7 +196,7 @@ export default function UserManagement() {
     if (roleFromUrl !== roleFilter) {
       setRoleFilter(roleFromUrl);
     }
-  }, [roleFromUrl]);
+  }, [roleFromUrl, roleFilter]);
 
   useEffect(() => {
     fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
@@ -463,15 +462,7 @@ export default function UserManagement() {
     return name ? name.charAt(0).toUpperCase() : "?";
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatDateTime = (dateString: string | null | undefined) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "—";
 
     const date = new Date(dateString);
@@ -479,25 +470,11 @@ export default function UserManagement() {
     // Check if date is valid
     if (isNaN(date.getTime())) return "Format tidak valid";
 
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    // Relative time for recent logins
-    if (diffMins < 1) return "Baru saja";
-    if (diffMins < 60) return `${diffMins} menit lalu`;
-    if (diffHours < 24) return `${diffHours} jam lalu`;
-    if (diffDays < 7) return `${diffDays} hari lalu`;
-
-    // Absolute time for older logins
+    // Simple date format
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 

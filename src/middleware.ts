@@ -10,10 +10,6 @@ export function middleware(request: NextRequest) {
   
   const isAuthenticated = !!(adminUserId && (adminRole === 'admin' || adminRole === 'superadmin'));
 
-  // Public paths that don't require authentication
-  const publicPaths = ['/login', '/api/auth/session', '/api/auth/logout'];
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-
   // Admin paths that require authentication
   const isAdminPath = pathname.startsWith('/admin');
 

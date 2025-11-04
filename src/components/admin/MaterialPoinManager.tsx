@@ -84,12 +84,6 @@ export default function MaterialPoinManager({
   // Tab state
   const [activeTab, setActiveTab] = useState<"manage" | "preview">("manage");
 
-  // Backend doesn't have endpoint to get single poin, so we use data from material response
-  // This function is kept for compatibility but now just returns data from state
-  const findPoinById = (poinId: string | number): PoinDetailRecord | null => {
-    return poins.find((p) => String(p.id) === String(poinId)) || null;
-  };
-
   // Helper function to get media from poin (backend now consistently uses poin_media)
   const getPoinMedia = (poin: PoinDetailRecord): MediaItem[] => {
     return poin.poin_media || [];
@@ -482,16 +476,12 @@ export default function MaterialPoinManager({
 
   const addNewMediaToPoin = async (
     poinId: string | number,
-    file: File,
-    caption: string
+    file: File
   ) => {
     try {
       const formData = new FormData();
       formData.append("file", file); // Changed from 'media' to 'file' to match backend
-      // Note: Backend doesn't support caption yet, commented out to avoid "Unexpected field" error
-      // if (caption.trim()) {
-      //   formData.append("caption", caption.trim());
-      // }
+      // Note: Backend doesn't support caption yet
 
       const { apiFetch } = await import("@/lib/api/client");
       const res = await apiFetch(
@@ -600,7 +590,6 @@ export default function MaterialPoinManager({
 
       if (res.ok) {
         const createdPoin = res.data;
-        const finalPoin = createdPoin;
 
         // Step 2: If there are media files, upload them one by one
         if (mediaFiles.length > 0) {
@@ -611,8 +600,7 @@ export default function MaterialPoinManager({
             try {
               const result = await addNewMediaToPoin(
                 createdPoin.id,
-                mediaFile.file,
-                mediaFile.caption || ""
+                mediaFile.file
               );
               if (result) {
                 // Backend returns array of media items
@@ -824,8 +812,7 @@ export default function MaterialPoinManager({
         try {
           const newMediaResponse = await addNewMediaToPoin(
             editingPoin.id,
-            mediaFile.file,
-            mediaFile.caption
+            mediaFile.file
           );
           if (
             newMediaResponse &&
@@ -1171,47 +1158,135 @@ export default function MaterialPoinManager({
 
           {/* Add/Edit Poin Form with Live Preview */}
           {(showAddPoin || showEditPoin) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Form Section */}
+            <div className="mb-6">
+              {/* Form Section - Full Width for Better Writing Experience */}
               <form
                 onSubmit={editingPoin ? handleUpdatePoin : handleAddPoin}
-                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+                className="bg-white rounded-xl p-8 shadow-lg border-2 border-blue-200"
               >
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  {editingPoin ? "Edit Poin" : "Tambah Poin Baru"}
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    {editingPoin ? (
+                      <svg
+                        className="w-8 h-8 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-8 h-8 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                    )}
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {editingPoin ? "Edit Poin" : "Tambah Poin Baru"}
+                    </h2>
+                  </div>
+                  <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Mode Penulisan Nyaman
+                  </span>
+                </div>
 
-                <div className="space-y-4 text-black">
+                <div className="space-y-6 text-black">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
                       Judul Poin *
                     </label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                       placeholder="Masukkan judul poin..."
                       required
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                          />
+                        </svg>
                         Label Durasi
                       </label>
                       <input
                         type="text"
                         value={durationLabel}
                         onChange={(e) => setDurationLabel(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         placeholder="contoh: Bacaan 5 menit"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
                         Durasi (menit)
                       </label>
                       <input
@@ -1219,7 +1294,7 @@ export default function MaterialPoinManager({
                         min="0"
                         value={durationMinutes}
                         onChange={(e) => setDurationMinutes(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         placeholder="Estimasi menit"
                       />
                     </div>
@@ -1244,15 +1319,41 @@ export default function MaterialPoinManager({
                   {/* Existing Media (for Edit mode) */}
                   {editingPoin && existingMedia.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
                         Media yang Sudah Ada
                       </label>
 
                       {/* Debug Information */}
                       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <details className="text-xs text-blue-800">
-                          <summary className="cursor-pointer font-medium">
-                            🔍 Debug Info (klik untuk expand)
+                          <summary className="cursor-pointer font-medium flex items-center gap-2">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                              />
+                            </svg>
+                            Debug Info (klik untuk expand)
                           </summary>
                           <div className="mt-2 space-y-2">
                             <p>
@@ -1458,9 +1559,22 @@ export default function MaterialPoinManager({
                       </div>
 
                       {/* Existing Media Tips */}
-                      <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                        <svg
+                          className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
                         <p className="text-xs text-amber-700">
-                          📝 <strong>Media yang Ada:</strong> Edit caption atau
+                          <strong>Media yang Ada:</strong> Edit caption atau
                           hapus media yang tidak diperlukan. Perubahan akan
                           disimpan saat Anda menekan &quot;Perbarui Poin&quot;.
                         </p>
@@ -1470,19 +1584,53 @@ export default function MaterialPoinManager({
 
                   {/* Block Editor */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
                       Konten Poin *
                     </label>
+                    <div className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-500 p-3 rounded flex items-start gap-3">
+                      <svg
+                        className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div>
+                        <strong>Tips:</strong> Gunakan editor yang nyaman untuk
+                        menulis materi. Ukuran teks sudah diperbesar untuk
+                        kenyamanan menulis. Anda bisa menambahkan teks dan media
+                        sesuai kebutuhan.
+                      </div>
+                    </div>
 
                     {/* Add Block Buttons */}
-                    <div className="flex gap-2 mb-4">
+                    <div className="flex gap-3 mb-6">
                       <button
                         type="button"
                         onClick={addTextBlock}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-2 border-blue-700 rounded-lg text-base font-semibold transition-all shadow-md hover:shadow-lg"
                       >
                         <svg
-                          className="w-4 h-4"
+                          className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1494,15 +1642,15 @@ export default function MaterialPoinManager({
                             d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
                           />
                         </svg>
-                        Add Text
+                        Tambah Teks
                       </button>
                       <button
                         type="button"
                         onClick={addMediaBlock}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-md text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-2 border-green-700 rounded-lg text-base font-semibold transition-all shadow-md hover:shadow-lg"
                       >
                         <svg
-                          className="w-4 h-4"
+                          className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1514,36 +1662,36 @@ export default function MaterialPoinManager({
                             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                           />
                         </svg>
-                        Add Media
+                        Tambah Media
                       </button>
                     </div>
 
                     {/* Content Blocks */}
-                    <div className="space-y-4 border border-gray-200 rounded-lg p-4 min-h-[200px] bg-gray-50">
+                    <div className="space-y-6 border-2 border-gray-300 rounded-xl p-6 min-h-[300px] bg-gradient-to-br from-gray-50 to-white">
                       {contentBlocks.map((block, index) => (
                         <div
                           key={block.id}
-                          className="group relative bg-white rounded-lg"
+                          className="group relative bg-white rounded-xl shadow-sm border-2 border-gray-200 hover:border-blue-300 transition-all"
                         >
                           {block.type === "text" ? (
                             <div className="relative">
-                              <div className="flex items-center justify-between mb-2 px-4 pt-4">
-                                <div className="flex items-center gap-2">
-                                  <FileText className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Teks
+                              <div className="flex items-center justify-between mb-2 px-6 pt-5">
+                                <div className="flex items-center gap-3">
+                                  <FileText className="w-5 h-5 text-blue-600" />
+                                  <span className="text-base font-semibold text-gray-700">
+                                    Blok Teks #{index + 1}
                                   </span>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => removeBlock(block.id)}
-                                  className="p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
+                                  className="p-2 hover:bg-red-100 rounded-lg text-red-600 transition-colors font-medium"
                                   title="Hapus blok"
                                 >
-                                  <X className="w-4 h-4" />
+                                  <X className="w-5 h-5" />
                                 </button>
                               </div>
-                              <div className="px-4 pb-4">
+                              <div className="px-6 pb-5">
                                 <RichTextEditor
                                   value={block.content || ""}
                                   onChange={(value) =>
@@ -1631,26 +1779,85 @@ export default function MaterialPoinManager({
                       )}
                     </div>
 
-                    <div className="mt-2 text-xs text-gray-500">
-                      Use the block editor to create content with mixed text and
-                      media. Order will be preserved in the final display.
+                    <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <svg
+                          className="w-6 h-6 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">
+                            Editor blok untuk konten campuran
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            Kombinasikan teks dan media. Urutan akan
+                            dipertahankan saat ditampilkan.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 mt-6">
+                <div className="flex items-center gap-4 mt-8 pt-6 border-t-2 border-gray-200">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition-colors disabled:opacity-60"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {submitting
-                      ? getBlockMediaFiles().length > 0
-                        ? `Mengupload ${getBlockMediaFiles().length} file...`
-                        : "Menyimpan..."
-                      : editingPoin
-                      ? "Perbarui Poin"
-                      : "Simpan Poin"}
+                    {submitting ? (
+                      <>
+                        <svg
+                          className="animate-spin h-6 w-6 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        {getBlockMediaFiles().length > 0
+                          ? `Mengupload ${getBlockMediaFiles().length} file...`
+                          : "Menyimpan..."}
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        {editingPoin ? "Perbarui Poin" : "Simpan Poin"}
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -1662,15 +1869,47 @@ export default function MaterialPoinManager({
                             setShowAddPoin(false);
                           }
                     }
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow transition-colors"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 text-lg font-bold rounded-xl shadow-md hover:shadow-lg transition-all"
                   >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
                     Batal
                   </button>
+
+                  <div className="ml-auto text-sm text-gray-600 bg-green-50 px-4 py-2 rounded-lg border border-green-200 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="font-semibold">
+                      Buat materi yang berkualitas
+                    </span>
+                  </div>
                 </div>
               </form>
 
-              {/* Live Preview Section */}
-              <div className="lg:block">
+              {/* Live Preview Section - Below Form */}
+              <div className="mt-6">
                 <LiveContentPreview
                   blocks={contentBlocks}
                   title={title || "Preview Konten"}
