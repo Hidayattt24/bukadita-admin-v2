@@ -113,6 +113,8 @@ export default function ModuleItemsPage({
   const [ePassingScore, setEPassingScore] = useState<string>(""); // kuis passing score
   const [eSubmitting, setESubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // ✅ NEW: Loading state for initial data fetch
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Preview modal states
   const [showPreview, setShowPreview] = useState(false);
@@ -259,9 +261,9 @@ export default function ModuleItemsPage({
   // Helper function to refetch quiz list
   const refetchQuizList = useCallback(
     async (bypassCache = false) => {
-      // Call quiz API directly according to backend API documentation
+      // ✅ FIX: Add module_id filter and includeUnpublished for admin
       const quizRes = await quizzesAPI.list({
-        // Add cache busting if needed (API doesn't need this param but TypeScript requires valid params)
+        module_id: moduleId, // ✅ Filter by module
         ...(bypassCache && { limit: 1000 }),
       });
 
@@ -485,6 +487,8 @@ export default function ModuleItemsPage({
   // Load data from backend for both materi and kuis
   useEffect(() => {
     const load = async () => {
+      // ✅ Set loading state at start
+      setIsInitialLoading(true);
       try {
         if (resource === "materi") {
           // Get materials list first (without poin details to avoid backend dependency)
@@ -596,6 +600,9 @@ export default function ModuleItemsPage({
           footer: "Silakan refresh halaman atau hubungi administrator",
         });
         setRows([]); // Set empty array as fallback
+      } finally {
+        // ✅ Always stop loading state
+        setIsInitialLoading(false);
       }
     };
     load();
@@ -2463,20 +2470,27 @@ export default function ModuleItemsPage({
               {title} Modul {currentModuleName || `#${moduleId}`}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Menampilkan semua {title.toLowerCase()}
+              {isInitialLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Memuat data {title.toLowerCase()}...
+                </span>
+              ) : (
+                `Menampilkan ${filteredRows.length} ${title.toLowerCase()}`
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onManualRefresh}
-              disabled={isRefreshing}
+              disabled={isRefreshing || isInitialLoading}
               className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50"
               title="Refresh data"
             >
               <RefreshCw
-                className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`w-4 h-4 ${isRefreshing || isInitialLoading ? "animate-spin" : ""}`}
               />
-              {isRefreshing ? "Memuat..." : "Refresh"}
+              {isRefreshing || isInitialLoading ? "Memuat..." : "Refresh"}
             </button>
           </div>
         </div>
@@ -2491,33 +2505,36 @@ export default function ModuleItemsPage({
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setStatusFilter("all")}
-                  className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  disabled={isInitialLoading}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors disabled:opacity-50 ${
                     statusFilter === "all"
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Semua ({rows.length})
+                  Semua ({isInitialLoading ? "-" : rows.length})
                 </button>
                 <button
                   onClick={() => setStatusFilter("published")}
-                  className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  disabled={isInitialLoading}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors disabled:opacity-50 ${
                     statusFilter === "published"
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Published ({rows.filter((r) => r.published).length})
+                  Published ({isInitialLoading ? "-" : rows.filter((r) => r.published).length})
                 </button>
                 <button
                   onClick={() => setStatusFilter("draft")}
-                  className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  disabled={isInitialLoading}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors disabled:opacity-50 ${
                     statusFilter === "draft"
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Draft ({rows.filter((r) => !r.published).length})
+                  Draft ({isInitialLoading ? "-" : rows.filter((r) => !r.published).length})
                 </button>
               </div>
             </div>
@@ -2525,15 +2542,17 @@ export default function ModuleItemsPage({
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder={`Cari ${title.toLowerCase()}...`}
+                placeholder={isInitialLoading ? "Memuat..." : `Cari ${title.toLowerCase()}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={isInitialLoading}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:bg-gray-50"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isInitialLoading}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
                   title="Clear search"
                 >
                   <X className="w-4 h-4" />
@@ -2545,22 +2564,66 @@ export default function ModuleItemsPage({
 
         {/* DataTable content */}
         <div className="p-4">
-          <DataTable<ModuleItemRow>
-            title=""
-            data={filteredRows}
-            columns={columns}
-            onAdd={onAdd}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onView={onPreview}
-            onCustomAction={onTambahPoin}
-            customActionIcon={<Plus className="w-4 h-4" />}
-            customActionTitle={
-              resource === "materi" ? "Tambah Poin" : "Tambah Soal"
-            }
-            customActionColor="purple-600"
-            searchPlaceholder={searchPlaceholder}
-          />
+          {/* ✅ Show loading skeleton while data is being fetched */}
+          {isInitialLoading ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                <div className="flex gap-2">
+                  <div className="h-8 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-gray-200 rounded w-20"></div>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                {/* Table Header Skeleton */}
+                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+                  <div className="flex gap-4">
+                    <div className="h-4 bg-gray-300 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/6"></div>
+                    <div className="h-4 bg-gray-300 rounded w-1/6"></div>
+                  </div>
+                </div>
+
+                {/* Table Rows Skeleton */}
+                {[...Array(5)].map((_, idx) => (
+                  <div key={idx} className="border-b border-gray-200 px-4 py-4">
+                    <div className="flex gap-4 items-center">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-center text-gray-500 text-sm py-4">
+                <div className="flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Memuat data {title.toLowerCase()}...</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <DataTable<ModuleItemRow>
+              title=""
+              data={filteredRows}
+              columns={columns}
+              onAdd={onAdd}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onView={onPreview}
+              onCustomAction={onTambahPoin}
+              customActionIcon={<Plus className="w-4 h-4" />}
+              customActionTitle={
+                resource === "materi" ? "Tambah Poin" : "Tambah Soal"
+              }
+              customActionColor="purple-600"
+              searchPlaceholder={searchPlaceholder}
+            />
+          )}
         </div>
       </div>
     </div>
