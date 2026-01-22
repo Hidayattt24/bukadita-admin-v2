@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Custom Brand Colors */
+  --blue-dark: #27548A;
+  --blue-light: #578FCA;
+  --gradient-blue: linear-gradient(91deg, #27548A 1.11%, #578FCA 105.6%);
 }
 
 @theme inline {
@@ -137,4 +142,37 @@ a:hover {
 
 .animate-shimmer {
   animation: shimmer 3s infinite;
+}
+
+/* Login Page Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  33% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  66% {
+    transform: translateY(10px) translateX(-10px);
+  }
+}
+
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  33% {
+    transform: translateY(15px) translateX(-15px);
+  }
+  66% {
+    transform: translateY(-15px) translateX(15px);
+  }
+}
+
+.animate-float {
+  animation: float 20s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 25s ease-in-out infinite;
 }
