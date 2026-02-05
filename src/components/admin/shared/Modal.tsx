@@ -9,6 +9,8 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  showCloseButton?: boolean;
+  hideHeader?: boolean;
 }
 
 export default function Modal({
@@ -16,7 +18,9 @@ export default function Modal({
   onClose,
   title,
   children,
-  size = "md"
+  size = "md",
+  showCloseButton = true,
+  hideHeader = false
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -37,22 +41,26 @@ export default function Modal({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className={`relative w-full ${sizeClasses[size]} bg-white rounded-lg shadow-xl`}>
+        <div className={`relative w-full ${sizeClasses[size]} bg-white rounded-lg shadow-xl overflow-hidden`}>
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {title}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+          {!hideHeader && (
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {title}
+              </h3>
+              {showCloseButton && (
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Content */}
-          <div className="p-6">
+          <div className={hideHeader ? "" : "p-6"}>
             {children}
           </div>
         </div>

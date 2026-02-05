@@ -28,6 +28,69 @@ import { modulesAPI, type Module } from "@/lib/api";
 
 type ModuleItem = Module;
 
+// Component untuk menampilkan avatar user dengan foto profil
+const UserAvatar = ({
+  userName,
+  profilUrl,
+  size = "md",
+}: {
+  userName: string;
+  profilUrl?: string;
+  size?: "sm" | "md" | "lg";
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const getAvatarText = (name: string) => {
+    return name ? name.charAt(0).toUpperCase() : "?";
+  };
+
+  const sizeClasses = {
+    sm: "w-10 h-10 text-lg",
+    md: "w-14 h-14 text-xl",
+    lg: "w-16 h-16 text-2xl",
+  };
+
+  // Jika tidak ada profil_url atau gambar error, tampilkan avatar dengan inisial
+  if (!profilUrl || imageError) {
+    return (
+      <div
+        className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg`}
+      >
+        {getAvatarText(userName)}
+      </div>
+    );
+  }
+
+  // Jika ada profil_url, tampilkan foto profil
+  return (
+    <div
+      className={`relative ${sizeClasses[size]} rounded-full overflow-hidden border-2 border-white shadow-lg bg-slate-100`}
+    >
+      {/* Tampilkan avatar sementara gambar loading */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
+          {getAvatarText(userName)}
+        </div>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={profilUrl}
+        alt={userName}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
+          imageLoaded ? "opacity-100" : "opacity-0"
+        }`}
+        onError={() => {
+          setImageError(true);
+        }}
+        onLoad={() => {
+          setImageLoaded(true);
+        }}
+      />
+    </div>
+  );
+};
+
 export default function ProgressMonitoringPageNew() {
   const [activeTab, setActiveTab] = useState<"attempts" | "progress">(
     "attempts"
@@ -144,6 +207,21 @@ export default function ProgressMonitoringPageNew() {
       if (res.ok) {
         const attempt = res.data;
 
+        // Generate user avatar HTML
+        const userAvatarHtml = attempt.user_profil_url
+          ? `<img 
+              src="${attempt.user_profil_url}" 
+              alt="${attempt.user_full_name || "User"}"
+              class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+              onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg border-4 border-white" style="display:none;">
+              ${(attempt.user_full_name || "U").charAt(0).toUpperCase()}
+            </div>`
+          : `<div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg border-4 border-white">
+              ${(attempt.user_full_name || "U").charAt(0).toUpperCase()}
+            </div>`;
+
         const answersHtml =
           attempt.answers
             ?.map(
@@ -180,26 +258,55 @@ export default function ProgressMonitoringPageNew() {
           title: `Detail Attempt - ${attempt.quiz_title || "Kuis"}`,
           html: `
             <div class="text-left">
-              <div class="mb-4 p-4 bg-gray-50 rounded">
-                <div><strong>User:</strong> ${
-                  attempt.user_full_name || "Unknown"
-                } (${attempt.user_email || "No email"})</div>
-                <div><strong>Skor:</strong> ${attempt.score || 0}/${
-            attempt.total_questions || 0
-          } (${attempt.passed ? "LULUS" : "TIDAK LULUS"})</div>
-                <div><strong>Waktu:</strong> ${
-                  attempt.started_at
-                    ? new Date(attempt.started_at).toLocaleString("id-ID")
-                    : "Unknown"
-                }</div>
+              <div class="mb-6 p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200">
+                <div class="flex items-center gap-4 mb-4">
+                  ${userAvatarHtml}
+                  <div class="flex-1">
+                    <h3 class="text-xl font-bold text-gray-900">${
+                      attempt.user_full_name || "Unknown"
+                    }</h3>
+                    <p class="text-sm text-gray-600">${
+                      attempt.user_email || "No email"
+                    }</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                  <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <div class="text-sm text-gray-600">Skor</div>
+                    <div class="text-2xl font-bold text-blue-600">${
+                      attempt.score || 0
+                    }/${attempt.total_questions || 0}</div>
+                  </div>
+                  <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <div class="text-sm text-gray-600">Status</div>
+                    <div class="text-lg font-bold ${
+                      attempt.passed ? "text-green-600" : "text-red-600"
+                    }">${attempt.passed ? "LULUS ✓" : "TIDAK LULUS ✗"}</div>
+                  </div>
+                </div>
+                <div class="mt-4 bg-white rounded-lg p-3 shadow-sm">
+                  <div class="text-sm text-gray-600">Waktu Pengerjaan</div>
+                  <div class="text-sm font-medium text-gray-900">${
+                    attempt.started_at
+                      ? new Date(attempt.started_at).toLocaleString("id-ID")
+                      : "Unknown"
+                  }</div>
+                </div>
               </div>
               <div class="max-h-96 overflow-y-auto">
+                <h4 class="font-bold text-gray-900 mb-3 text-lg">Detail Jawaban:</h4>
                 ${answersHtml}
               </div>
             </div>
           `,
           width: 800,
           confirmButtonText: "Tutup",
+          confirmButtonColor: "#3b82f6",
+          customClass: {
+            popup: "rounded-2xl",
+            title: "text-gray-900 font-bold",
+            confirmButton: "rounded-xl px-6 py-3 font-semibold",
+          },
         });
       }
     } catch (error) {
@@ -415,11 +522,11 @@ export default function ProgressMonitoringPageNew() {
                       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                         {/* User Info */}
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                            {(attempt.user_full_name || "U")
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            userName={attempt.user_full_name || "Unknown User"}
+                            profilUrl={attempt.user_profil_url}
+                            size="md"
+                          />
                           <div className="flex-1">
                             <h3 className="font-semibold text-gray-900 text-lg">
                               {attempt.user_full_name || "Unknown User"}
@@ -514,9 +621,11 @@ export default function ProgressMonitoringPageNew() {
                       className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-lg transition-all bg-gradient-to-r from-white to-gray-50"
                     >
                       <div className="flex items-center gap-4 mb-4">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
-                          {(user.user_full_name || "U").charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar
+                          userName={user.user_full_name || "Unknown User"}
+                          profilUrl={user.user_profil_url}
+                          size="lg"
+                        />
                         <div className="flex-1">
                           <h3 className="text-xl font-bold text-gray-900">
                             {user.user_full_name || "Unknown User"}

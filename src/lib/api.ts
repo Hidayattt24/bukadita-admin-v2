@@ -301,6 +301,19 @@ export const adminAPI = {
       body: { ...payload, role: "admin" },
     });
   },
+
+  quizPerformanceDetailed: async (moduleId?: string) => {
+    const query = moduleId ? `?module_id=${moduleId}` : "";
+    return apiFetch(`/api/v1/admin/quiz-performance-detailed${query}`, {
+      method: "GET",
+    });
+  },
+
+  recentActivitiesClassified: async (limit: number = 15) => {
+    return apiFetch(`/api/v1/admin/recent-activities-classified?limit=${limit}`, {
+      method: "GET",
+    });
+  },
 };
 
 // ============================================================================

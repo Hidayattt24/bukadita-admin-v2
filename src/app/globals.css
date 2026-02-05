@@ -110,7 +110,36 @@ a:hover {
   color: #1d4ed8 !important;
 }
 
-/* Custom Scrollbar for Sidebar */
+/* Modern Scrollbar - Ultra Thin & Smooth */
+.modern-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.modern-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.modern-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modern-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  transition: background 0.2s ease, width 0.2s ease;
+}
+
+.modern-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.modern-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+  width: 5px;
+}
+
+/* Custom Scrollbar for Sidebar (Legacy - kept for compatibility) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -175,4 +204,45 @@ a:hover {
 
 .animate-float-delayed {
   animation: float-delayed 25s ease-in-out infinite;
+}
+
+/* Custom Date Input Styling */
+.custom-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(32%) sepia(89%) saturate(1234%) hue-rotate(224deg) brightness(92%) contrast(91%);
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.custom-date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  filter: invert(32%) sepia(89%) saturate(1500%) hue-rotate(224deg) brightness(95%) contrast(95%);
+}
+
+/* Date picker popup customization */
+.custom-date-input::-webkit-datetime-edit {
+  color: #4f46e5;
+}
+
+.custom-date-input::-webkit-datetime-edit-fields-wrapper {
+  color: #4f46e5;
+}
+
+.custom-date-input::-webkit-datetime-edit-text {
+  color: #818cf8;
+}
+
+.custom-date-input::-webkit-datetime-edit-month-field,
+.custom-date-input::-webkit-datetime-edit-day-field,
+.custom-date-input::-webkit-datetime-edit-year-field {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.custom-date-input::-webkit-datetime-edit-month-field:focus,
+.custom-date-input::-webkit-datetime-edit-day-field:focus,
+.custom-date-input::-webkit-datetime-edit-year-field:focus {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-radius: 4px;
 }

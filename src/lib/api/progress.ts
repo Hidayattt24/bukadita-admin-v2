@@ -5,6 +5,7 @@ export interface UserProgress {
   user_id: string;
   user_full_name?: string;
   user_email?: string;
+  user_profil_url?: string;
   module_progress?: ModuleProgress[];
 }
 
@@ -42,6 +43,7 @@ export interface QuizAttemptSummary {
   user_id: string;
   user_full_name?: string;
   user_email?: string;
+  user_profil_url?: string;
   score?: number;
   passed?: boolean;
   total_questions?: number;

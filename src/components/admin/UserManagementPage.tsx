@@ -3,42 +3,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { usersAPI, type Profile, type VisibilityRules } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import Modal from "@/components/admin/shared/Modal";
-import StatCard from "@/components/admin/shared/StatCard";
 import Swal from "sweetalert2";
 import { useSearchParams } from "next/navigation";
-import {
-  Users,
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Filter,
-  Calendar,
-  Mail,
-  Phone,
-  Shield,
-  MapPin,
-} from "lucide-react";
-import Image from "next/image";
+import { Users } from "lucide-react";
 
-// Perluas tipe Profile dengan field opsional untuk tampilan
-interface User extends Profile {
-  address?: string;
-  date_of_birth?: string;
-}
+// Import sub-components
+import UserStatistics from "./user-management/UserStatistics";
+import UserSearchBar from "./user-management/UserSearchBar";
+import UserTable from "./user-management/UserTable";
+import UserFormModal from "./user-management/UserFormModal";
+import UserDetailModal from "./user-management/UserDetailModal";
 
-interface PaginationData {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
+// Import types
+import type { User, PaginationData, UserFormData } from "./user-management/types";
 
 export default function UserManagement() {
   const searchParams = useSearchParams();
   const roleFromUrl = searchParams?.get("role") || "";
+  const { profile: currentProfile } = useAuth();
 
   // State management
   const [users, setUsers] = useState<User[]>([]);
@@ -58,51 +40,48 @@ export default function UserManagement() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [newUserData, setNewUserData] = useState({
+  const [formData, setFormData] = useState<UserFormData>({
     email: "",
     full_name: "",
     phone: "",
-    role: "pengguna" as "pengguna" | "admin",
+    role: "pengguna",
     password: "",
     address: "",
     date_of_birth: "",
     profil_url: "",
   });
 
-  // Helpers: validation
+  // Validation helpers
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     return re.test(String(email).toLowerCase());
   };
+
   const validatePhone = (phone: string) => {
-    // allow digits, optional +, length 9-15
     return /^\+?\d{9,15}$/.test(phone.replace(/\s|-/g, ""));
   };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    if (!newUserData.email || !validateEmail(newUserData.email)) {
+    if (!formData.email || !validateEmail(formData.email)) {
       errors.email = "Format email tidak valid";
     }
-    if (!newUserData.full_name || newUserData.full_name.length < 2) {
+    if (!formData.full_name || formData.full_name.length < 2) {
       errors.full_name = "Nama lengkap minimal 2 karakter";
     }
-    if (!newUserData.phone) {
+    if (!formData.phone) {
       errors.phone = "Nomor telepon harus diisi";
-    } else if (!validatePhone(newUserData.phone)) {
+    } else if (!validatePhone(formData.phone)) {
       errors.phone = "Format nomor telepon tidak valid";
     }
-    if (
-      !isEditModalOpen &&
-      (!newUserData.password || newUserData.password.length < 6)
-    ) {
+    if (!isEditModalOpen && (!formData.password || formData.password.length < 6)) {
       errors.password = "Password minimal 6 karakter";
     }
-    // Validasi untuk field opsional
-    if (newUserData.address && newUserData.address.length > 500) {
+    if (formData.address && formData.address.length > 500) {
       errors.address = "Alamat maksimal 500 karakter";
     }
-    if (newUserData.date_of_birth) {
-      const birthDate = new Date(newUserData.date_of_birth);
+    if (formData.date_of_birth) {
+      const birthDate = new Date(formData.date_of_birth);
       const today = new Date();
       if (birthDate > today) {
         errors.date_of_birth = "Tanggal lahir tidak boleh di masa depan";
@@ -111,15 +90,12 @@ export default function UserManagement() {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  const { profile: currentProfile } = useAuth();
 
-  // Fetch users from new backend with visibility rules
+  // Fetch users
   const fetchUsers = useCallback(
     async (page = 1, search = "", role = "", limit: number | "all" = 10) => {
       setLoading(true);
-
       try {
-        // If "all" is selected, use a very large limit (e.g., 10000)
         const actualLimit = limit === "all" ? 10000 : limit;
         const res = await usersAPI.list({
           page: limit === "all" ? 1 : page,
@@ -134,7 +110,6 @@ export default function UserManagement() {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payload = res.data as any;
-
         const array: Profile[] = payload.items || payload.data || [];
 
         const transformedUsers: User[] = array.map(
@@ -167,8 +142,7 @@ export default function UserManagement() {
         });
         setVisibility(payload.visibility || payload.visibility_rules || null);
       } catch (error) {
-        console.error("❌ Error fetching users from backend:", error);
-
+        console.error("❌ Error fetching users:", error);
         const errorMessage =
           error instanceof Error
             ? error.message
@@ -181,7 +155,6 @@ export default function UserManagement() {
           confirmButtonColor: "#3b82f6",
         });
 
-        // Set empty state on error
         setUsers([]);
         setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
       } finally {
@@ -201,30 +174,35 @@ export default function UserManagement() {
   useEffect(() => {
     fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, roleFilter, itemsPerPage]); // Only trigger on search/filter change, not pagination
+  }, [searchTerm, roleFilter, itemsPerPage]);
 
   // Handler functions
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleRoleFilter = (role: string) => {
     setRoleFilter(role);
-    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleItemsPerPageChange = (value: string) => {
     const newValue = value === "all" ? "all" : parseInt(value);
     setItemsPerPage(newValue);
-    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, page: newPage }));
+      fetchUsers(newPage, searchTerm, roleFilter, itemsPerPage);
+    }
   };
 
   const handleAddUser = () => {
-    // Set default role based on current filter
     const defaultRole = roleFilter === "admin" ? "admin" : "pengguna";
-
-    setNewUserData({
+    setFormData({
       email: "",
       full_name: "",
       phone: "",
@@ -239,14 +217,13 @@ export default function UserManagement() {
   };
 
   const handleViewUser = async (user: User) => {
-    // Langsung gunakan data user yang sudah ada, tidak perlu API call
     setSelectedUser(user);
     setIsViewModalOpen(true);
   };
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
-    setNewUserData({
+    setFormData({
       email: user.email,
       full_name: user.full_name,
       phone: user.phone || "",
@@ -265,53 +242,71 @@ export default function UserManagement() {
       title: "Hapus Pengguna?",
       html: `
         <div class="text-left">
-          <p>Apakah Anda yakin ingin menghapus pengguna:</p>
-          <div class="bg-gray-100 p-3 rounded-lg mt-2">
-            <p><strong>Nama:</strong> ${user.full_name}</p>
-            <p><strong>Email:</strong> ${user.email}</p>
+          <p class="text-slate-700 mb-3">Apakah Anda yakin ingin menghapus pengguna:</p>
+          <div class="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border-2 border-slate-200 mt-2">
+            <p class="text-slate-800"><strong class="text-[#27548A]">Nama:</strong> ${user.full_name}</p>
+            <p class="text-slate-800 mt-1"><strong class="text-[#27548A]">Email:</strong> ${user.email}</p>
           </div>
-          <p class="text-red-600 text-sm mt-2">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
+          <p class="text-red-600 text-sm mt-3 font-medium">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
         </div>
       `,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
+      cancelButtonColor: "#64748b",
       confirmButtonText: "Ya, Hapus!",
       cancelButtonText: "Batal",
       reverseButtons: true,
+      customClass: {
+        popup: "rounded-2xl",
+        title: "text-slate-800 font-semibold",
+        confirmButton: "rounded-xl px-6 py-3 font-semibold",
+        cancelButton: "rounded-xl px-6 py-3 font-semibold",
+      },
     });
 
     if (result.isConfirmed) {
       try {
-        // Show loading
         Swal.fire({
           title: "Menghapus...",
           text: "Sedang menghapus pengguna",
           allowOutsideClick: false,
           showConfirmButton: false,
+          customClass: {
+            popup: "rounded-2xl",
+            title: "text-slate-800 font-semibold",
+          },
           willOpen: () => {
             Swal.showLoading();
           },
         });
 
-        // Delete via API (server-side)
         const deleteResult = await usersAPI.remove(user.id);
 
         if (!deleteResult.ok) {
           throw new Error(deleteResult.error || "Gagal menghapus pengguna");
         }
 
-        // Success
         await Swal.fire({
           icon: "success",
-          title: "Berhasil!",
-          text: `Pengguna "${user.full_name}" berhasil dihapus`,
-          confirmButtonColor: "#10b981",
-          timer: 2000,
+          title: "Berhasil Dihapus!",
+          html: `
+            <div class="text-center">
+              <p class="text-slate-700 mb-2">Pengguna <strong class="text-[#27548A]">"${user.full_name}"</strong> berhasil dihapus dari sistem</p>
+            </div>
+          `,
+          confirmButtonColor: "#27548A",
+          confirmButtonText: "OK",
+          timer: 3000,
+          timerProgressBar: true,
+          customClass: {
+            popup: "rounded-2xl",
+            title: "text-green-600 font-semibold",
+            confirmButton:
+              "rounded-xl px-6 py-3 font-semibold bg-gradient-to-r from-[#27548A] to-[#578FCA]",
+          },
         });
 
-        // Refresh data
         fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
       } catch (error) {
         console.error("Error deleting user:", error);
@@ -319,7 +314,12 @@ export default function UserManagement() {
           icon: "error",
           title: "Error!",
           text: "Gagal menghapus pengguna. Silakan coba lagi.",
-          confirmButtonColor: "#3b82f6",
+          confirmButtonColor: "#27548A",
+          customClass: {
+            popup: "rounded-2xl",
+            title: "text-red-600 font-semibold",
+            confirmButton: "rounded-xl px-6 py-3 font-semibold",
+          },
         });
       }
     }
@@ -328,7 +328,6 @@ export default function UserManagement() {
   const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!validateForm()) {
       return;
     }
@@ -336,7 +335,6 @@ export default function UserManagement() {
     try {
       const isEditing = isEditModalOpen;
 
-      // Show loading
       Swal.fire({
         title: isEditing ? "Mengupdate..." : "Menambahkan...",
         text: isEditing
@@ -350,7 +348,6 @@ export default function UserManagement() {
       });
 
       if (isEditing && selectedUser) {
-        // Update existing user via API
         const updatePayload: {
           full_name: string;
           email: string;
@@ -359,33 +356,24 @@ export default function UserManagement() {
           date_of_birth?: string;
           profil_url?: string;
         } = {
-          full_name: newUserData.full_name,
-          email: newUserData.email,
-          phone: newUserData.phone,
-          address: newUserData.address || undefined,
-          date_of_birth: newUserData.date_of_birth || undefined,
-          profil_url: newUserData.profil_url || undefined,
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address || undefined,
+          date_of_birth: formData.date_of_birth || undefined,
+          profil_url: formData.profil_url || undefined,
         };
 
-        const updateResult = await usersAPI.update(
-          selectedUser.id,
-          updatePayload
-        );
+        const updateResult = await usersAPI.update(selectedUser.id, updatePayload);
 
         if (!updateResult.ok) {
           throw new Error(updateResult.error || "Gagal mengupdate pengguna");
         }
 
-        // Update role if changed (using separate endpoint)
-        if (newUserData.role !== selectedUser.role) {
-          const roleResult = await usersAPI.updateRole(
-            selectedUser.id,
-            newUserData.role
-          );
+        if (formData.role !== selectedUser.role) {
+          const roleResult = await usersAPI.updateRole(selectedUser.id, formData.role);
           if (!roleResult.ok) {
-            throw new Error(
-              roleResult.error || "Gagal mengupdate role pengguna"
-            );
+            throw new Error(roleResult.error || "Gagal mengupdate role pengguna");
           }
         }
 
@@ -397,16 +385,15 @@ export default function UserManagement() {
           timer: 2000,
         });
       } else {
-        // Create new user via API (server-side creates auth + profile)
         const createResult = await usersAPI.create({
-          email: newUserData.email,
-          password: newUserData.password,
-          full_name: newUserData.full_name,
-          phone: newUserData.phone,
-          role: newUserData.role,
-          address: newUserData.address || undefined,
-          date_of_birth: newUserData.date_of_birth || undefined,
-          profil_url: newUserData.profil_url || undefined,
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name,
+          phone: formData.phone,
+          role: formData.role,
+          address: formData.address || undefined,
+          date_of_birth: formData.date_of_birth || undefined,
+          profil_url: formData.profil_url || undefined,
         });
 
         if (!createResult.ok) {
@@ -422,11 +409,10 @@ export default function UserManagement() {
         });
       }
 
-      // Close modals and refresh data
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
       setSelectedUser(null);
-      setNewUserData({
+      setFormData({
         email: "",
         full_name: "",
         phone: "",
@@ -457,917 +443,101 @@ export default function UserManagement() {
     }
   };
 
-  // Helper functions
-  const getAvatarText = (name: string) => {
-    return name ? name.charAt(0).toUpperCase() : "?";
+  const handleFormChange = (field: keyof UserFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "—";
-
-    const date = new Date(dateString);
-
-    // Check if date is valid
-    if (isNaN(date.getTime())) return "Format tidak valid";
-
-    // Simple date format
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const getNestedValue = (obj: User, key: string): unknown => {
-    if (key.includes(".")) {
-      const keys = key.split(".");
-      let value: unknown = obj;
-      for (const k of keys) {
-        value = (value as Record<string, unknown>)?.[k];
-        if (value === undefined) break;
-      }
-      return value;
-    }
-    return (obj as unknown as Record<string, unknown>)[key];
-  };
-
-  const columns = [
-    {
-      key: "avatar",
-      label: "Avatar",
-      render: (_: unknown, row: User) => (
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
-          {getAvatarText(row.full_name)}
-        </div>
-      ),
-    },
-    {
-      key: "profile.full_name",
-      label: "Nama Lengkap",
-      render: (_: unknown, row: User) => (
-        <div>
-          <div className="font-medium text-gray-900">
-            {row.full_name || "Tidak ada nama"}
-          </div>
-          <div className="text-sm text-gray-500">{row.email}</div>
-        </div>
-      ),
-    },
-    {
-      key: "profile.phone",
-      label: "Telepon",
-      render: (_: unknown, row: User) => (
-        <div className="flex items-center gap-2">
-          <Phone className="w-4 h-4 text-gray-400" />
-          <span className="text-sm">{row.phone || "-"}</span>
-        </div>
-      ),
-    },
-    {
-      key: "profile.role",
-      label: "Role",
-      render: (_: unknown, row: User) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            row.role === "admin"
-              ? "bg-purple-100 text-purple-800"
-              : "bg-blue-100 text-blue-800"
-          }`}
-        >
-          <Shield className="w-3 h-3 mr-1" />
-          {row.role === "admin"
-            ? "Admin"
-            : row.role === "superadmin"
-            ? "Superadmin"
-            : "Pengguna"}
-        </span>
-      ),
-    },
-    {
-      key: "profile.created_at",
-      label: "Registrasi",
-      render: (_: unknown, row: User) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-400" />
-          <span className="text-sm">{formatDate(row.created_at)}</span>
-        </div>
-      ),
-    },
-  ];
-
-  const canManageAdmin = Boolean(visibility?.allowed_roles?.includes("admin"));
-  const isSelf = (u: User) => currentProfile?.id === u.id;
-
-  const actionButtons = (user: User) => (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => handleViewUser(user)}
-        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-        title="Lihat Detail"
-      >
-        <Eye className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => handleEditUser(user)}
-        className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-        title="Edit"
-      >
-        <Edit className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => handleDeleteUser(user)}
-        className={`p-1 rounded transition-colors ${
-          isSelf(user)
-            ? "text-gray-400 cursor-not-allowed"
-            : "text-red-600 hover:bg-red-50"
-        }`}
-        title={isSelf(user) ? "Tidak dapat menghapus akun sendiri" : "Hapus"}
-        disabled={isSelf(user)}
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
-  );
 
   // Statistics
   const totalUsers = pagination.total;
   const adminUsers = users.filter(
     (user) => user.role === "admin" || user.role === "superadmin"
   ).length;
-  const regularUsers = users.filter((user) => user.role === "pengguna").length;
+
+  const canManageAdmin = Boolean(visibility?.allowed_roles?.includes("admin"));
+  const isSelf = (u: User) => currentProfile?.id === u.id;
 
   // Page title based on role filter
   const pageTitle =
     roleFilter === "admin"
-      ? "Kelola Admin"
+      ? "Kelola Ketua Posyandu / Admin"
       : roleFilter === "pengguna"
-      ? "Kelola Pengguna"
+      ? "Kelola Kader"
       : "Kelola Pengguna";
   const pageSubtitle =
     roleFilter === "admin"
-      ? "Manajemen admin sistem"
+      ? "Manajemen ketua posyandu dan admin sistem"
       : roleFilter === "pengguna"
-      ? "Manajemen pengguna biasa"
+      ? "Manajemen kader posyandu"
       : "Manajemen pengguna dan admin sistem";
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
-          </div>
+    <div className="space-y-8">
+      {/* Modern Header */}
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-2xl shadow-lg">
+          <Users className="w-8 h-8 text-white" />
         </div>
-        <p className="text-gray-600">{pageSubtitle}</p>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          title="Total Pengguna"
-          value={totalUsers}
-          icon={Users}
-          color="blue"
-        />
-
-        <StatCard
-          title="Admin"
-          value={adminUsers}
-          icon={Shield}
-          color="purple"
-        />
-
-        <StatCard
-          title="Pengguna Biasa"
-          value={regularUsers}
-          icon={Users}
-          color="green"
-        />
-      </div>
-
-      {/* Filters and Search */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Cari berdasarkan nama atau nomor hp..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 border text-black/60 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-80"
-              />
-            </div>
-
-            {/* Filter - Only show if no role filter from URL */}
-            {!roleFromUrl && (
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <select
-                  value={roleFilter}
-                  onChange={(e) => handleRoleFilter(e.target.value)}
-                  className="pl-10 pr-8 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-                >
-                  <option value="">Semua Role</option>
-                  <option value="pengguna">Pengguna</option>
-                  {canManageAdmin && <option value="admin">Admin</option>}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Add User Button */}
-          <button
-            onClick={handleAddUser}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {roleFilter === "admin"
-              ? "Tambah Admin"
-              : roleFilter === "pengguna"
-              ? "Tambah Pengguna"
-              : canManageAdmin
-              ? "Tambah Pengguna/Admin"
-              : "Tambah Pengguna"}
-          </button>
+        <div>
+          <h1 className="text-3xl font-semibold text-[#27548A]">{pageTitle}</h1>
+          <p className="text-slate-600 text-sm mt-1">{pageSubtitle}</p>
         </div>
       </div>
+
+      {/* Statistics */}
+      <UserStatistics
+        totalUsers={totalUsers}
+        adminUsers={adminUsers}
+        roleFilter={roleFilter}
+      />
+
+      {/* Search and Actions Bar */}
+      <UserSearchBar
+        searchTerm={searchTerm}
+        roleFilter={roleFilter}
+        roleFromUrl={roleFromUrl}
+        canManageAdmin={canManageAdmin}
+        onSearch={handleSearch}
+        onRoleFilter={handleRoleFilter}
+        onAddUser={handleAddUser}
+      />
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="text-gray-500">Memuat data pengguna...</div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto text-black">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {columns.map((column) => (
-                    <th
-                      key={column.key}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    {columns.map((column) => (
-                      <td
-                        key={column.key}
-                        className="px-6 py-4 whitespace-nowrap"
-                      >
-                        {column.render
-                          ? column.render(
-                              getNestedValue(user, column.key),
-                              user
-                            )
-                          : String(getNestedValue(user, column.key) || "")}
-                      </td>
-                    ))}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {actionButtons(user)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <UserTable
+        users={users}
+        loading={loading}
+        searchTerm={searchTerm}
+        pagination={pagination}
+        itemsPerPage={itemsPerPage}
+        isSelf={isSelf}
+        onView={handleViewUser}
+        onEdit={handleEditUser}
+        onDelete={handleDeleteUser}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
 
-        {/* Items Per Page Selector & Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between text-black px-6 py-4 border-t border-gray-200 gap-4">
-          <div className="flex items-center gap-3">
-            <label
-              htmlFor="itemsPerPage"
-              className="text-sm text-gray-700 whitespace-nowrap"
-            >
-              Tampilkan:
-            </label>
-            <select
-              id="itemsPerPage"
-              value={itemsPerPage}
-              onChange={(e) => handleItemsPerPageChange(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="all">Semua</option>
-            </select>
-            <span className="text-sm text-gray-700">
-              {itemsPerPage === "all"
-                ? `Menampilkan semua ${pagination.total} pengguna`
-                : `Menampilkan ${Math.min(
-                    (pagination.page - 1) * pagination.limit + 1,
-                    pagination.total
-                  )} - ${Math.min(
-                    pagination.page * pagination.limit,
-                    pagination.total
-                  )} dari ${pagination.total} pengguna`}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Add User Modal */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title={
-          roleFilter === "admin" ? "Tambah Admin Baru" : "Tambah Pengguna Baru"
-        }
-        size="lg"
-      >
-        <form onSubmit={handleSubmitUser} className="space-y-4 text-black/80">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="email"
-                value={newUserData.email}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  formErrors.email ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="contoh@email.com"
-                required
-              />
-            </div>
-            {formErrors.email && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Lengkap *
-            </label>
-            <input
-              type="text"
-              value={newUserData.full_name}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  full_name: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.full_name ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Masukkan nama lengkap"
-              required
-            />
-            {formErrors.full_name && (
-              <p className="text-red-500 text-xs mt-1">
-                {formErrors.full_name}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nomor Telepon *
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="tel"
-                value={newUserData.phone}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({ ...prev, phone: e.target.value }))
-                }
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  formErrors.phone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="08123456789"
-                required
-              />
-            </div>
-            {formErrors.phone && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role *
-            </label>
-            <select
-              value={newUserData.role}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  role: e.target.value as "pengguna" | "admin",
-                }))
-              }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
-              <option value="pengguna">Pengguna</option>
-              {canManageAdmin && <option value="admin">Admin</option>}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password *
-            </label>
-            <input
-              type="password"
-              value={newUserData.password}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  password: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.password ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Minimal 6 karakter"
-              required
-            />
-            {formErrors.password && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>
-            )}
-          </div>
-
-          {/* Address Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alamat (Opsional)
-            </label>
-            <textarea
-              value={newUserData.address}
-              onChange={(e) =>
-                setNewUserData((prev) => ({ ...prev, address: e.target.value }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                formErrors.address ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Masukkan alamat lengkap (maksimal 500 karakter)"
-              rows={3}
-              maxLength={500}
-            />
-            {formErrors.address && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>
-            )}
-            <p className="text-gray-500 text-xs mt-1">
-              {newUserData.address.length}/500 karakter
-            </p>
-          </div>
-
-          {/* Date of Birth Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tanggal Lahir (Opsional)
-            </label>
-            <input
-              type="date"
-              value={newUserData.date_of_birth}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  date_of_birth: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.date_of_birth ? "border-red-500" : "border-gray-300"
-              }`}
-              max={new Date().toISOString().split("T")[0]} // Tidak boleh di masa depan
-            />
-            {formErrors.date_of_birth && (
-              <p className="text-red-500 text-xs mt-1">
-                {formErrors.date_of_birth}
-              </p>
-            )}
-          </div>
-
-          {/* Profile URL Field - Add */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL Foto Profil (Opsional)
-            </label>
-            <input
-              type="url"
-              value={newUserData.profil_url}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  profil_url: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.profil_url ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="https://example.com/profile.jpg"
-            />
-            {formErrors.profil_url && (
-              <p className="text-red-500 text-xs mt-1">
-                {formErrors.profil_url}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {roleFilter === "admin" ? "Tambah Admin" : "Tambah Pengguna"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Edit User Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Pengguna"
-        size="lg"
-      >
-        <form onSubmit={handleSubmitUser} className="space-y-4 text-black/80">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="email"
-                value={newUserData.email}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  formErrors.email ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="contoh@email.com"
-                required
-              />
-            </div>
-            {formErrors.email && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Lengkap *
-            </label>
-            <input
-              type="text"
-              value={newUserData.full_name}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  full_name: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.full_name ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Masukkan nama lengkap"
-              required
-            />
-            {formErrors.full_name && (
-              <p className="text-red-500 text-xs mt-1">
-                {formErrors.full_name}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nomor Telepon *
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="tel"
-                value={newUserData.phone}
-                onChange={(e) =>
-                  setNewUserData((prev) => ({ ...prev, phone: e.target.value }))
-                }
-                className={`pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  formErrors.phone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="08123456789"
-                required
-              />
-            </div>
-            {formErrors.phone && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role *
-            </label>
-            <select
-              value={newUserData.role}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  role: e.target.value as "pengguna" | "admin",
-                }))
-              }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
-              <option value="pengguna">Pengguna</option>
-              {canManageAdmin && <option value="admin">Admin</option>}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={newUserData.password}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  password: e.target.value,
-                }))
-              }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Kosongkan jika tidak ingin mengubah password"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Kosongkan jika tidak ingin mengubah password
-            </p>
-          </div>
-
-          {/* Address Field - Edit */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Alamat (Opsional)
-            </label>
-            <textarea
-              value={newUserData.address}
-              onChange={(e) =>
-                setNewUserData((prev) => ({ ...prev, address: e.target.value }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                formErrors.address ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="Masukkan alamat lengkap (maksimal 500 karakter)"
-              rows={3}
-              maxLength={500}
-            />
-            {formErrors.address && (
-              <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>
-            )}
-            <p className="text-gray-500 text-xs mt-1">
-              {newUserData.address.length}/500 karakter
-            </p>
-          </div>
-
-          {/* Date of Birth Field - Edit */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tanggal Lahir (Opsional)
-            </label>
-            <input
-              type="date"
-              value={newUserData.date_of_birth}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  date_of_birth: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.date_of_birth ? "border-red-500" : "border-gray-300"
-              }`}
-              max={new Date().toISOString().split("T")[0]} // Tidak boleh di masa depan
-            />
-            {formErrors.date_of_birth && (
-              <p className="text-red-500 text-xs mt-1">
-                {formErrors.date_of_birth}
-              </p>
-            )}
-          </div>
-
-          {/* Profile URL Field - Edit */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              URL Foto Profil (Opsional)
-            </label>
-            <input
-              type="url"
-              value={newUserData.profil_url}
-              onChange={(e) =>
-                setNewUserData((prev) => ({
-                  ...prev,
-                  profil_url: e.target.value,
-                }))
-              }
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                formErrors.profil_url ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="https://example.com/profile.jpg"
-            />
-            {formErrors.profil_url && (
-              <p className="text-red-500 text-xs mt-1">
-                {formErrors.profil_url}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Update Pengguna
-            </button>
-          </div>
-        </form>
-      </Modal>
+      {/* Add/Edit User Modal */}
+      <UserFormModal
+        isOpen={isAddModalOpen || isEditModalOpen}
+        isEditMode={isEditModalOpen}
+        formData={formData}
+        formErrors={formErrors}
+        roleFilter={roleFilter}
+        canManageAdmin={canManageAdmin}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setIsEditModalOpen(false);
+        }}
+        onSubmit={handleSubmitUser}
+        onChange={handleFormChange}
+      />
 
       {/* View User Detail Modal */}
-      <Modal
+      <UserDetailModal
         isOpen={isViewModalOpen}
+        user={selectedUser}
         onClose={() => setIsViewModalOpen(false)}
-        title="Detail Pengguna"
-        size="lg"
-      >
-        {selectedUser && (
-          <div className="space-y-6 text-black/80">
-            {/* User Basic Info */}
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
-                {getAvatarText(selectedUser.full_name)}
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {selectedUser.full_name}
-                </h3>
-                <p className="text-gray-600">{selectedUser.email}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      selectedUser.role === "admin"
-                        ? "bg-purple-100 text-purple-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    <Shield className="w-3 h-3 mr-1" />
-                    {selectedUser.role === "admin"
-                      ? "Admin"
-                      : selectedUser.role === "superadmin"
-                      ? "Superadmin"
-                      : "Pengguna"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* User Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Nomor Telepon
-                  </span>
-                </div>
-                <p className="text-gray-900">
-                  {selectedUser.phone || "Tidak ada nomor telepon"}
-                </p>
-              </div>
-
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Email
-                  </span>
-                </div>
-                <p className="text-gray-900">{selectedUser.email}</p>
-              </div>
-
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Tanggal Registrasi
-                  </span>
-                </div>
-                <p className="text-gray-900">
-                  {formatDate(selectedUser.created_at)}
-                </p>
-              </div>
-
-              {/* Address Field */}
-              <div className="p-4 border border-gray-200 rounded-lg md:col-span-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Alamat
-                  </span>
-                </div>
-                <p className="text-gray-900">
-                  {selectedUser.address || "Tidak ada alamat"}
-                </p>
-              </div>
-
-              {/* Date of Birth Field */}
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Tanggal Lahir
-                  </span>
-                </div>
-                <p className="text-gray-900">
-                  {formatDate(selectedUser.date_of_birth || "Belum di isi")}
-                </p>
-              </div>
-
-              {/* Profile Photo URL */}
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Eye className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Foto Profil
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <Image
-                    src={selectedUser.profil_url || "/default-profile.png"}
-                    alt="Foto Profil"
-                    width={64}
-                    height={64}
-                    className="w-16 h-16 rounded-full object-cover"
-                    onError={() => {
-                      // Handle error silently
-                    }}
-                  />
-                  <a
-                    href={selectedUser.profil_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-white text-sm underline"
-                  >
-                    <button className="p-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg">
-                      Lihat Foto Lengkap
-                    </button>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t">
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      />
     </div>
   );
 }
