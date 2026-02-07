@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import GalleryShowcase from "./login/GalleryShowcase";
-import { showAlert } from "./ui/CustomAlert";
+import GalleryShowcase from "./GalleryShowcase";
+import { showAlert } from "@/components/ui/CustomAlert";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");

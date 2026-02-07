@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import MaterialPoinManager from "@/components/admin/MaterialPoinManager";
+import MaterialPoinManager from "@/components/materials/MaterialPoinManager";
 
 export default function NestedMaterialPoinPage() {
   const params = useParams();

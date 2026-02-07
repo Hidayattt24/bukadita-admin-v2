@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import LoginForm from "@/components/LoginForm";
-import AdminShell from "@/components/admin/AdminShell";
+import LoginForm from "./LoginForm";
+import AdminShell from "@/components/layout/AdminShell";
 
 interface AppLayoutProps {
   children: React.ReactNode;

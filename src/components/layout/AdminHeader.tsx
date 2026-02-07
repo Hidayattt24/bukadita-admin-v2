@@ -51,8 +51,8 @@ export function AdminHeader() {
   };
 
   return (
-    <header className="h-20 bg-[#27548A] shadow-lg border-b border-[#1e4068] flex-shrink-0">
-      <div className="h-full px-8 flex items-center justify-between">
+    <header className="hidden md:flex h-20 bg-[#27548A] shadow-lg border-b border-[#1e4068] flex-shrink-0">
+      <div className="h-full px-8 flex items-center justify-between w-full">
         {/* Left Section - Title */}
         <div className="flex items-center gap-4">
           <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl shadow-md">

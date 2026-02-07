@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import AdminLayout from "@/components/admin/AdminLayout";
-import UserManagement from "@/components/admin/UserManagementPage";
+import AdminLayout from "@/components/layout/AdminLayout";
+import UserManagement from "@/components/users/UserManagementPage";
 
 export default function KelolaPenggunaPage() {
   const { profile, isLoading } = useAuth();

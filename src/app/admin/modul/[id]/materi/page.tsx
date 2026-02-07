@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import ModuleItemsPage from "@/components/admin/shared/ModuleItemsPage";
+import ModuleItemsPage from "@/components/modules/ModuleItemsPage";
 
 export default function ModulMateriPage() {
   const params = useParams();

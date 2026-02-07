@@ -366,21 +366,31 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       {/* Main Content Area */}
-      <motion.div
-        animate={{
-          marginLeft: open ? "300px" : "80px",
-        }}
-        transition={{
-          duration: 0.3,
-          ease: "easeInOut",
-        }}
-        className="flex flex-1 flex-col h-screen overflow-hidden"
-      >
-        <AdminHeader />
-        <main className="flex-1 overflow-y-auto p-2 md:p-8 bg-gray-50 modern-scrollbar">
-          {children}
-        </main>
-      </motion.div>
+      <div className="flex flex-1 flex-col h-screen overflow-hidden w-full md:w-auto">
+        <motion.div
+          animate={{
+            marginLeft: open ? "300px" : "80px",
+          }}
+          transition={{
+            duration: 0.3,
+            ease: "easeInOut",
+          }}
+          className="hidden md:flex md:flex-1 md:flex-col md:h-screen md:overflow-hidden"
+        >
+          <AdminHeader />
+          <main className="flex-1 overflow-y-auto p-8 bg-gray-50 modern-scrollbar">
+            {children}
+          </main>
+        </motion.div>
+        
+        {/* Mobile Layout - No margin */}
+        <div className="flex md:hidden flex-1 flex-col h-screen overflow-hidden">
+          <AdminHeader />
+          <main className="flex-1 overflow-y-auto p-3 pt-16 bg-gray-50 modern-scrollbar">
+            {children}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
