@@ -433,15 +433,15 @@ export default function UserManagement() {
       : "Manajemen pengguna dan admin sistem";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Modern Header */}
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-2xl shadow-lg">
-          <Users className="w-8 h-8 text-white" />
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="p-2 sm:p-2.5 md:p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-xl sm:rounded-2xl shadow-lg">
+          <Users className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
         </div>
-        <div>
-          <h1 className="text-3xl font-semibold text-[#27548A]">{pageTitle}</h1>
-          <p className="text-slate-600 text-sm mt-1">{pageSubtitle}</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#27548A] truncate">{pageTitle}</h1>
+          <p className="text-slate-600 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{pageSubtitle}</p>
         </div>
       </div>
 

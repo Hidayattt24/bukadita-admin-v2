@@ -176,29 +176,29 @@ export default function DashboardCharts({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 w-full">
       {/* Activity Trend with Date Range Picker */}
-      <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl shadow-lg border-2 border-slate-200 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-xl shadow-md">
-              <TrendingUp className="w-6 h-6 text-white" />
+      <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-2xl shadow-md md:shadow-lg border-2 border-slate-200 p-3 md:p-6 w-full">
+        <div className="flex flex-col gap-2 md:gap-4 mb-3 md:mb-6 w-full">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-2 md:p-3 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-lg md:rounded-xl shadow-md">
+              <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-white" />
             </div>
-            <div>
-              <h3 className="text-xl font-semibold text-slate-900">Grafik Analytics</h3>
-              <p className="text-sm text-slate-600">Aktivitas dan pengguna aktif per hari</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm md:text-xl font-semibold text-slate-900">Grafik Analytics</h3>
+              <p className="text-[10px] md:text-sm text-slate-600 truncate">Aktivitas dan pengguna aktif per hari</p>
             </div>
           </div>
 
           {/* Date Range Controls */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3 w-full">
             {/* Quick Range Buttons */}
-            <div className="flex items-center gap-2 bg-white rounded-xl p-1 border-2 border-slate-200 shadow-sm">
+            <div className="flex items-center gap-1 md:gap-2 bg-white rounded-lg md:rounded-xl p-1 border-2 border-slate-200 shadow-sm overflow-x-auto">
               {[7, 14, 30, 60, 90].map((days) => (
                 <button
                   key={days}
                   onClick={() => handleQuickRange(days)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
                     dateRange === days && !useCustomRange
                       ? "bg-gradient-to-r from-[#27548A] to-[#578FCA] text-white shadow-md"
                       : "text-slate-600 hover:bg-slate-100"
@@ -210,87 +210,98 @@ export default function DashboardCharts({
             </div>
 
             {/* Custom Date Range Picker */}
-            <CustomDateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={(date) => {
-                setStartDate(date);
-                setUseCustomRange(true);
-              }}
-              onEndDateChange={(date) => {
-                setEndDate(date);
-                setUseCustomRange(true);
-              }}
-              onCustomRangeActive={() => setUseCustomRange(true)}
-            />
+            <div className="w-full md:w-auto">
+              <CustomDateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onStartDateChange={(date) => {
+                  setStartDate(date);
+                  setUseCustomRange(true);
+                }}
+                onEndDateChange={(date) => {
+                  setEndDate(date);
+                  setUseCustomRange(true);
+                }}
+                onCustomRangeActive={() => setUseCustomRange(true)}
+              />
+            </div>
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={activityTrendData}>
-            <defs>
-              <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={BRAND_COLORS.primary} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={BRAND_COLORS.primary} stopOpacity={0.1} />
-              </linearGradient>
-              <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={BRAND_COLORS.success} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={BRAND_COLORS.success} stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis
-              dataKey="name"
-              tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
-              axisLine={{ stroke: "#cbd5e1" }}
-            />
-            <YAxis
-              tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
-              axisLine={{ stroke: "#cbd5e1" }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="aktivitas"
-              stroke={BRAND_COLORS.primary}
-              strokeWidth={3}
-              dot={{ fill: BRAND_COLORS.primary, r: 5 }}
-              activeDot={{ r: 7 }}
-              name="Aktivitas"
-            />
-            <Line
-              type="monotone"
-              dataKey="pengguna"
-              stroke={BRAND_COLORS.success}
-              strokeWidth={3}
-              dot={{ fill: BRAND_COLORS.success, r: 5 }}
-              activeDot={{ r: 7 }}
-              name="Pengguna Aktif"
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="w-full overflow-x-auto -mx-3 md:mx-0">
+          <div className="min-w-[500px] md:min-w-0 px-3 md:px-0">
+            <ResponsiveContainer width="100%" height={250} className="md:h-[350px]">
+              <LineChart data={activityTrendData}>
+                <defs>
+                  <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={BRAND_COLORS.primary} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={BRAND_COLORS.primary} stopOpacity={0.1} />
+                  </linearGradient>
+                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={BRAND_COLORS.success} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={BRAND_COLORS.success} stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "#64748b", fontSize: 9, fontWeight: 500 }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  className="text-[8px] md:text-xs"
+                />
+                <YAxis
+                  tick={{ fill: "#64748b", fontSize: 9, fontWeight: 500 }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  width={35}
+                  className="md:w-[50px]"
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="aktivitas"
+                  stroke={BRAND_COLORS.primary}
+                  strokeWidth={2}
+                  dot={{ fill: BRAND_COLORS.primary, r: 3 }}
+                  activeDot={{ r: 5 }}
+                  name="Aktivitas"
+                  className="md:stroke-[3]"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pengguna"
+                  stroke={BRAND_COLORS.success}
+                  strokeWidth={2}
+                  dot={{ fill: BRAND_COLORS.success, r: 3 }}
+                  activeDot={{ r: 5 }}
+                  name="Pengguna Aktif"
+                  className="md:stroke-[3]"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[#27548A] to-[#578FCA]"></div>
-            <span className="text-sm font-semibold text-slate-700">Total Aktivitas</span>
+        <div className="flex items-center justify-center gap-3 md:gap-6 mt-2 md:mt-4">
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="w-2.5 h-2.5 md:w-4 md:h-4 rounded-full bg-gradient-to-br from-[#27548A] to-[#578FCA]"></div>
+            <span className="text-[10px] md:text-sm font-semibold text-slate-700">Aktivitas</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-emerald-500 to-green-600"></div>
-            <span className="text-sm font-semibold text-slate-700">Pengguna Aktif</span>
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="w-2.5 h-2.5 md:w-4 md:h-4 rounded-full bg-gradient-to-br from-emerald-500 to-green-600"></div>
+            <span className="text-[10px] md:text-sm font-semibold text-slate-700">Pengguna</span>
           </div>
         </div>
 
         {/* Insights Section */}
-        <div className="mt-6">
+        <div className="mt-3 md:mt-6">
           {/* Engagement Insight */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              <h4 className="font-semibold text-blue-900">Tingkat Engagement</h4>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg md:rounded-xl p-3 md:p-4 border-2 border-blue-200">
+            <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+              <h4 className="text-xs md:text-sm font-bold text-blue-900">Tingkat Engagement</h4>
             </div>
-            <p className="text-sm text-blue-800">
+            <p className="text-[10px] md:text-sm text-blue-800">
               Dalam periode yang dipilih, terdapat{" "}
               <strong className="text-blue-900">
                 {activityTrendData.reduce((sum, d) => sum + d.aktivitas, 0)}
@@ -301,7 +312,7 @@ export default function DashboardCharts({
               </strong>{" "}
               pengguna aktif.
             </p>
-            <div className="mt-2 text-xs text-blue-700">
+            <div className="mt-1.5 md:mt-2 text-[9px] md:text-xs text-blue-700">
               Rata-rata{" "}
               <strong>
                 {Math.round(
@@ -316,54 +327,60 @@ export default function DashboardCharts({
       </div>
 
       {/* User Overview Chart */}
-      <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl shadow-lg border-2 border-slate-200 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-xl shadow-md">
-            <Users className="w-6 h-6 text-white" />
+      <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-2xl shadow-md md:shadow-lg border-2 border-slate-200 p-3 md:p-6 w-full">
+        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6">
+          <div className="p-2 md:p-3 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-lg md:rounded-xl shadow-md">
+            <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
           </div>
-          <div>
-            <h3 className="text-xl font-semibold text-slate-900">Ringkasan Pengguna</h3>
-            <p className="text-sm text-slate-600">Gambaran data pengguna sistem</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm md:text-xl font-semibold text-slate-900">Ringkasan Pengguna</h3>
+            <p className="text-[10px] md:text-sm text-slate-600 truncate">Gambaran data pengguna sistem</p>
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={userOverviewData} layout="vertical" barSize={40}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis
-              type="number"
-              tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
-              axisLine={{ stroke: "#cbd5e1" }}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              width={180}
-              tick={{ fill: "#1e293b", fontSize: 13, fontWeight: 600 }}
-              axisLine={{ stroke: "#cbd5e1" }}
-            />
-            <Tooltip
-              content={<UserTooltip />}
-              cursor={{ fill: "rgba(99, 102, 241, 0.1)" }}
-            />
-            <Bar dataKey="value" name="Jumlah" radius={[0, 10, 10, 0]}>
-              {userOverviewData.map((entry, index) => (
-                <defs key={index}>
-                  <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="5%" stopColor={entry.color} stopOpacity={0.9} />
-                    <stop offset="95%" stopColor={entry.color} stopOpacity={0.6} />
-                  </linearGradient>
-                </defs>
-              ))}
-              {userOverviewData.map((entry, index) => (
-                <Bar
-                  key={`bar-${index}`}
-                  dataKey="value"
-                  fill={`url(#gradient-${index})`}
+        <div className="w-full overflow-x-auto -mx-3 md:mx-0">
+          <div className="min-w-[400px] md:min-w-0 px-3 md:px-0">
+            <ResponsiveContainer width="100%" height={200} className="md:h-[280px]">
+              <BarChart data={userOverviewData} layout="vertical" barSize={25} className="md:bar-size-[40]">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  type="number"
+                  tick={{ fill: "#64748b", fontSize: 9, fontWeight: 500 }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  className="text-[8px] md:text-xs"
                 />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={110}
+                  tick={{ fill: "#1e293b", fontSize: 9, fontWeight: 600 }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  className="md:w-[180px] text-[9px] md:text-[13px]"
+                />
+                <Tooltip
+                  content={<UserTooltip />}
+                  cursor={{ fill: "rgba(99, 102, 241, 0.1)" }}
+                />
+                <Bar dataKey="value" name="Jumlah" radius={[0, 10, 10, 0]}>
+                  {userOverviewData.map((entry, index) => (
+                    <defs key={index}>
+                      <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="5%" stopColor={entry.color} stopOpacity={0.9} />
+                        <stop offset="95%" stopColor={entry.color} stopOpacity={0.6} />
+                      </linearGradient>
+                    </defs>
+                  ))}
+                  {userOverviewData.map((entry, index) => (
+                    <Bar
+                      key={`bar-${index}`}
+                      dataKey="value"
+                      fill={`url(#gradient-${index})`}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
     </div>
   );

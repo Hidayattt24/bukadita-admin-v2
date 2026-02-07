@@ -198,22 +198,22 @@ export default function AdminDashboardPageNew() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-2xl shadow-lg">
-          <BarChart3 className="w-8 h-8 text-white" />
+    <div className="space-y-4 md:space-y-8 pb-4 md:pb-6 w-full">
+      {/* Header - Responsive */}
+      <div className="flex items-center gap-2 md:gap-4 w-full">
+        <div className="p-2 md:p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-lg md:rounded-2xl shadow-lg">
+          <BarChart3 className="w-5 h-5 md:w-8 md:h-8 text-white" />
         </div>
-        <div>
-          <h1 className="text-3xl font-semibold text-[#27548A]">Dasbor Analitik</h1>
-          <p className="text-slate-600 text-sm mt-1">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg md:text-3xl font-bold md:font-semibold text-[#27548A]">Dasbor Analitik</h1>
+          <p className="text-slate-600 text-[10px] md:text-sm truncate">
             Pemantauan sistem edukasi Posyandu secara real-time
           </p>
         </div>
       </div>
 
-      {/* Main Stats Cards - Modern Design */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Main Stats Cards - Responsive Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 w-full">
         {loading ? (
           <>
             <StatCardSkeleton />
@@ -224,31 +224,31 @@ export default function AdminDashboardPageNew() {
           <>
             {/* Total Users */}
             <div
-              className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-6 border-2 border-white transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-2xl p-3 md:p-6 border-2 border-white transition-all duration-300 hover:-translate-y-1 cursor-pointer w-full"
               style={{
                 boxShadow:
-                  "6px 6px 0px rgba(87, 143, 202, 0.3), 0 1px 3px rgba(0,0,0,0.05)",
+                  "3px 3px 0px rgba(87, 143, 202, 0.3), 0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/10 rounded-full blur-xl opacity-60"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/10 rounded-full blur-xl opacity-60"></div>
               <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-xl">
-                    <Users className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-2 md:mb-4">
+                  <div className="p-2 md:p-3 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-lg md:rounded-xl">
+                    <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
                   </div>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">
+                  <span className="text-[9px] md:text-xs bg-blue-100 text-blue-700 px-2 md:px-3 py-0.5 md:py-1 rounded-full font-semibold">
                     Pengguna
                   </span>
                 </div>
-                <div className="text-4xl font-semibold text-[#27548A] mb-1">
+                <div className="text-2xl md:text-4xl font-bold md:font-semibold text-[#27548A] mb-0.5 md:mb-1">
                   {stats.total_users}
                 </div>
-                <div className="text-sm font-semibold text-slate-700 mb-3">
+                <div className="text-xs md:text-sm font-semibold text-slate-700 mb-2 md:mb-3">
                   Total Pengguna
                 </div>
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-center text-xs text-slate-600">
-                    <TrendingUp className="w-3 h-3 mr-1 text-green-600" />
+                <div className="pt-2 md:pt-3 border-t border-slate-200">
+                  <div className="flex items-center text-[9px] md:text-xs text-slate-600">
+                    <TrendingUp className="w-3 h-3 mr-1 text-green-600 flex-shrink-0" />
                     <span className="font-medium">+{stats.new_users_this_week} minggu ini</span>
                   </div>
                 </div>
@@ -257,31 +257,31 @@ export default function AdminDashboardPageNew() {
 
             {/* Total Modules */}
             <div
-              className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-6 border-2 border-white transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-2xl p-3 md:p-6 border-2 border-white transition-all duration-300 hover:-translate-y-1 cursor-pointer"
               style={{
                 boxShadow:
-                  "6px 6px 0px rgba(89, 172, 119, 0.3), 0 1px 3px rgba(0,0,0,0.05)",
+                  "3px 3px 0px rgba(89, 172, 119, 0.3), 0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#59AC77]/10 to-[#3d8a59]/10 rounded-full blur-xl opacity-60"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-gradient-to-br from-[#59AC77]/10 to-[#3d8a59]/10 rounded-full blur-xl opacity-60"></div>
               <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-[#59AC77] to-[#3d8a59] rounded-xl">
-                    <BookOpen className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-2 md:mb-4">
+                  <div className="p-2 md:p-3 bg-gradient-to-br from-[#59AC77] to-[#3d8a59] rounded-lg md:rounded-xl">
+                    <BookOpen className="w-4 h-4 md:w-6 md:h-6 text-white" />
                   </div>
-                  <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold">
+                  <span className="text-[9px] md:text-xs bg-green-100 text-green-700 px-2 md:px-3 py-0.5 md:py-1 rounded-full font-semibold">
                     Pembelajaran
                   </span>
                 </div>
-                <div className="text-4xl font-semibold text-[#59AC77] mb-1">
+                <div className="text-2xl md:text-4xl font-bold md:font-semibold text-[#59AC77] mb-0.5 md:mb-1">
                   {stats.total_modules}
                 </div>
-                <div className="text-sm font-semibold text-slate-700 mb-3">
+                <div className="text-xs md:text-sm font-semibold text-slate-700 mb-2 md:mb-3">
                   Modul Edukasi
                 </div>
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-center text-xs text-slate-600">
-                    <FileText className="w-3 h-3 mr-1 text-[#59AC77]" />
+                <div className="pt-2 md:pt-3 border-t border-slate-200">
+                  <div className="flex items-center text-[9px] md:text-xs text-slate-600">
+                    <FileText className="w-3 h-3 mr-1 text-[#59AC77] flex-shrink-0" />
                     <span className="font-medium">{stats.total_materials} materi total</span>
                   </div>
                 </div>
@@ -291,30 +291,30 @@ export default function AdminDashboardPageNew() {
             {/* Total Quizzes */}
             <div
               onClick={() => setShowQuizModal(true)}
-              className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-6 border-2 border-white transition-all duration-300 hover:-translate-y-1 cursor-pointer hover:shadow-xl"
+              className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-2xl p-3 md:p-6 border-2 border-white transition-all duration-300 hover:-translate-y-1 cursor-pointer hover:shadow-xl"
               style={{
                 boxShadow:
-                  "6px 6px 0px rgba(168, 85, 247, 0.3), 0 1px 3px rgba(0,0,0,0.05)",
+                  "3px 3px 0px rgba(168, 85, 247, 0.3), 0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-purple-700/10 rounded-full blur-xl opacity-60"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-gradient-to-br from-purple-500/10 to-purple-700/10 rounded-full blur-xl opacity-60"></div>
               <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl">
-                    <FileText className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-2 md:mb-4">
+                  <div className="p-2 md:p-3 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg md:rounded-xl">
+                    <FileText className="w-4 h-4 md:w-6 md:h-6 text-white" />
                   </div>
-                  <span className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-semibold">
+                  <span className="text-[9px] md:text-xs bg-purple-100 text-purple-700 px-2 md:px-3 py-0.5 md:py-1 rounded-full font-semibold">
                     Penilaian
                   </span>
                 </div>
-                <div className="text-4xl font-semibold text-purple-600 mb-1">
+                <div className="text-2xl md:text-4xl font-bold md:font-semibold text-purple-600 mb-0.5 md:mb-1">
                   {stats.total_quizzes}
                 </div>
-                <div className="text-sm font-semibold text-slate-700 mb-3">
+                <div className="text-xs md:text-sm font-semibold text-slate-700 mb-2 md:mb-3">
                   Kuis Tersedia
                 </div>
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-center justify-between text-xs">
+                <div className="pt-2 md:pt-3 border-t border-slate-200">
+                  <div className="flex items-center justify-between text-[9px] md:text-xs">
                     <div className="flex items-center text-slate-600">
                       <Award className="w-3 h-3 mr-1 text-purple-600" />
                       <span className="font-medium">{stats.completed_quizzes_total} diselesaikan</span>
@@ -332,14 +332,14 @@ export default function AdminDashboardPageNew() {
 
       {/* Charts Section */}
       {!loading && (
-        <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-200">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-100 rounded-xl">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
+        <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md border border-gray-200 w-full">
+          <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+            <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg md:rounded-xl">
+              <BarChart3 className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-slate-800">Grafik Analytics</h2>
-              <p className="text-sm text-slate-600">Visualisasi data performa sistem</p>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base md:text-xl font-semibold text-slate-800">Grafik Analytics</h2>
+              <p className="text-xs md:text-sm text-slate-600 truncate">Visualisasi data performa sistem</p>
             </div>
           </div>
           <DashboardCharts
@@ -354,16 +354,14 @@ export default function AdminDashboardPageNew() {
       )}
 
       {/* Quiz Performance Section - Modular View */}
-      <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-xl">
-              <BarChart3 className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-slate-800">Performa Kuis per Modul</h2>
-              <p className="text-sm text-slate-600">Visualisasi performa kuis dan detail per modul</p>
-            </div>
+      <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md border border-gray-200 w-full">
+        <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+          <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-lg md:rounded-xl">
+            <BarChart3 className="w-4 h-4 md:w-6 md:h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base md:text-xl font-semibold text-slate-800">Performa Kuis per Modul</h2>
+            <p className="text-xs md:text-sm text-slate-600 truncate">Visualisasi performa kuis dan detail per modul</p>
           </div>
         </div>
 
@@ -374,7 +372,7 @@ export default function AdminDashboardPageNew() {
               <div className="h-64 bg-white/30 rounded"></div>
             </div>
             {/* Cards skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl p-6 border-2 border-white shadow-[6px_6px_0px_rgba(0,0,0,0.1)] animate-pulse">
                   <div className="h-6 bg-white/30 rounded w-2/3 mb-3"></div>
@@ -386,12 +384,14 @@ export default function AdminDashboardPageNew() {
         ) : quizPerformance && quizPerformance.modules.length > 0 ? (
           <div className="space-y-6">
             {/* Visual Chart - Pass Rate per Module */}
-            <div className="bg-gradient-to-br from-[#27548A]/5 to-[#578FCA]/5 rounded-2xl p-6 border-2 border-[#27548A]/20">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-[#27548A]" />
-                <h3 className="text-lg font-semibold text-slate-800">Grafik Tingkat Kelulusan per Modul</h3>
+            <div className="bg-gradient-to-br from-[#27548A]/5 to-[#578FCA]/5 rounded-xl md:rounded-2xl p-3 md:p-6 border-2 border-[#27548A]/20">
+              <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-4">
+                <BarChart3 className="w-3.5 h-3.5 md:w-5 md:h-5 text-[#27548A]" />
+                <h3 className="text-xs md:text-lg font-semibold text-slate-800">Grafik Tingkat Kelulusan per Modul</h3>
               </div>
-              <ResponsiveContainer width="100%" height={400}>
+              <div className="w-full overflow-x-auto -mx-3 md:mx-0">
+                <div className="min-w-[500px] md:min-w-0 px-3 md:px-0">
+                  <ResponsiveContainer width="100%" height={220} className="md:h-[400px]">
                 <BarChart
                   data={quizPerformance.modules.map((module) => ({
                     name: module.module_title.length > 15
@@ -408,24 +408,27 @@ export default function AdminDashboardPageNew() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="name"
-                    tick={{ fill: "#64748b", fontSize: 11, fontWeight: 500 }}
+                    tick={{ fill: "#64748b", fontSize: 8, fontWeight: 500 }}
                     axisLine={{ stroke: "#cbd5e1" }}
                     angle={-45}
                     textAnchor="end"
-                    height={100}
+                    height={55}
+                    className="text-[7px] md:text-[10px]"
                   />
                   <YAxis
                     domain={[0, 100]}
                     ticks={[0, 20, 40, 60, 80, 100]}
-                    tick={{ fill: "#64748b", fontSize: 13, fontWeight: 600 }}
+                    tick={{ fill: "#64748b", fontSize: 8, fontWeight: 600 }}
                     axisLine={{ stroke: "#cbd5e1" }}
-                    width={70}
+                    width={32}
+                    className="md:w-[60px]"
                     label={{
-                      value: "Tingkat Kelulusan (%)",
+                      value: "Kelulusan (%)",
                       angle: -90,
                       position: "insideLeft",
                       offset: 0,
-                      style: { fill: "#27548A", fontWeight: 700, fontSize: 14, textAnchor: "middle" }
+                      style: { fill: "#27548A", fontWeight: 700, fontSize: 9, textAnchor: "middle" },
+                      className: "text-[8px] md:text-[12px]"
                     }}
                   />
                   <Tooltip
@@ -475,41 +478,43 @@ export default function AdminDashboardPageNew() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div className="flex items-center justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                  <span className="text-xs font-semibold text-slate-700">&gt;=80% (Excellent)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                  <span className="text-xs font-semibold text-slate-700">60-79% (Good)</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 md:gap-6 mt-3 md:mt-4">
+                <div className="flex items-center gap-1 md:gap-2">
+                  <div className="w-2 h-2 md:w-4 md:h-4 rounded-full bg-green-500"></div>
+                  <span className="text-[9px] md:text-xs font-semibold text-slate-700">&gt;=80% (Excellent)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                  <span className="text-xs font-semibold text-slate-700">&lt;60% (Needs Improvement)</span>
+                <div className="flex items-center gap-1 md:gap-2">
+                  <div className="w-2 h-2 md:w-4 md:h-4 rounded-full bg-amber-500"></div>
+                  <span className="text-[9px] md:text-xs font-semibold text-slate-700">60-79% (Good)</span>
+                </div>
+                <div className="flex items-center gap-1 md:gap-2">
+                  <div className="w-2 h-2 md:w-4 md:h-4 rounded-full bg-red-500"></div>
+                  <span className="text-[9px] md:text-xs font-semibold text-slate-700">&lt;60% (Needs Improvement)</span>
                 </div>
               </div>
             </div>
 
             {/* Module Cards Grid */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-800">Detail per Modul</h3>
-                <div className="text-sm text-slate-600">
+              <div className="flex items-center justify-between gap-1.5 mb-3 md:mb-4">
+                <h3 className="text-sm md:text-lg font-semibold text-slate-800">Detail per Modul</h3>
+                <div className="text-[10px] md:text-sm text-slate-600">
                   {quizPerformance.modules.length} modul tersedia
                 </div>
               </div>
 
               {/* Search Bar */}
-              <div className="mb-6">
-                <div className="bg-white rounded-2xl p-6 border-2 border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-lg">
-                      <Search className="w-5 h-5 text-white" />
+              <div className="mb-4 md:mb-6">
+                <div className="bg-white rounded-lg md:rounded-2xl p-3 md:p-6 border-2 border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-1.5 md:gap-3 mb-2 md:mb-4">
+                    <div className="p-1.5 md:p-2 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-md md:rounded-lg">
+                      <Search className="w-3 h-3 md:w-5 md:h-5 text-white" />
                     </div>
                     <div>
-                      <h4 className="text-base font-semibold text-slate-800">Cari Modul</h4>
-                      <p className="text-xs text-slate-600">Temukan modul berdasarkan nama</p>
+                      <h4 className="text-xs md:text-base font-semibold text-slate-800">Cari Modul</h4>
+                      <p className="text-[9px] md:text-xs text-slate-600 hidden md:block">Temukan modul berdasarkan nama</p>
                     </div>
                   </div>
                   <PlaceholdersAndVanishInput
@@ -527,7 +532,7 @@ export default function AdminDashboardPageNew() {
               </div>
 
               {/* Module Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {quizPerformance.modules
                   .filter((module) =>
                     module.module_title.toLowerCase().includes(moduleSearchQuery.toLowerCase())
@@ -535,50 +540,50 @@ export default function AdminDashboardPageNew() {
                   .map((module) => (
                     <div
                       key={module.module_id}
-                      className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-xl p-5 border-2 border-slate-200 hover:border-[#27548A]/40 transition-all duration-300 hover:shadow-lg group"
+                      className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-xl p-3 md:p-5 border-2 border-slate-200 hover:border-[#27548A]/40 transition-all duration-300 hover:shadow-lg group"
                     >
                       {/* Module Header */}
-                      <div className="mb-4">
-                        <h4 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 min-h-[3rem]">
+                      <div className="mb-2 md:mb-4">
+                        <h4 className="text-xs md:text-base font-semibold text-slate-800 mb-1 md:mb-2 line-clamp-2 min-h-[2rem] md:min-h-[3rem]">
                           {module.module_title}
                         </h4>
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
-                          <FileText className="w-4 h-4" />
+                        <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-slate-600">
+                          <FileText className="w-3 h-3 md:w-4 md:h-4" />
                           <span>{module.total_quizzes} kuis</span>
                         </div>
                       </div>
 
                       {/* Quick Stats */}
-                      <div className="grid grid-cols-3 gap-2 mb-4">
-                        <div className="bg-green-50 rounded-lg p-2 text-center">
-                          <div className="text-lg font-semibold text-green-600">
+                      <div className="grid grid-cols-3 gap-1.5 md:gap-2 mb-2 md:mb-4">
+                        <div className="bg-green-50 rounded-md md:rounded-lg p-1.5 md:p-2 text-center">
+                          <div className="text-sm md:text-lg font-semibold text-green-600">
                             {module.summary.total_passed}
                           </div>
-                          <div className="text-[10px] text-slate-600 font-medium">Lulus</div>
+                          <div className="text-[8px] md:text-[10px] text-slate-600 font-medium">Lulus</div>
                         </div>
-                        <div className="bg-red-50 rounded-lg p-2 text-center">
-                          <div className="text-lg font-semibold text-red-600">
+                        <div className="bg-red-50 rounded-md md:rounded-lg p-1.5 md:p-2 text-center">
+                          <div className="text-sm md:text-lg font-semibold text-red-600">
                             {module.summary.total_failed}
                           </div>
-                          <div className="text-[10px] text-slate-600 font-medium">Gagal</div>
+                          <div className="text-[8px] md:text-[10px] text-slate-600 font-medium">Gagal</div>
                         </div>
-                        <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-lg p-2 text-center">
-                          <div className="text-lg font-semibold text-[#27548A]">
+                        <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-md md:rounded-lg p-1.5 md:p-2 text-center">
+                          <div className="text-sm md:text-lg font-semibold text-[#27548A]">
                             {module.summary.average_pass_rate}%
                           </div>
-                          <div className="text-[10px] text-slate-600 font-medium">Tingkat</div>
+                          <div className="text-[8px] md:text-[10px] text-slate-600 font-medium">Tingkat</div>
                         </div>
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+                      <div className="mb-2 md:mb-4">
+                        <div className="flex items-center justify-between text-[9px] md:text-xs text-slate-600 mb-1">
                           <span>Progress</span>
                           <span className="font-semibold">{module.summary.total_attempts} percobaan</span>
                         </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 md:h-2">
                           <div
-                            className="bg-gradient-to-r from-[#27548A] to-[#578FCA] h-2 rounded-full transition-all"
+                            className="bg-gradient-to-r from-[#27548A] to-[#578FCA] h-1.5 md:h-2 rounded-full transition-all"
                             style={{ width: `${module.summary.average_pass_rate}%` }}
                           ></div>
                         </div>
@@ -587,9 +592,9 @@ export default function AdminDashboardPageNew() {
                       {/* View Detail Button */}
                       <button
                         onClick={() => setSelectedModuleDetail(module)}
-                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#27548A] to-[#578FCA] text-white py-2.5 rounded-lg font-semibold hover:shadow-lg transition-all group-hover:scale-[1.02]"
+                        className="w-full flex items-center justify-center gap-1 md:gap-2 bg-gradient-to-r from-[#27548A] to-[#578FCA] text-white py-1.5 md:py-2.5 rounded-md md:rounded-lg text-[10px] md:text-sm font-semibold hover:shadow-lg transition-all group-hover:scale-[1.02]"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3 h-3 md:w-4 md:h-4" />
                         Lihat Detail
                       </button>
                     </div>
@@ -600,10 +605,10 @@ export default function AdminDashboardPageNew() {
               {quizPerformance.modules.filter((module) =>
                 module.module_title.toLowerCase().includes(moduleSearchQuery.toLowerCase())
               ).length === 0 && (
-                <div className="text-center py-12">
-                  <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">Tidak ada modul yang ditemukan</p>
-                  <p className="text-sm text-slate-400 mt-1">Coba kata kunci lain</p>
+                <div className="text-center py-8 sm:py-10 md:py-12">
+                  <Search className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
+                  <p className="text-sm sm:text-base text-slate-500">Tidak ada modul yang ditemukan</p>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1">Coba kata kunci lain</p>
                 </div>
               )}
             </div>
@@ -618,68 +623,68 @@ export default function AdminDashboardPageNew() {
       {/* Quiz Detail Modal */}
       {selectedQuiz && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-3 md:p-4"
           onClick={() => setSelectedQuiz(null)}
         >
           <div
-            className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto"
+            className="bg-white rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto modern-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-semibold text-slate-800">
+            <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
+              <div className="flex-1 min-w-0 pr-2">
+                <h3 className="text-base sm:text-lg md:text-2xl font-semibold text-slate-800 truncate">
                   {selectedQuiz.quiz_title}
                 </h3>
-                <p className="text-sm text-slate-600">
+                <p className="text-[10px] sm:text-xs md:text-sm text-slate-600">
                   Detail hasil dan pengguna
                 </p>
               </div>
               <button
                 onClick={() => setSelectedQuiz(null)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1 sm:p-1.5 md:p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
               >
-                <XCircle className="w-6 h-6 text-slate-600" />
+                <XCircle className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-slate-600" />
               </button>
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-50 rounded-xl p-4 text-center">
-                <div className="text-2xl font-semibold text-blue-600">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6">
+              <div className="bg-blue-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-blue-600">
                   {selectedQuiz.total_attempts}
                 </div>
-                <div className="text-xs text-slate-600">Total Percobaan</div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Total Percobaan</div>
               </div>
-              <div className="bg-green-50 rounded-xl p-4 text-center">
-                <div className="text-2xl font-semibold text-green-600">
+              <div className="bg-green-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-green-600">
                   {selectedQuiz.passed_count}
                 </div>
-                <div className="text-xs text-slate-600">Lulus</div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Lulus</div>
               </div>
-              <div className="bg-red-50 rounded-xl p-4 text-center">
-                <div className="text-2xl font-semibold text-red-600">
+              <div className="bg-red-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-red-600">
                   {selectedQuiz.failed_count}
                 </div>
-                <div className="text-xs text-slate-600">Gagal</div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Gagal</div>
               </div>
-              <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-xl p-4 text-center border border-[#27548A]/20">
-                <div className="text-2xl font-semibold text-[#27548A]">
+              <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center border border-[#27548A]/20">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-[#27548A]">
                   {selectedQuiz.pass_rate}%
                 </div>
-                <div className="text-xs text-slate-600">Tingkat Kelulusan</div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Tingkat Kelulusan</div>
               </div>
             </div>
 
             {/* User Results with All Attempts */}
             <div>
-              <h4 className="font-semibold text-slate-800 mb-4">
+              <h4 className="text-sm sm:text-base md:text-lg font-semibold text-slate-800 mb-2 sm:mb-3 md:mb-4">
                 Hasil Pengguna ({selectedQuiz.unique_users})
               </h4>
-              <div className="space-y-4 max-h-[500px] overflow-y-auto modern-scrollbar pr-2">
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 max-h-[400px] sm:max-h-[450px] md:max-h-[500px] overflow-y-auto modern-scrollbar pr-1 sm:pr-2">
                 {selectedQuiz.user_results.map((result, idx: number) => {
                   // Generate user avatar with profile photo or fallback
                   const userAvatarElement = result.user_profil_url ? (
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg bg-slate-100">
+                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-lg bg-slate-100 flex-shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={result.user_profil_url}
@@ -694,14 +699,14 @@ export default function AdminDashboardPageNew() {
                         }}
                       />
                       <div
-                        className="absolute inset-0 bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-lg"
+                        className="absolute inset-0 bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-lg"
                         style={{ display: "none" }}
                       >
                         {result.user_name.charAt(0).toUpperCase()}
                       </div>
                     </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-lg shadow-lg">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-lg shadow-lg flex-shrink-0">
                       {result.user_name.charAt(0).toUpperCase()}
                     </div>
                   );
@@ -709,43 +714,45 @@ export default function AdminDashboardPageNew() {
                   return (
                     <div
                       key={`${result.user_id}-${idx}`}
-                      className="bg-slate-50 rounded-xl p-4 border-2 border-slate-200 hover:border-[#27548A]/40 transition-colors"
+                      className="bg-slate-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-200 sm:border-2 hover:border-[#27548A]/40 transition-colors"
                     >
                       {/* User Header */}
-                      <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-200">
-                        <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-slate-200">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                           {userAvatarElement}
-                          <div>
-                            <div className="font-semibold text-slate-800 text-lg">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-slate-800 text-sm sm:text-base md:text-lg truncate">
                               {result.user_name}
                             </div>
-                            <div className="text-sm text-slate-600">
+                            <div className="text-[10px] sm:text-xs md:text-sm text-slate-600">
                               {result.total_attempts} percobaan total
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs text-slate-600 mb-1">Skor Terbaik</div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl font-semibold text-[#27548A]">
-                              {result.best_score}
-                            </span>
-                            {result.passed ? (
-                              <CheckCircle className="w-6 h-6 text-green-600" />
-                            ) : (
-                              <XCircle className="w-6 h-6 text-red-600" />
-                            )}
+                        <div className="flex items-center justify-between sm:justify-end sm:text-right gap-2">
+                          <div className="sm:mr-2">
+                            <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600 mb-0.5 sm:mb-1">Skor Terbaik</div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <span className="text-lg sm:text-xl md:text-2xl font-semibold text-[#27548A]">
+                                {result.best_score}
+                              </span>
+                              {result.passed ? (
+                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600" />
+                              ) : (
+                                <XCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600" />
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
 
                     {/* All Attempts Table */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-semibold text-slate-700 mb-2">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="text-xs sm:text-sm md:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
                         Riwayat Percobaan:
                       </div>
                       {result.attempts && result.attempts.length > 0 ? (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5 sm:space-y-2">
                           {result.attempts.map((attempt, attemptIdx: number) => {
                             const attemptDate = new Date(attempt.completed_at);
                             const formattedDate = attemptDate.toLocaleDateString("id-ID", {
@@ -761,19 +768,19 @@ export default function AdminDashboardPageNew() {
                             return (
                               <div
                                 key={`attempt-${attempt.attempt_id || attemptIdx}`}
-                                className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
+                                className="flex items-center justify-between p-2 sm:p-2.5 md:p-3 bg-white rounded-md sm:rounded-lg border border-slate-200"
                               >
-                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-[#27548A]/20 to-[#578FCA]/20 text-[#27548A] font-semibold text-sm border border-[#27548A]/30">
+                                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0 flex-1">
+                                  <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-[#27548A]/20 to-[#578FCA]/20 text-[#27548A] font-semibold text-[10px] sm:text-xs md:text-sm border border-[#27548A]/30 flex-shrink-0">
                                     #{attemptIdx + 1}
                                   </div>
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-semibold text-slate-800">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                                      <span className="font-semibold text-slate-800 text-xs sm:text-sm md:text-base">
                                         Skor: {attempt.score}
                                       </span>
                                       <span
-                                        className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                                        className={`text-[9px] sm:text-[10px] md:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-semibold ${
                                           attempt.passed
                                             ? "bg-green-100 text-green-700"
                                             : "bg-red-100 text-red-700"
@@ -782,21 +789,21 @@ export default function AdminDashboardPageNew() {
                                         {attempt.passed ? "LULUS" : "GAGAL"}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-xs text-slate-600">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 md:gap-3 text-[9px] sm:text-[10px] md:text-xs text-slate-600">
                                       <span>
                                         {attempt.correct_answers}/{attempt.total_questions} benar
                                       </span>
-                                      <span>•</span>
+                                      <span className="hidden sm:inline">•</span>
                                       <span className="flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" />
+                                        <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                         {formattedDate} {formattedTime}
                                       </span>
                                     </div>
                                   </div>
                                 </div>
-                                <div>
+                                <div className="flex-shrink-0 ml-2">
                                   {attempt.score === result.best_score && (
-                                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-semibold">
+                                    <span className="text-[9px] sm:text-[10px] md:text-xs bg-amber-100 text-amber-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-semibold whitespace-nowrap">
                                       Terbaik
                                     </span>
                                   )}
@@ -806,7 +813,7 @@ export default function AdminDashboardPageNew() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-slate-500 text-sm">
+                        <div className="text-center py-3 sm:py-4 text-slate-500 text-xs sm:text-sm">
                           Tidak ada riwayat percobaan
                         </div>
                       )}
@@ -828,7 +835,7 @@ export default function AdminDashboardPageNew() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-4"
             onClick={() => setSelectedModuleDetail(null)}
           >
             <motion.div
@@ -836,146 +843,146 @@ export default function AdminDashboardPageNew() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden"
+              className="bg-white rounded-xl md:rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-[#27548A] to-[#578FCA] p-6">
+              <div className="bg-gradient-to-r from-[#27548A] to-[#578FCA] p-4 md:p-6">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-semibold text-white mb-2">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-lg md:text-2xl font-semibold text-white mb-1 md:mb-2 line-clamp-2">
                       {selectedModuleDetail.module_title}
                     </h3>
-                    <div className="flex items-center gap-4 text-white/90 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-white/90 text-xs md:text-sm">
                       <div className="flex items-center gap-1">
-                        <FileText className="w-4 h-4" />
+                        <FileText className="w-3 h-3 md:w-4 md:h-4" />
                         <span>{selectedModuleDetail.total_quizzes} kuis</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-3 h-3 md:w-4 md:h-4" />
                         <span>{selectedModuleDetail.summary.total_attempts} percobaan</span>
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedModuleDetail(null)}
-                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
                   >
-                    <XCircle className="w-6 h-6 text-white" />
+                    <XCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </button>
                 </div>
               </div>
 
               {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] modern-scrollbar">
+              <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-120px)] md:max-h-[calc(90vh-140px)] modern-scrollbar">
                 {/* Summary Stats */}
-                <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-green-50 rounded-xl p-4 text-center border-2 border-green-200"
+                    className="bg-green-50 rounded-lg md:rounded-xl p-3 md:p-4 text-center border-2 border-green-200"
                   >
-                    <div className="text-3xl font-semibold text-green-600">
+                    <div className="text-2xl md:text-3xl font-semibold text-green-600">
                       {selectedModuleDetail.summary.total_passed}
                     </div>
-                    <div className="text-xs text-slate-600 font-medium mt-1">Total Lulus</div>
+                    <div className="text-[10px] md:text-xs text-slate-600 font-medium mt-1">Total Lulus</div>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="bg-red-50 rounded-xl p-4 text-center border-2 border-red-200"
+                    className="bg-red-50 rounded-lg md:rounded-xl p-3 md:p-4 text-center border-2 border-red-200"
                   >
-                    <div className="text-3xl font-semibold text-red-600">
+                    <div className="text-2xl md:text-3xl font-semibold text-red-600">
                       {selectedModuleDetail.summary.total_failed}
                     </div>
-                    <div className="text-xs text-slate-600 font-medium mt-1">Total Gagal</div>
+                    <div className="text-[10px] md:text-xs text-slate-600 font-medium mt-1">Total Gagal</div>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-xl p-4 text-center border-2 border-[#27548A]/20"
+                    className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-lg md:rounded-xl p-3 md:p-4 text-center border-2 border-[#27548A]/20"
                   >
-                    <div className="text-3xl font-semibold text-[#27548A]">
+                    <div className="text-2xl md:text-3xl font-semibold text-[#27548A]">
                       {selectedModuleDetail.summary.average_pass_rate}%
                     </div>
-                    <div className="text-xs text-slate-600 font-medium mt-1">Tingkat Kelulusan</div>
+                    <div className="text-[10px] md:text-xs text-slate-600 font-medium mt-1">Tingkat Kelulusan</div>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
-                    className="bg-blue-50 rounded-xl p-4 text-center border-2 border-blue-200"
+                    className="bg-blue-50 rounded-lg md:rounded-xl p-3 md:p-4 text-center border-2 border-blue-200"
                   >
-                    <div className="text-3xl font-semibold text-blue-600">
+                    <div className="text-2xl md:text-3xl font-semibold text-blue-600">
                       {selectedModuleDetail.summary.total_attempts}
                     </div>
-                    <div className="text-xs text-slate-600 font-medium mt-1">Total Percobaan</div>
+                    <div className="text-[10px] md:text-xs text-slate-600 font-medium mt-1">Total Percobaan</div>
                   </motion.div>
                 </div>
 
                 {/* Quiz List */}
                 <div>
-                  <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-[#27548A]" />
+                  <h4 className="text-base md:text-lg font-semibold text-slate-800 mb-3 md:mb-4 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-[#27548A]" />
                     Daftar Kuis ({selectedModuleDetail.total_quizzes})
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-2 md:space-y-3">
                     {selectedModuleDetail.quizzes.map((quiz, idx) => (
                       <motion.div
                         key={quiz.quiz_id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 + idx * 0.05 }}
-                        className="bg-slate-50 rounded-xl p-4 border-2 border-slate-200 hover:border-[#27548A]/40 transition-all"
+                        className="bg-slate-50 rounded-lg md:rounded-xl p-3 md:p-4 border-2 border-slate-200 hover:border-[#27548A]/40 transition-all"
                       >
-                        <div className="flex items-start gap-4">
+                        <div className="flex flex-col md:flex-row md:items-start gap-3 md:gap-4">
                           {/* Quiz Number */}
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#27548A] to-[#578FCA] text-white font-semibold flex-shrink-0">
+                          <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#27548A] to-[#578FCA] text-white font-semibold flex-shrink-0 text-sm md:text-base">
                             {idx + 1}
                           </div>
 
                           {/* Quiz Info */}
-                          <div className="flex-1">
-                            <h5 className="font-semibold text-slate-800 mb-2">{quiz.quiz_title}</h5>
-                            <div className="flex items-center gap-4 text-sm text-slate-600 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-sm md:text-base font-semibold text-slate-800 mb-2 line-clamp-2">{quiz.quiz_title}</h5>
+                            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-slate-600 mb-3">
                               <div className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
+                                <Users className="w-3 h-3 md:w-4 md:h-4" />
                                 <span>{quiz.unique_users} pengguna</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Activity className="w-4 h-4" />
+                                <Activity className="w-3 h-3 md:w-4 md:h-4" />
                                 <span>{quiz.total_attempts} percobaan</span>
                               </div>
                             </div>
 
                             {/* Quiz Stats */}
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="bg-white rounded-lg p-3 text-center border border-green-200">
-                                <div className="flex items-center justify-center gap-1 mb-1">
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                  <span className="text-xl font-semibold text-green-600">
+                            <div className="grid grid-cols-3 gap-2 md:gap-3">
+                              <div className="bg-white rounded-md md:rounded-lg p-2 md:p-3 text-center border border-green-200">
+                                <div className="flex items-center justify-center gap-0.5 md:gap-1 mb-0.5 md:mb-1">
+                                  <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-green-600" />
+                                  <span className="text-base md:text-xl font-semibold text-green-600">
                                     {quiz.passed_count}
                                   </span>
                                 </div>
-                                <div className="text-xs text-slate-600">Lulus</div>
+                                <div className="text-[9px] md:text-xs text-slate-600">Lulus</div>
                               </div>
-                              <div className="bg-white rounded-lg p-3 text-center border border-red-200">
-                                <div className="flex items-center justify-center gap-1 mb-1">
-                                  <XCircle className="w-4 h-4 text-red-600" />
-                                  <span className="text-xl font-semibold text-red-600">
+                              <div className="bg-white rounded-md md:rounded-lg p-2 md:p-3 text-center border border-red-200">
+                                <div className="flex items-center justify-center gap-0.5 md:gap-1 mb-0.5 md:mb-1">
+                                  <XCircle className="w-3 h-3 md:w-4 md:h-4 text-red-600" />
+                                  <span className="text-base md:text-xl font-semibold text-red-600">
                                     {quiz.failed_count}
                                   </span>
                                 </div>
-                                <div className="text-xs text-slate-600">Gagal</div>
+                                <div className="text-[9px] md:text-xs text-slate-600">Gagal</div>
                               </div>
-                              <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-lg p-3 text-center border border-[#27548A]/20">
-                                <div className="text-xl font-semibold text-[#27548A] mb-1">
+                              <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-md md:rounded-lg p-2 md:p-3 text-center border border-[#27548A]/20">
+                                <div className="text-base md:text-xl font-semibold text-[#27548A] mb-0.5 md:mb-1">
                                   {quiz.pass_rate}%
                                 </div>
-                                <div className="text-xs text-slate-600">Tingkat</div>
+                                <div className="text-[9px] md:text-xs text-slate-600">Tingkat</div>
                               </div>
                             </div>
 
@@ -985,9 +992,9 @@ export default function AdminDashboardPageNew() {
                                 setSelectedQuiz(quiz);
                                 setSelectedModuleDetail(null);
                               }}
-                              className="mt-3 w-full flex items-center justify-center gap-2 bg-white border-2 border-[#27548A] text-[#27548A] py-2 rounded-lg font-semibold hover:bg-[#27548A] hover:text-white transition-all"
+                              className="mt-3 w-full flex items-center justify-center gap-1.5 md:gap-2 bg-white border-2 border-[#27548A] text-[#27548A] py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-[#27548A] hover:text-white transition-all"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3.5 h-3.5 md:w-4 md:h-4" />
                               Lihat Hasil Pengguna
                             </button>
                           </div>

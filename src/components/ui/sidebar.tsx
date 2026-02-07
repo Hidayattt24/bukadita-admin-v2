@@ -115,42 +115,68 @@ export const MobileSidebar = ({
     <>
       <div
         className={cn(
-          "h-16 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-[#27548A] w-full border-b border-[#1e4068]"
+          "h-14 px-4 py-3 flex flex-row md:hidden items-center justify-between bg-[#27548A] w-full border-b border-[#1e4068] fixed top-0 left-0 right-0 z-50"
         )}
         {...props}
       >
-        <div className="flex justify-end z-20 w-full">
-          <Menu
-            className="text-white"
-            onClick={() => setOpen(!open)}
-          />
-        </div>
+        {/* Hamburger Menu */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          aria-label="Toggle menu"
+        >
+          <Menu className="text-white w-6 h-6" />
+        </button>
+
+        {/* Mobile Menu Overlay */}
         <AnimatePresence>
           {open && (
-            <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-100%", opacity: 0 }}
-              transition={{
-                duration: 0.3,
-                ease: "easeInOut",
-              }}
-              className={cn(
-                "fixed h-full w-full inset-0 bg-[#27548A] p-10 z-[100] flex flex-col justify-between",
-                className
-              )}
-            >
-              <div
-                className="absolute right-10 top-10 z-50 text-white"
-                onClick={() => setOpen(!open)}
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]"
+                onClick={() => setOpen(false)}
+              />
+              
+              {/* Sidebar */}
+              <motion.div
+                initial={{ x: "-100%", opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "-100%", opacity: 0 }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                }}
+                className={cn(
+                  "fixed h-full w-[280px] left-0 top-0 bg-[#27548A] p-6 z-[100] flex flex-col shadow-2xl overflow-y-auto",
+                  className
+                )}
               >
-                <X />
-              </div>
-              {children}
-            </motion.div>
+                {/* Close Button */}
+                <button
+                  className="absolute right-4 top-4 z-50 text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+
+                {/* Menu Content */}
+                <div className="flex-1 overflow-y-auto mt-8">
+                  {children}
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>
+      
+      {/* Spacer for fixed navbar */}
+      <div className="h-14 md:hidden"></div>
     </>
   );
 };
