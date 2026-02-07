@@ -10,6 +10,8 @@ import {
   Edit,
 } from "lucide-react";
 import type { UserFormData } from "./types";
+import CustomRoleSelect from "./CustomRoleSelect";
+import CustomDatePicker from "./CustomDatePicker";
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -42,7 +44,7 @@ export default function UserFormModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 min-h-screen bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto"
         onClick={onClose}
       >
         <motion.div
@@ -178,19 +180,11 @@ export default function UserFormModal({
                 <Shield className="w-4 h-4 text-[#27548A]" />
                 Role <span className="text-red-500">*</span>
               </label>
-              <select
+              <CustomRoleSelect
                 value={formData.role}
-                onChange={(e) =>
-                  onChange("role", e.target.value as "pengguna" | "admin")
-                }
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-[#27548A]/20 focus:border-[#27548A] transition-all text-slate-700 hover:border-slate-300 cursor-pointer"
-                required
-              >
-                <option value="pengguna">Kader</option>
-                {canManageAdmin && (
-                  <option value="admin">Ketua Posyandu / Admin</option>
-                )}
-              </select>
+                onChange={(value) => onChange("role", value)}
+                canManageAdmin={canManageAdmin}
+              />
             </div>
 
             {/* Password Field */}
@@ -282,16 +276,10 @@ export default function UserFormModal({
                   (Opsional)
                 </span>
               </label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={formData.date_of_birth}
-                onChange={(e) => onChange("date_of_birth", e.target.value)}
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-[#27548A]/20 focus:border-[#27548A] transition-all text-slate-700 ${
-                  formErrors.date_of_birth
-                    ? "border-red-500 bg-red-50"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-                max={new Date().toISOString().split("T")[0]}
+                onChange={(value) => onChange("date_of_birth", value)}
+                error={formErrors.date_of_birth}
               />
               {formErrors.date_of_birth && (
                 <motion.p

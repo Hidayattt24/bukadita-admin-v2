@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { usersAPI, type Profile, type VisibilityRules } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import Swal from "sweetalert2";
 import { useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
+import { useToast } from "@/hooks/useToast";
+import LoadingModal from "@/components/ui/LoadingModal";
+import DeleteConfirmModal from "@/components/ui/DeleteConfirmModal";
 
 // Import sub-components
 import UserStatistics from "./user-management/UserStatistics";
@@ -21,6 +23,7 @@ export default function UserManagement() {
   const searchParams = useSearchParams();
   const roleFromUrl = searchParams?.get("role") || "";
   const { profile: currentProfile } = useAuth();
+  const { toast, ToastContainer } = useToast();
 
   // State management
   const [users, setUsers] = useState<User[]>([]);
@@ -38,6 +41,9 @@ export default function UserManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState({ title: "", message: "" });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<UserFormData>({
@@ -148,12 +154,7 @@ export default function UserManagement() {
             ? error.message
             : "Terjadi kesalahan saat memuat data pengguna";
 
-        await Swal.fire({
-          icon: "error",
-          title: "Error!",
-          text: errorMessage,
-          confirmButtonColor: "#3b82f6",
-        });
+        toast.error("Error!", errorMessage);
 
         setUsers([]);
         setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
@@ -223,6 +224,21 @@ export default function UserManagement() {
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
+    
+    // Convert ISO DateTime to YYYY-MM-DD format for date picker
+    let dateOfBirth = "";
+    if (user.date_of_birth) {
+      try {
+        const date = new Date(user.date_of_birth);
+        if (!isNaN(date.getTime())) {
+          // Format to YYYY-MM-DD
+          dateOfBirth = date.toISOString().split('T')[0];
+        }
+      } catch (error) {
+        console.error("Error parsing date:", error);
+      }
+    }
+    
     setFormData({
       email: user.email,
       full_name: user.full_name,
@@ -230,7 +246,7 @@ export default function UserManagement() {
       role: user.role === "admin" ? "admin" : "pengguna",
       password: "",
       address: user.address || "",
-      date_of_birth: user.date_of_birth || "",
+      date_of_birth: dateOfBirth,
       profil_url: user.profil_url || "",
     });
     setFormErrors({});
@@ -238,90 +254,43 @@ export default function UserManagement() {
   };
 
   const handleDeleteUser = async (user: User) => {
-    const result = await Swal.fire({
-      title: "Hapus Pengguna?",
-      html: `
-        <div class="text-left">
-          <p class="text-slate-700 mb-3">Apakah Anda yakin ingin menghapus pengguna:</p>
-          <div class="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border-2 border-slate-200 mt-2">
-            <p class="text-slate-800"><strong class="text-[#27548A]">Nama:</strong> ${user.full_name}</p>
-            <p class="text-slate-800 mt-1"><strong class="text-[#27548A]">Email:</strong> ${user.email}</p>
-          </div>
-          <p class="text-red-600 text-sm mt-3 font-medium">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
-        </div>
-      `,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Ya, Hapus!",
-      cancelButtonText: "Batal",
-      reverseButtons: true,
-      customClass: {
-        popup: "rounded-2xl",
-        title: "text-slate-800 font-semibold",
-        confirmButton: "rounded-xl px-6 py-3 font-semibold",
-        cancelButton: "rounded-xl px-6 py-3 font-semibold",
-      },
+    setSelectedUser(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    setIsDeleteModalOpen(false);
+    setIsLoadingAction(true);
+    setLoadingMessage({
+      title: "Menghapus Pengguna",
+      message: "Sedang menghapus data pengguna dari sistem...",
     });
 
-    if (result.isConfirmed) {
-      try {
-        Swal.fire({
-          title: "Menghapus...",
-          text: "Sedang menghapus pengguna",
-          allowOutsideClick: false,
-          showConfirmButton: false,
-          customClass: {
-            popup: "rounded-2xl",
-            title: "text-slate-800 font-semibold",
-          },
-          willOpen: () => {
-            Swal.showLoading();
-          },
-        });
+    try {
+      const deleteResult = await usersAPI.remove(selectedUser.id);
 
-        const deleteResult = await usersAPI.remove(user.id);
-
-        if (!deleteResult.ok) {
-          throw new Error(deleteResult.error || "Gagal menghapus pengguna");
-        }
-
-        await Swal.fire({
-          icon: "success",
-          title: "Berhasil Dihapus!",
-          html: `
-            <div class="text-center">
-              <p class="text-slate-700 mb-2">Pengguna <strong class="text-[#27548A]">"${user.full_name}"</strong> berhasil dihapus dari sistem</p>
-            </div>
-          `,
-          confirmButtonColor: "#27548A",
-          confirmButtonText: "OK",
-          timer: 3000,
-          timerProgressBar: true,
-          customClass: {
-            popup: "rounded-2xl",
-            title: "text-green-600 font-semibold",
-            confirmButton:
-              "rounded-xl px-6 py-3 font-semibold bg-gradient-to-r from-[#27548A] to-[#578FCA]",
-          },
-        });
-
-        fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
-      } catch (error) {
-        console.error("Error deleting user:", error);
-        await Swal.fire({
-          icon: "error",
-          title: "Error!",
-          text: "Gagal menghapus pengguna. Silakan coba lagi.",
-          confirmButtonColor: "#27548A",
-          customClass: {
-            popup: "rounded-2xl",
-            title: "text-red-600 font-semibold",
-            confirmButton: "rounded-xl px-6 py-3 font-semibold",
-          },
-        });
+      if (!deleteResult.ok) {
+        throw new Error(deleteResult.error || "Gagal menghapus pengguna");
       }
+
+      setIsLoadingAction(false);
+
+      toast.delete(
+        "Berhasil Dihapus!",
+        `Pengguna <strong class="text-red-600">"${selectedUser.full_name}"</strong> telah dihapus dari sistem`
+      );
+
+      fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      setIsLoadingAction(false);
+
+      toast.error(
+        "Gagal Menghapus!",
+        "Terjadi kesalahan saat menghapus pengguna. Silakan coba lagi."
+      );
     }
   };
 
@@ -335,16 +304,12 @@ export default function UserManagement() {
     try {
       const isEditing = isEditModalOpen;
 
-      Swal.fire({
-        title: isEditing ? "Mengupdate..." : "Menambahkan...",
-        text: isEditing
-          ? "Sedang mengupdate pengguna"
-          : "Sedang menambahkan pengguna baru",
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        willOpen: () => {
-          Swal.showLoading();
-        },
+      setIsLoadingAction(true);
+      setLoadingMessage({
+        title: isEditing ? "Mengupdate Pengguna" : "Menambahkan Pengguna",
+        message: isEditing
+          ? "Sedang memperbarui data pengguna..."
+          : "Sedang menambahkan pengguna baru ke sistem...",
       });
 
       if (isEditing && selectedUser) {
@@ -377,13 +342,12 @@ export default function UserManagement() {
           }
         }
 
-        await Swal.fire({
-          icon: "success",
-          title: "Berhasil!",
-          text: "Data pengguna berhasil diupdate",
-          confirmButtonColor: "#10b981",
-          timer: 2000,
-        });
+        setIsLoadingAction(false);
+
+        toast.update(
+          "Berhasil Diupdate!",
+          `Data pengguna <strong class="text-blue-600">"${formData.full_name}"</strong> telah diperbarui`
+        );
       } else {
         const createResult = await usersAPI.create({
           email: formData.email,
@@ -400,13 +364,14 @@ export default function UserManagement() {
           throw new Error(createResult.error || "Gagal menambahkan pengguna");
         }
 
-        await Swal.fire({
-          icon: "success",
-          title: "Berhasil!",
-          text: "Pengguna baru berhasil ditambahkan",
-          confirmButtonColor: "#10b981",
-          timer: 2000,
-        });
+        const roleLabel = formData.role === "admin" ? "Ketua Posyandu / Admin" : "Kader";
+
+        setIsLoadingAction(false);
+
+        toast.create(
+          "Berhasil Ditambahkan!",
+          `<strong class="text-emerald-600">"${formData.full_name}"</strong> telah ditambahkan sebagai ${roleLabel}`
+        );
       }
 
       setIsAddModalOpen(false);
@@ -434,12 +399,9 @@ export default function UserManagement() {
         errorMessage = apiError.message;
       }
 
-      await Swal.fire({
-        icon: "error",
-        title: "Error!",
-        text: errorMessage,
-        confirmButtonColor: "#3b82f6",
-      });
+      setIsLoadingAction(false);
+
+      toast.error("Gagal Menyimpan!", errorMessage);
     }
   };
 
@@ -538,6 +500,26 @@ export default function UserManagement() {
         user={selectedUser}
         onClose={() => setIsViewModalOpen(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Hapus Pengguna?"
+        userName={selectedUser?.full_name || ""}
+        userEmail={selectedUser?.email || ""}
+        onConfirm={confirmDeleteUser}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
+
+      {/* Loading Modal */}
+      <LoadingModal
+        isOpen={isLoadingAction}
+        title={loadingMessage.title}
+        message={loadingMessage.message}
+      />
+
+      {/* Custom Toast Container */}
+      <ToastContainer />
     </div>
   );
 }
