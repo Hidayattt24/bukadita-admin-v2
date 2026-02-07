@@ -13,7 +13,7 @@ import {
   LineChart,
 } from "recharts";
 import { TrendingUp, Users } from "lucide-react";
-import CustomDateRangePicker from "./CustomDateRangePicker";
+import CustomDateRangePicker from "../shared/CustomDateRangePicker";
 
 interface Activity {
   id: string | number;

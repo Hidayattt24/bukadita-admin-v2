@@ -9,7 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import type { User, PaginationData } from "./types";
+import type { User, PaginationData } from "./types.ts";
 
 interface UserTableProps {
   users: User[];

@@ -9,7 +9,7 @@ import {
   Plus,
   Edit,
 } from "lucide-react";
-import type { UserFormData } from "./types";
+import type { UserFormData } from "./types.ts";
 import CustomRoleSelect from "./CustomRoleSelect";
 import CustomDatePicker from "./CustomDatePicker";
 
@@ -22,7 +22,7 @@ interface UserFormModalProps {
   canManageAdmin: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
-  onChange: (field: keyof UserFormData, value: string) => void;
+  onChange: (field: string, value: string) => void;
 }
 
 export default function UserFormModal({

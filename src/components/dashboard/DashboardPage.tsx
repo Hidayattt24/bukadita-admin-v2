@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Users,
   BookOpen,
@@ -28,11 +28,11 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { adminAPI } from "@/lib/api";
 import dynamic from "next/dynamic";
-import InfoModal from "./InfoModal";
+import InfoModal from "../shared/InfoModal";
 import { PlaceholdersAndVanishInput } from "../ui/placeholders-and-vanish-input";
 import { AnimatePresence, motion } from "framer-motion";
+import { useDashboardStats, useQuizPerformance } from "@/hooks/useDashboard";
 
 // Dynamic import untuk charts (client-side only)
 const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
@@ -101,7 +101,46 @@ interface QuizPerformance {
 
 
 export default function AdminDashboardPageNew() {
-  const [stats, setStats] = useState({
+  // React Query hooks
+  const { data: statsData, isLoading: loadingStats, error: statsError } = useDashboardStats();
+  const { data: quizPerformanceData, isLoading: loadingPerformance } = useQuizPerformance();
+
+  // Local state
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizPerformance["modules"][0]["quizzes"][0] | null>(null);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [selectedModuleDetail, setSelectedModuleDetail] = useState<QuizPerformance["modules"][0] | null>(null);
+  const [moduleSearchQuery, setModuleSearchQuery] = useState("");
+
+  // Transform data with proper typing
+  const stats = (statsData as {
+    total_users: number;
+    active_users_today: number;
+    new_users_this_week: number;
+    total_modules: number;
+    total_materials: number;
+    total_quizzes: number;
+    completed_quizzes_total: number;
+    passed_quizzes_total: number;
+    average_completion_rate: number;
+    module_completion_stats: Array<{
+      module_id: string | number;
+      module_title: string;
+      total_users_started: number;
+      total_users_completed: number;
+      completion_rate: number;
+    }>;
+    recent_activities: Array<{
+      id: string | number;
+      user: string;
+      action: string;
+      category: string;
+      score?: number;
+      passed?: boolean;
+      time: string;
+      relative_time: string;
+    }>;
+  }) || {
     total_users: 0,
     active_users_today: 0,
     new_users_this_week: 0,
@@ -111,34 +150,13 @@ export default function AdminDashboardPageNew() {
     completed_quizzes_total: 0,
     passed_quizzes_total: 0,
     average_completion_rate: 0,
-    module_completion_stats: [] as Array<{
-      module_id: string | number;
-      module_title: string;
-      total_users_started: number;
-      total_users_completed: number;
-      completion_rate: number;
-    }>,
-    recent_activities: [] as Array<{
-      id: string | number;
-      user: string;
-      action: string;
-      category: string;
-      score?: number;
-      passed?: boolean;
-      time: string;
-      relative_time: string;
-    }>,
-  });
+    module_completion_stats: [],
+    recent_activities: [],
+  };
 
-  const [quizPerformance, setQuizPerformance] = useState<QuizPerformance | null>(null);
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
-  const [selectedQuiz, setSelectedQuiz] = useState<QuizPerformance["modules"][0]["quizzes"][0] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingPerformance, setLoadingPerformance] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showQuizModal, setShowQuizModal] = useState(false);
-  const [selectedModuleDetail, setSelectedModuleDetail] = useState<QuizPerformance["modules"][0] | null>(null);
-  const [moduleSearchQuery, setModuleSearchQuery] = useState("");
+  const quizPerformance = quizPerformanceData as QuizPerformance | null;
+  const loading = loadingStats;
+  const error = statsError ? (statsError instanceof Error ? statsError.message : "Gagal memuat data dashboard") : null;
 
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
@@ -149,37 +167,6 @@ export default function AdminDashboardPageNew() {
     }
     setExpandedModules(newExpanded);
   };
-
-  // Load dashboard stats
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Load basic stats
-        const statsRes = await adminAPI.dashboardStats();
-        if (statsRes.ok && statsRes.data) {
-          setStats(statsRes.data as typeof stats);
-        }
-
-        // Load quiz performance detailed
-        setLoadingPerformance(true);
-        const perfRes = await adminAPI.quizPerformanceDetailed();
-        if (perfRes.ok && perfRes.data) {
-          setQuizPerformance(perfRes.data as QuizPerformance);
-        }
-      } catch (error) {
-        console.error("Error loading dashboard:", error);
-        setError("Gagal memuat data dashboard");
-      } finally {
-        setLoading(false);
-        setLoadingPerformance(false);
-      }
-    };
-
-    loadData();
-  }, []);
 
   if (error) {
     return (

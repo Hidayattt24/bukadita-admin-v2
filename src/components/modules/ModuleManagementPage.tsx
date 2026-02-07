@@ -1,24 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Folder, Users } from "lucide-react";
-import { modulesAPI, materialsAPI, quizzesAPI } from "@/lib/api";
+import { materialsAPI, quizzesAPI } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import LoadingModal from "@/components/ui/LoadingModal";
 import DeleteConfirmModal from "@/components/ui/DeleteConfirmModal";
-import ModuleStatistics from "./module-management/ModuleStatistics";
-import ModuleSearchBar from "./module-management/ModuleSearchBar";
-import ModuleCard from "./module-management/ModuleCard";
-import ModuleFormModal from "./module-management/ModuleFormModal";
-import type { ModuleItem, ModuleFormData } from "./module-management/types";
+import ModuleStatistics from "./ModuleStatistics";
+import ModuleSearchBar from "./ModuleSearchBar";
+import ModuleCard from "./ModuleCard";
+import ModuleFormModal from "./ModuleFormModal";
+import type { ModuleItem, ModuleFormData } from "./types";
+import { useModules, useCreateModule, useUpdateModule, useDeleteModule } from "@/hooks/useModules";
 
 const STORAGE_KEY = "admin_modules";
 
 export default function ModuleManagement() {
   const { toast, ToastContainer } = useToast();
   
+  // React Query hooks
+  const { data: modulesData, isLoading: loading, refetch } = useModules();
+  const createModuleMutation = useCreateModule();
+  const updateModuleMutation = useUpdateModule();
+  const deleteModuleMutation = useDeleteModule();
+
+  // Transform data
+  const parseList = (d: unknown): ModuleItem[] => {
+    const dataAny = d as ModuleItem[] | { items?: ModuleItem[]; data?: ModuleItem[] };
+    return Array.isArray(dataAny) ? dataAny : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
+  };
+
+  const modules = modulesData ? parseList(modulesData) : [];
+  
   // State management
-  const [modules, setModules] = useState<ModuleItem[]>([]);
   const [search, setSearch] = useState("");
   const [modulesCounts, setModulesCounts] = useState<Record<string, { materials: number; quiz: number }>>({});
   const [showForm, setShowForm] = useState(false);
@@ -47,11 +61,6 @@ export default function ModuleManagement() {
     if (v === "" || v === null || v === undefined) return null;
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
-  };
-
-  const parseList = (d: unknown): ModuleItem[] => {
-    const dataAny = d as ModuleItem[] | { items?: ModuleItem[]; data?: ModuleItem[] };
-    return Array.isArray(dataAny) ? dataAny : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
   };
 
   const resetForm = () => {
@@ -125,44 +134,17 @@ export default function ModuleManagement() {
     setModulesCounts(newCounts);
   }, [fetchModuleCounts]);
 
-  // Save modules to localStorage and notify sidebar
-  const saveModules = (next: ModuleItem[]) => {
-    setModules(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    window.dispatchEvent(new Event('modules:updated'));
-    refreshAllCounts(next).catch(console.error);
-  };
+  // Update counts when modules change
+  if (modules.length > 0 && Object.keys(modulesCounts).length === 0) {
+    refreshAllCounts(modules).catch(console.error);
+  }
 
-  // Load modules from backend with fallback to localStorage
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await modulesAPI.list();
-        if (res.ok) {
-          const items = parseList(res.data);
-          console.log("🛰️ Modules API list():", items);
-          setModules(items);
-          refreshAllCounts(items);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-          window.dispatchEvent(new Event('modules:updated'));
-          return;
-        }
-        console.warn("⚠️ Modules API list() failed:", res.error);
-      } catch (e) {
-        console.warn("⚠️ Modules API list() error:", e);
-      }
-      // fallback
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) setModules(JSON.parse(raw));
-        else setModules([]);
-      } catch {
-        setModules([]);
-      }
-    };
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Save modules to localStorage and notify sidebar
+  const saveModules = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(modules));
+    window.dispatchEvent(new Event('modules:updated'));
+    refreshAllCounts(modules).catch(console.error);
+  };
 
   // Validation
   const validateForm = () => {
@@ -226,22 +208,15 @@ export default function ModuleManagement() {
     });
 
     try {
-      const apiRes = await modulesAPI.remove(moduleToDelete.id);
-      if (apiRes.ok) {
-        const listRes = await modulesAPI.list();
-        if (listRes.ok) {
-          const items = parseList(listRes.data);
-          saveModules(items);
-        }
+      await deleteModuleMutation.mutateAsync(moduleToDelete.id);
 
-        setIsLoadingAction(false);
-        toast.delete(
-          "Berhasil Dihapus!",
-          `Modul <strong class="text-red-600">"${moduleToDelete.title}"</strong> telah dihapus dari sistem`
-        );
-      } else {
-        throw new Error(apiRes.error || "Gagal menghapus modul");
-      }
+      setIsLoadingAction(false);
+      toast.delete(
+        "Berhasil Dihapus!",
+        `Modul <strong class="text-red-600">"${moduleToDelete.title}"</strong> telah dihapus dari sistem`
+      );
+      
+      saveModules();
     } catch (error) {
       console.error("Error deleting module:", error);
       setIsLoadingAction(false);
@@ -264,10 +239,6 @@ export default function ModuleManagement() {
       title: formData.title.trim(),
       description: (formData.description ?? '').trim(),
       published: !!formData.published,
-      duration_label: formData.durationLabel?.trim() || null,
-      duration_minutes: toNumOrNull(formData.durationMinutes),
-      lessons: toNumOrNull(formData.lessons),
-      category: formData.category || null,
     };
 
     setSubmitting(true);
@@ -281,47 +252,33 @@ export default function ModuleManagement() {
 
     try {
       if (isEditMode && selectedModule) {
-        const apiRes = await modulesAPI.update(selectedModule.id, payload);
-        if (apiRes.ok) {
-          const listRes = await modulesAPI.list();
-          if (listRes.ok) {
-            const items = parseList(listRes.data);
-            saveModules(items);
-          }
+        await updateModuleMutation.mutateAsync({ id: selectedModule.id, data: payload });
 
-          setIsLoadingAction(false);
-          setSubmitting(false);
-          setShowForm(false);
-          resetForm();
+        setIsLoadingAction(false);
+        setSubmitting(false);
+        setShowForm(false);
+        resetForm();
 
-          toast.update(
-            "Berhasil Diupdate!",
-            `Modul <strong class="text-blue-600">"${payload.title}"</strong> telah diperbarui`
-          );
-        } else {
-          throw new Error(apiRes.error || "Gagal mengupdate modul");
-        }
+        toast.update(
+          "Berhasil Diupdate!",
+          `Modul <strong class="text-blue-600">"${payload.title}"</strong> telah diperbarui`
+        );
+        
+        saveModules();
       } else {
-        const apiRes = await modulesAPI.create(payload);
-        if (apiRes.ok) {
-          const listRes = await modulesAPI.list();
-          if (listRes.ok) {
-            const items = parseList(listRes.data);
-            saveModules(items);
-          }
+        await createModuleMutation.mutateAsync(payload);
 
-          setIsLoadingAction(false);
-          setSubmitting(false);
-          setShowForm(false);
-          resetForm();
+        setIsLoadingAction(false);
+        setSubmitting(false);
+        setShowForm(false);
+        resetForm();
 
-          toast.create(
-            "Berhasil Ditambahkan!",
-            `Modul <strong class="text-emerald-600">"${payload.title}"</strong> telah ditambahkan ke sistem`
-          );
-        } else {
-          throw new Error(apiRes.error || "Gagal menambahkan modul");
-        }
+        toast.create(
+          "Berhasil Ditambahkan!",
+          `Modul <strong class="text-emerald-600">"${payload.title}"</strong> telah ditambahkan ke sistem`
+        );
+        
+        saveModules();
       }
     } catch (error: unknown) {
       console.error("Error saving module:", error);

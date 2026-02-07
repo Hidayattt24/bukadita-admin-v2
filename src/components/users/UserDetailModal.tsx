@@ -1,6 +1,6 @@
-import Modal from "@/components/admin/shared/Modal";
+import Modal from "@/components/shared/Modal";
 import { Shield, Phone, Mail, Calendar, MapPin } from "lucide-react";
-import type { User } from "./types";
+import type { User } from "./types.ts";
 
 interface UserDetailModalProps {
   isOpen: boolean;

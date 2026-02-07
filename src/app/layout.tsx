@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import AdminShell from "@/components/admin/AdminShell";
+import AdminShell from "@/components/layout/AdminShell";
 import { ToastProvider } from "@/components/ui/toast";
+import QueryProvider from "@/providers/QueryProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -85,11 +86,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.variable} font-poppins antialiased`}>
-        <ToastProvider>
-          <AdminShell>
-            <div>{children}</div>
-          </AdminShell>
-        </ToastProvider>
+        <QueryProvider>
+          <ToastProvider>
+            <AdminShell>
+              <div>{children}</div>
+            </AdminShell>
+          </ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );

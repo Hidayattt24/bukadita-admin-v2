@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type React from "react";
 import Swal from "sweetalert2";
 import { RefreshCw, Plus, Edit, X, Trash2 } from "lucide-react";
-import DataTable from "./DataTable";
+import DataTable from "../shared/DataTable";
 import {
   materialsAPI,
   quizzesAPI,
@@ -13,7 +13,22 @@ import {
   type Quiz,
   type Poin,
 } from "@/lib/api";
-import MaterialPreview from "../MaterialPreview";
+import MaterialPreview from "../materials/MaterialPreview";
+import { useModules } from "@/hooks/useModules";
+import { 
+  useMaterials, 
+  useMaterial, 
+  useCreateMaterial, 
+  useUpdateMaterial, 
+  useDeleteMaterial 
+} from "@/hooks/useMaterials";
+import { 
+  useQuizzes, 
+  useQuiz, 
+  useCreateQuiz, 
+  useUpdateQuiz, 
+  useDeleteQuiz 
+} from "@/hooks/useQuizzes";
 
 type ResourceType = "materi" | "kuis";
 
@@ -65,10 +80,33 @@ export default function ModuleItemsPage({
   const title = resource === "materi" ? "Materi" : "Kuis";
   const searchPlaceholder =
     resource === "materi" ? "Cari materi..." : "Cari kuis...";
-  const storageKey = `${STORAGE_PREFIX}${resource}_${moduleId}`;
 
-  const [rows, setRows] = useState<ModuleItemRow[]>([]);
-  const [currentModuleName, setCurrentModuleName] = useState<string>("");
+  // React Query hooks
+  const { data: modulesData } = useModules();
+  const { data: materialsData, isLoading: loadingMaterials, refetch: refetchMaterials } = useMaterials(
+    resource === "materi" ? { module_id: moduleId } : undefined
+  );
+  const { data: quizzesData, isLoading: loadingQuizzes, refetch: refetchQuizzes } = useQuizzes(
+    resource === "kuis" ? { module_id: moduleId } : undefined
+  );
+  
+  const createMaterialMutation = useCreateMaterial();
+  const updateMaterialMutation = useUpdateMaterial();
+  const deleteMaterialMutation = useDeleteMaterial();
+  const createQuizMutation = useCreateQuiz();
+  const updateQuizMutation = useUpdateQuiz();
+  const deleteQuizMutation = useDeleteQuiz();
+
+  // Get current module name from modules data
+  const currentModuleName = useMemo(() => {
+    if (!modulesData) return "";
+    const modulesList = Array.isArray(modulesData) 
+      ? modulesData 
+      : (modulesData.items || modulesData.data || []);
+    const foundModule = modulesList.find((m: { id: string | number }) => String(m.id) === String(moduleId));
+    return foundModule?.title || "";
+  }, [modulesData, moduleId]);
+
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingItem, setEditingItem] = useState<ModuleItemRow | null>(null);
@@ -113,8 +151,61 @@ export default function ModuleItemsPage({
   const [ePassingScore, setEPassingScore] = useState<string>(""); // kuis passing score
   const [eSubmitting, setESubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // ✅ NEW: Loading state for initial data fetch
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Transform data from React Query to rows format
+  const rows = useMemo(() => {
+    if (resource === "materi" && materialsData) {
+      const data = materialsData as MaterialsListResponse;
+      let arr: MaterialRecord[] = [];
+      if (Array.isArray(data)) {
+        arr = data as MaterialRecord[];
+      } else if (Array.isArray(data.items)) {
+        arr = data.items;
+      } else if (Array.isArray(data.data)) {
+        arr = data.data;
+      }
+
+      return arr.map((m): ModuleItemRow => ({
+        id: String(m.id),
+        title: m.title,
+        description: undefined,
+        updated_at: m.updated_at || m.created_at,
+        published: !!m.published,
+        contentLength: typeof m.content === "string" ? m.content.length : 0,
+        pointsCount: m.poin_details?.length || 0,
+        content: typeof m.content === "string" ? m.content : undefined,
+        poinDetails: m.poin_details || [],
+      }));
+    } else if (resource === "kuis" && quizzesData) {
+      const responseData = quizzesData;
+      let allQuizzes: QuizRecord[] = [];
+      
+      const dataWithQuizzes = responseData as unknown as {
+        quizzes?: QuizRecord[];
+        items?: QuizRecord[];
+      };
+
+      if (dataWithQuizzes.quizzes && Array.isArray(dataWithQuizzes.quizzes)) {
+        allQuizzes = dataWithQuizzes.quizzes;
+      } else if (dataWithQuizzes.items && Array.isArray(dataWithQuizzes.items)) {
+        allQuizzes = dataWithQuizzes.items;
+      } else if (Array.isArray(responseData)) {
+        allQuizzes = responseData;
+      }
+
+      return allQuizzes.map((quiz): ModuleItemRow => ({
+        id: String(quiz.id),
+        title: quiz.title,
+        description: quiz.description?.slice(0, 140),
+        updated_at: quiz.updated_at || quiz.created_at,
+        published: quiz.published || false,
+        questionCount: quiz.questions?.length || 0,
+      }));
+    }
+    return [];
+  }, [resource, materialsData, quizzesData]);
+
+  const isInitialLoading = resource === "materi" ? loadingMaterials : loadingQuizzes;
 
   // Preview modal states
   const [showPreview, setShowPreview] = useState(false);
@@ -126,53 +217,7 @@ export default function ModuleItemsPage({
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Backend doesn't have endpoint to get single poin, so we use data from material response
-  // This helper is no longer needed as backend returns complete data
-
-  // Fetch module name if not provided
-  useEffect(() => {
-    let isCancelled = false;
-
-    const fetchModuleName = async () => {
-      if (!moduleId) return;
-
-      try {
-        const res = await modulesAPI.list();
-        if (res.ok && res.data && !isCancelled) {
-          // Handle multiple possible response structures
-          let modulesList: { id: string | number; title: string }[] = [];
-          if (Array.isArray(res.data)) {
-            modulesList = res.data;
-          } else if (res.data.items && Array.isArray(res.data.items)) {
-            modulesList = res.data.items;
-          } else if (res.data.data && Array.isArray(res.data.data)) {
-            modulesList = res.data.data;
-          }
-
-          // Find the module with matching ID
-          const foundModule = modulesList.find(
-            (m) => String(m.id) === String(moduleId)
-          );
-          if (foundModule && foundModule.title && !isCancelled) {
-            setCurrentModuleName(foundModule.title);
-          }
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Failed to fetch module name:", error);
-        }
-      }
-    };
-
-    fetchModuleName();
-
-    // Cleanup function to prevent setting state if component unmounts
-    return () => {
-      isCancelled = true;
-    };
-  }, [moduleId]);
-
-  // Helper to format server error from our apiFetch union result
+  // Helper to format server error
   const formatServerError = (res: {
     ok: false;
     status: number;
@@ -190,432 +235,61 @@ export default function ModuleItemsPage({
     return details ? `${head}\nDetail: ${details}` : head;
   };
 
-  // Helper function to refetch materials list
-  const refetchMaterialsList = useCallback(
-    async (bypassCache = false) => {
-      const params = {
-        module_id: moduleId,
-        ...(bypassCache && { _t: Date.now() }),
-      };
-
-      const res = await materialsAPI.list(params);
-
-      if (res.ok) {
-        const data = res.data as MaterialsListResponse;
-
-        // Handle multiple possible response structures
-        let arr: MaterialRecord[] = [];
-        if (Array.isArray(data)) {
-          arr = data as MaterialRecord[];
-        } else if (Array.isArray(data.items)) {
-          arr = data.items;
-        } else if (Array.isArray(data.data)) {
-          arr = data.data;
-        } else if (data && typeof data === "object" && "length" in data) {
-          arr = Array.from(data as ArrayLike<MaterialRecord>);
-        }
-
-        const mapped: ModuleItemRow[] = await Promise.all(
-          arr.map(async (m) => {
-            // Fetch poin details for count only (media will be loaded on demand for preview)
-            let poinDetails: PoinDetailRecord[] = [];
-            try {
-              const poinRes = await materialsAPI.get(m.id);
-              if (poinRes.ok && poinRes.data.poin_details) {
-                poinDetails = poinRes.data.poin_details;
-              }
-            } catch (error) {
-              console.warn(
-                `Failed to fetch poins for material ${m.id}:`,
-                error
-              );
-            }
-
-            return {
-              id: String(m.id),
-              title: m.title,
-              description: undefined, // Remove content description from table
-              updated_at: m.updated_at || m.created_at,
-              published: !!m.published,
-              contentLength:
-                typeof m.content === "string" ? m.content.length : 0,
-              pointsCount: poinDetails.length,
-              content: typeof m.content === "string" ? m.content : undefined,
-              poinDetails: poinDetails,
-            };
-          })
-        );
-        setRows(mapped);
-        try {
-          localStorage.setItem(storageKey, JSON.stringify(mapped));
-        } catch {}
-        return true;
-      } else {
-        console.error("Failed to refetch materials:", res.error);
-        return false;
-      }
-    },
-    [moduleId, storageKey]
-  );
-
-  // Helper function to refetch quiz list
-  const refetchQuizList = useCallback(
-    async (bypassCache = false) => {
-      // ✅ FIX: Add module_id filter and includeUnpublished for admin
-      const quizRes = await quizzesAPI.list({
-        module_id: moduleId, // ✅ Filter by module
-        ...(bypassCache && { limit: 1000 }),
-      });
-
-      if (!quizRes.ok) {
-        console.error("Failed to get quiz list:", quizRes.error);
-        setRows([]);
-        return false;
-      }
-
-      // Parse quiz response according to backend API documentation
-      const responseData = quizRes.data;
-      let allQuizzes: QuizRecord[] = [];
-
-      // According to API documentation, response should be:
-      // { "success": true, "data": { "quizzes": [...], "pagination": {...} } }
-      const dataWithQuizzes = responseData as unknown as {
-        quizzes?: QuizRecord[];
-        items?: QuizRecord[];
-        [key: string]: unknown;
-      };
-
-      if (dataWithQuizzes.quizzes && Array.isArray(dataWithQuizzes.quizzes)) {
-        // Backend API format: { data: { quizzes: [...] } }
-        allQuizzes = dataWithQuizzes.quizzes;
-      } else if (
-        dataWithQuizzes.items &&
-        Array.isArray(dataWithQuizzes.items)
-      ) {
-        // Fallback format: { items: [...] }
-        allQuizzes = dataWithQuizzes.items;
-      } else if (Array.isArray(responseData)) {
-        // Direct array format
-        allQuizzes = responseData;
-      } else {
-        console.error(
-          "Unexpected API response structure:",
-          Object.keys(dataWithQuizzes)
-        );
-        setRows([]);
-        return false;
-      }
-
-      // Filter quizzes by module - get materials in this module first
-      const materialsRes = await materialsAPI.list({
-        module_id: moduleId,
-        limit: 100,
-        ...(bypassCache && { _t: Date.now() }),
-      });
-
-      let materialIds: Set<string | number> = new Set();
-
-      if (materialsRes.ok && materialsRes.data.items) {
-        const materials = materialsRes.data.items;
-        materialIds = new Set(materials.map((m) => String(m.id)));
-      } else {
-        console.warn("Could not get materials for module filtering");
-        // If we can't get materials, include all quizzes (fallback)
-      }
-
-      // Filter quizzes that belong to materials in this module
-      let moduleQuizzes = allQuizzes.filter((quiz) => {
-        return (
-          materialIds.size === 0 || materialIds.has(String(quiz.sub_materi_id))
-        );
-      });
-
-      // If filterByMaterialId is provided, filter further to only show quiz for that material
-      if (filterByMaterialId) {
-        moduleQuizzes = moduleQuizzes.filter((quiz) => {
-          return String(quiz.sub_materi_id) === String(filterByMaterialId);
-        });
-      }
-
-      // Map quiz data to UI rows - fetch question count for each quiz
-      const mapped: ModuleItemRow[] = await Promise.all(
-        moduleQuizzes.map(async (quiz) => {
-          let questionCount = 0;
-
-          // Get question count - check if already included in response
-          if (quiz.questions && Array.isArray(quiz.questions)) {
-            questionCount = quiz.questions.length;
-          } else {
-            // Fetch quiz details to get question count
-            try {
-              const detailRes = await quizzesAPI.get(quiz.id);
-              if (detailRes.ok && detailRes.data.questions) {
-                questionCount = detailRes.data.questions.length;
-              }
-            } catch (error) {
-              console.warn(
-                `Failed to fetch question count for quiz ${quiz.id}:`,
-                error
-              );
-            }
-          }
-
-          // Handle published field mapping - Backend uses 'is_active' instead of 'published'
-          let publishedStatus = false;
-
-          if (quiz.published !== undefined) {
-            // Preferred field name per API documentation
-            publishedStatus = quiz.published;
-          } else {
-            // Backend actually uses 'is_active' field - map it to published
-            const quizWithExtraFields = quiz as unknown as {
-              is_active?: boolean;
-            };
-            if (quizWithExtraFields.is_active !== undefined) {
-              publishedStatus = quizWithExtraFields.is_active;
-            }
-          }
-
-          return {
-            id: String(quiz.id),
-            title: quiz.title,
-            description: quiz.description?.slice(0, 140),
-            updated_at: quiz.updated_at || quiz.created_at,
-            published: publishedStatus,
-            questionCount: questionCount,
-          };
-        })
-      );
-
-      setRows(mapped);
-
-      // Clear local storage cache if bypassCache is true
-      if (bypassCache) {
-        try {
-          localStorage.removeItem(storageKey);
-        } catch {}
-      }
-
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(mapped));
-      } catch {
-        // Ignore storage errors
-      }
-      return true;
-    },
-    [moduleId, storageKey, filterByMaterialId]
-  );
-
-  // Load sub-materi options for quiz dropdown - get sub-materis with poin details
-  useEffect(() => {
+  // Load sub-materi options when needed
+  const loadSubMateriOptions = useCallback(async () => {
     if (resource === "kuis" && moduleId) {
-      const loadSubMateriOptions = async () => {
-        try {
-          console.log(
-            "[ModuleItemsPage] Loading sub-materi options for module:",
-            moduleId
-          );
-
-          // Use module detail endpoint to get all sub-materis (same as test-user-flow)
-          const res = await modulesAPI.get(moduleId);
-
-          console.log("[ModuleItemsPage] Module detail response:", res);
-
-          if (res.ok && res.data) {
-            // Get sub-materis from module detail (supports both snake_case and camelCase)
-            const subMateris =
-              res.data.sub_materis || res.data.subMateris || [];
-
-            console.log(
-              "[ModuleItemsPage] Found sub-materis:",
-              subMateris.length
-            );
-
-            // Fetch poin details for each sub materi to show count
-            const optionsWithPoinCount = await Promise.all(
-              subMateris.map(async (subMateri: Material) => {
-                let poinCount = 0;
-                try {
-                  const materiDetail = await materialsAPI.get(subMateri.id);
-                  if (materiDetail.ok && materiDetail.data.poin_details) {
-                    poinCount = materiDetail.data.poin_details.length;
-                  }
-                } catch (error) {
-                  console.warn(
-                    `Failed to fetch poin count for ${subMateri.id}:`,
-                    error
-                  );
-                }
-
-                return {
-                  id: subMateri.id,
-                  title: subMateri.title,
-                  module_title:
-                    res.data.title || currentModuleName || `Module ${moduleId}`,
-                  display_title: `${subMateri.title}${
-                    poinCount > 0 ? ` (${poinCount} poin)` : ""
-                  }`,
-                  poin_count: poinCount,
-                };
-              })
-            );
-
-            setSubMateriOptions(optionsWithPoinCount);
-            console.log(
-              "[ModuleItemsPage] Sub-materi options set:",
-              optionsWithPoinCount
-            );
-          } else {
-            console.warn(
-              "[ModuleItemsPage] Failed to load module detail. Response:",
-              res
-            );
-            setSubMateriOptions([]);
-          }
-        } catch (error) {
-          console.error(
-            "[ModuleItemsPage] Error loading sub-materi options:",
-            error
-          );
-          setSubMateriOptions([]);
-        }
-      };
-      loadSubMateriOptions();
-    }
-  }, [resource, moduleId, currentModuleName, showAdd, showEdit]); // Re-run when form is opened
-
-  // Load data from backend for both materi and kuis
-  useEffect(() => {
-    const load = async () => {
-      // ✅ Set loading state at start
-      setIsInitialLoading(true);
       try {
-        if (resource === "materi") {
-          // Get materials list first (without poin details to avoid backend dependency)
-          const res = await materialsAPI.list({
-            module_id: moduleId,
-          });
-
-          if (res.ok) {
-            const data = res.data as MaterialsListResponse;
-
-            // Handle multiple possible response structures
-            let arr: MaterialRecord[] = [];
-            if (Array.isArray(data)) {
-              arr = data as MaterialRecord[];
-            } else if (Array.isArray(data.items)) {
-              arr = data.items;
-            } else if (Array.isArray(data.data)) {
-              arr = data.data;
-            } else if (data && typeof data === "object" && "length" in data) {
-              arr = Array.from(data as ArrayLike<MaterialRecord>);
-            }
-
-            // Fetch poin details for each material (without media for faster initial load)
-            const mapped: ModuleItemRow[] = await Promise.all(
-              arr.map(async (m) => {
-                // Only fetch poin details for count, don't load media yet for faster initial load
-                let poinDetails: PoinDetailRecord[] = [];
-                try {
-                  const poinRes = await materialsAPI.get(m.id);
-                  if (poinRes.ok && poinRes.data.poin_details) {
-                    poinDetails = poinRes.data.poin_details;
-                  }
-                } catch (error) {
-                  console.warn(
-                    `Failed to fetch poins for material ${m.id}:`,
-                    error
-                  );
+        const res = await modulesAPI.get(moduleId);
+        if (res.ok && res.data) {
+          const subMateris = res.data.sub_materis || res.data.subMateris || [];
+          const optionsWithPoinCount = await Promise.all(
+            subMateris.map(async (subMateri: Material) => {
+              let poinCount = 0;
+              try {
+                const materiDetail = await materialsAPI.get(subMateri.id);
+                if (materiDetail.ok && materiDetail.data.poin_details) {
+                  poinCount = materiDetail.data.poin_details.length;
                 }
+              } catch (error) {
+                console.warn(`Failed to fetch poin count for ${subMateri.id}:`, error);
+              }
 
-                return {
-                  id: String(m.id),
-                  title: m.title,
-                  description: undefined, // Remove content description from table
-                  updated_at: m.updated_at || m.created_at,
-                  published: !!m.published,
-                  contentLength:
-                    typeof m.content === "string" ? m.content.length : 0,
-                  pointsCount: poinDetails.length,
-                  content:
-                    typeof m.content === "string" ? m.content : undefined,
-                  poinDetails: poinDetails,
-                };
-              })
-            );
-
-            setRows(mapped);
-            try {
-              localStorage.setItem(storageKey, JSON.stringify(mapped));
-            } catch {}
-            return;
-          } else {
-            console.error("Failed to load materials:", res.error);
-            // Show user-friendly error message
-            await Swal.fire({
-              icon: "error",
-              title: "Gagal Memuat Materi",
-              text: `Tidak dapat memuat materi: ${
-                res.error || "Terjadi kesalahan pada server"
-              }`,
-              footer:
-                "Silakan coba refresh halaman atau hubungi administrator jika masalah berlanjut",
-            });
-          }
-        } else if (resource === "kuis") {
-          // Use the same logic as refetchQuizList to ensure consistency
-          const result = await refetchQuizList(false);
-          if (result) {
-            return; // Data already set by refetchQuizList
-          } else {
-            await Swal.fire({
-              icon: "error",
-              title: "Gagal Memuat Kuis",
-              text: "Tidak dapat memuat kuis untuk modul ini",
-              footer:
-                "Silakan coba refresh halaman atau hubungi administrator jika masalah berlanjut",
-            });
-          }
+              return {
+                id: subMateri.id,
+                title: subMateri.title,
+                module_title: res.data.title || currentModuleName || `Module ${moduleId}`,
+                display_title: `${subMateri.title}${poinCount > 0 ? ` (${poinCount} poin)` : ""}`,
+                poin_count: poinCount,
+              };
+            })
+          );
+          setSubMateriOptions(optionsWithPoinCount);
         }
-
-        // Fallback to local storage
-        try {
-          const raw = localStorage.getItem(storageKey);
-          if (raw) {
-            setRows(JSON.parse(raw));
-            return;
-          }
-        } catch {}
-
-        // If no data available, set empty
-        setRows([]);
       } catch (error) {
-        console.error(`Error loading ${resource} data:`, error);
-        await Swal.fire({
-          icon: "error",
-          title: "Kesalahan Sistem",
-          text: `Terjadi kesalahan saat memuat ${resource}: ${
-            error instanceof Error ? error.message : "Kesalahan tidak diketahui"
-          }`,
-          footer: "Silakan refresh halaman atau hubungi administrator",
-        });
-        setRows([]); // Set empty array as fallback
-      } finally {
-        // ✅ Always stop loading state
-        setIsInitialLoading(false);
+        console.error("Error loading sub-materi options:", error);
+        setSubMateriOptions([]);
       }
-    };
-    load();
-  }, [moduleId, resource, storageKey, refetchQuizList]);
-
-  // Persist to localStorage on change
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(rows));
-    } catch {
-      // ignore
     }
-  }, [rows, storageKey]);
+  }, [resource, moduleId, currentModuleName]);
+
+  // Load sub-materi options when form is opened
+  if (resource === "kuis" && (showAdd || showEdit) && subMateriOptions.length === 0) {
+    loadSubMateriOptions();
+  }
+
+  // Manual refresh function
+  const onManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      if (resource === "materi") {
+        await refetchMaterials();
+      } else {
+        await refetchQuizzes();
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [resource, refetchMaterials, refetchQuizzes]);
 
   // Filter data based on status and search term
   const filteredRows = useMemo(() => {
@@ -856,32 +530,6 @@ export default function ModuleItemsPage({
     setShowQuestionForm(true);
   };
 
-  const onManualRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      if (resource === "materi") {
-        await refetchMaterialsList(true);
-      } else {
-        await refetchQuizList(true);
-      }
-      await Swal.fire({
-        icon: "success",
-        title: "Data diperbarui",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error("Manual refresh failed:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Gagal memperbarui",
-        text: "Terjadi kesalahan saat memperbarui data",
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [resource, refetchMaterialsList, refetchQuizList]);
-
   const submitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const titleVal = aTitle.trim();
@@ -901,48 +549,37 @@ export default function ModuleItemsPage({
       }
       setASubmitting(true);
 
-      const res = await materialsAPI.create({
-        title: titleVal,
-        content: contentVal,
-        module_id: String(moduleId),
-        published: aPublished,
-        slug: aSlug ? aSlug.trim() : undefined,
-      });
+      try {
+        await createMaterialMutation.mutateAsync({
+          title: titleVal,
+          content: contentVal,
+          module_id: String(moduleId),
+          published: aPublished,
+          slug: aSlug ? aSlug.trim() : undefined,
+        });
 
-      setASubmitting(false);
-
-      if (!res.ok) {
+        await Swal.fire({
+          icon: "success",
+          title: "Berhasil",
+          timer: 900,
+          showConfirmButton: false,
+        });
+        
+        // reset & close
+        setATitle("");
+        setAContent("");
+        setASlug("");
+        setAPublished(false);
+        setShowAdd(false);
+      } catch (error) {
         await Swal.fire({
           icon: "error",
           title: "Gagal",
-          text:
-            formatServerError(
-              res as unknown as {
-                ok: false;
-                status: number;
-                error: string;
-                raw?: unknown;
-              }
-            ) || "Gagal membuat materi",
+          text: error instanceof Error ? error.message : "Gagal membuat materi",
         });
-        return;
+      } finally {
+        setASubmitting(false);
       }
-
-      // Force refetch all materials to ensure UI shows complete list
-      await refetchMaterialsList();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Berhasil",
-        timer: 900,
-        showConfirmButton: false,
-      });
-      // reset & close
-      setATitle("");
-      setAContent("");
-      setASlug("");
-      setAPublished(false);
-      setShowAdd(false);
       return;
     }
 
@@ -1008,7 +645,7 @@ export default function ModuleItemsPage({
         // 1. Buat kuis terlebih dahulu
         const payload = {
           module_id: moduleId,
-          sub_materi_id: aSubMateriId, // Wajib untuk kuis per sub-materi
+          sub_materi_id: aSubMateriId,
           title: titleVal,
           description: aDescription || undefined,
           time_limit_seconds: timeLimitSeconds,
@@ -1016,24 +653,7 @@ export default function ModuleItemsPage({
           published: aPublished,
         };
 
-        const res = await quizzesAPI.create(payload);
-
-        if (!res.ok) {
-          await Swal.fire({
-            icon: "error",
-            title: "Gagal",
-            text:
-              formatServerError(
-                res as unknown as {
-                  ok: false;
-                  status: number;
-                  error: string;
-                  raw?: unknown;
-                }
-              ) || "Gagal membuat kuis",
-          });
-          return;
-        }
+        const createdQuiz = await createQuizMutation.mutateAsync(payload);
 
         // 2. Tambahkan soal-soal jika ada
         if (questions.length > 0) {
@@ -1041,7 +661,7 @@ export default function ModuleItemsPage({
             const q = questions[i];
             const validOptions = q.options.filter((opt) => opt.trim());
 
-            await quizzesAPI.addQuestion(res.data.id, {
+            await quizzesAPI.addQuestion(createdQuiz.id, {
               question_text: q.question_text.trim(),
               options: validOptions,
               correct_answer_index: Math.min(
@@ -1054,10 +674,9 @@ export default function ModuleItemsPage({
           }
         }
 
-        // 3. Reset form dan refresh data
+        // 3. Reset form
         resetQuizForm();
         setShowAdd(false);
-        await refetchQuizList();
 
         const message =
           questions.length > 0
@@ -1076,7 +695,7 @@ export default function ModuleItemsPage({
         await Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Terjadi kesalahan saat membuat kuis",
+          text: error instanceof Error ? error.message : "Terjadi kesalahan saat membuat kuis",
         });
       } finally {
         setASubmitting(false);
@@ -1163,42 +782,32 @@ export default function ModuleItemsPage({
         slug: eSlug ? eSlug.trim() : undefined,
       };
 
-      const res = await materialsAPI.update(editingItem.id, payload);
-      setESubmitting(false);
+      try {
+        await updateMaterialMutation.mutateAsync({ id: editingItem.id, data: payload });
+        
+        await Swal.fire({
+          icon: "success",
+          title: "Tersimpan",
+          timer: 900,
+          showConfirmButton: false,
+        });
 
-      if (!res.ok) {
+        // Reset edit form and close
+        setETitle("");
+        setEContent("");
+        setESlug("");
+        setEPublished(false);
+        setShowEdit(false);
+        setEditingItem(null);
+      } catch (error) {
         await Swal.fire({
           icon: "error",
           title: "Gagal",
-          text:
-            formatServerError(
-              res as unknown as {
-                ok: false;
-                status: number;
-                error: string;
-                raw?: unknown;
-              }
-            ) || "Gagal memperbarui materi",
+          text: error instanceof Error ? error.message : "Gagal memperbarui materi",
         });
-        return;
+      } finally {
+        setESubmitting(false);
       }
-
-      // Force refetch to ensure UI is up to date
-      await refetchMaterialsList();
-      await Swal.fire({
-        icon: "success",
-        title: "Tersimpan",
-        timer: 900,
-        showConfirmButton: false,
-      });
-
-      // Reset edit form and close
-      setETitle("");
-      setEContent("");
-      setESlug("");
-      setEPublished(false);
-      setShowEdit(false);
-      setEditingItem(null);
       return;
     }
 
@@ -1247,29 +856,11 @@ export default function ModuleItemsPage({
       published: ePublished,
     };
 
-    const res = await quizzesAPI.update(editingItem.id, payload);
+    try {
+      await updateQuizMutation.mutateAsync({ id: editingItem.id, data: payload });
 
-    if (!res.ok) {
-      setESubmitting(false);
-      await Swal.fire({
-        icon: "error",
-        title: "Gagal",
-        text:
-          formatServerError(
-            res as unknown as {
-              ok: false;
-              status: number;
-              error: string;
-              raw?: unknown;
-            }
-          ) || "Gagal memperbarui kuis",
-      });
-      return;
-    }
-
-    // Update questions if any
-    if (questions.length > 0) {
-      try {
+      // Update questions if any
+      if (questions.length > 0) {
         // Get existing questions from backend to compare
         const quizDetailsRes = await quizzesAPI.get(editingItem.id);
         const existingQuestionIds =
@@ -1293,19 +884,16 @@ export default function ModuleItemsPage({
             order_index: i + 1,
           };
 
-          // Check if this is an existing question (ID is numeric from backend)
           const isExistingQuestion = existingQuestionIds.includes(q.id);
 
           if (isExistingQuestion) {
-            // Update existing question
             await quizzesAPI.updateQuestion(q.id, questionPayload);
           } else {
-            // Create new question
             await quizzesAPI.addQuestion(editingItem.id, questionPayload);
           }
         }
 
-        // Delete questions that were removed (exist in backend but not in current questions array)
+        // Delete questions that were removed
         const currentQuestionIds = questions.map((q) => q.id);
         const questionsToDelete = existingQuestionIds.filter(
           (id) => !currentQuestionIds.includes(id)
@@ -1314,16 +902,16 @@ export default function ModuleItemsPage({
         for (const questionId of questionsToDelete) {
           await quizzesAPI.deleteQuestion(questionId);
         }
-      } catch (error) {
-        console.error("Error updating questions:", error);
-        setESubmitting(false);
-        await Swal.fire({
-          icon: "warning",
-          title: "Kuis Tersimpan",
-          text: "Kuis berhasil diperbarui, tetapi ada masalah saat memperbarui soal. Silakan coba edit lagi.",
-        });
-        return;
       }
+    } catch (error) {
+      console.error("Error updating questions:", error);
+      setESubmitting(false);
+      await Swal.fire({
+        icon: "warning",
+        title: "Kuis Tersimpan",
+        text: "Kuis berhasil diperbarui, tetapi ada masalah saat memperbarui soal. Silakan coba edit lagi.",
+      });
+      return;
     }
 
     setESubmitting(false);
@@ -1332,7 +920,7 @@ export default function ModuleItemsPage({
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Force refetch to ensure UI is up to date with fresh data
-    await refetchQuizList(true); // bypassCache=true untuk memastikan data terbaru
+    await refetchQuizzes(); // Refetch to get latest data
 
     const message =
       questions.length > 0
@@ -1372,61 +960,39 @@ export default function ModuleItemsPage({
     if (!result.isConfirmed) return;
 
     if (resource === "materi") {
-      const res = await materialsAPI.remove(row.id);
-      if (!res.ok) {
+      try {
+        await deleteMaterialMutation.mutateAsync(row.id);
+        await Swal.fire({
+          icon: "success",
+          title: "Berhasil Dihapus",
+          text: `Materi "${row.title}" berhasil dihapus.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
         await Swal.fire({
           icon: "error",
           title: "Gagal",
-          text:
-            formatServerError(
-              res as unknown as {
-                ok: false;
-                status: number;
-                error: string;
-                raw?: unknown;
-              }
-            ) || "Gagal menghapus materi",
+          text: error instanceof Error ? error.message : "Gagal menghapus materi",
         });
-        return;
       }
-      // Force refetch to ensure UI is accurate
-      await refetchMaterialsList();
-      // Show success message
-      await Swal.fire({
-        icon: "success",
-        title: "Berhasil Dihapus",
-        text: `Materi "${row.title}" berhasil dihapus.`,
-        timer: 2000,
-        showConfirmButton: false,
-      });
     } else if (resource === "kuis") {
-      const res = await quizzesAPI.remove(row.id);
-      if (!res.ok) {
+      try {
+        await deleteQuizMutation.mutateAsync(row.id);
+        await Swal.fire({
+          icon: "success",
+          title: "Berhasil Dihapus",
+          text: `Kuis "${row.title}" berhasil dihapus.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
         await Swal.fire({
           icon: "error",
           title: "Gagal",
-          text:
-            formatServerError(
-              res as unknown as {
-                ok: false;
-                status: number;
-                error: string;
-                raw?: unknown;
-              }
-            ) || "Gagal menghapus kuis",
+          text: error instanceof Error ? error.message : "Gagal menghapus kuis",
         });
-        return;
       }
-      // Force refetch to ensure UI is accurate
-      await refetchQuizList();
-      // Show success message
-      await Swal.fire({
-        icon: "success",
-        title: "Berhasil Dihapus",
-        text: `Kuis "${row.title}" berhasil dihapus.`,
-        timer: 2000,
-        showConfirmButton: false,
-      });
     }
   };
 

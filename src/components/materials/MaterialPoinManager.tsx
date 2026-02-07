@@ -25,10 +25,10 @@ import {
 } from "@/lib/api";
 import { renderContent, htmlToMarkdown } from "@/lib/markdown-utils";
 
-import MaterialPreview from "./MaterialPreview";
-import RichTextEditor from "./RichTextEditor";
-import MediaBlockEditor from "./MediaBlockEditor";
-import LiveContentPreview from "./LiveContentPreview";
+import MaterialPreview from "@/components/materials/MaterialPreview";
+import RichTextEditor from "@/components/shared/RichTextEditor";
+import MediaBlockEditor from "@/components/materials/MediaBlockEditor";
+import LiveContentPreview from "@/components/materials/LiveContentPreview";
 
 // Alias for backward compatibility
 type PoinDetailRecord = Poin;
@@ -1706,17 +1706,17 @@ export default function MaterialPoinManager({
                                 caption={block.caption}
                                 alignment={block.alignment || "center"}
                                 size={block.size || "medium"}
-                                onFileChange={(file) =>
+                                onFileChange={(file: File) =>
                                   updateMediaBlock(block.id, file)
                                 }
-                                onCaptionChange={(caption) => {
+                                onCaptionChange={(caption: string) => {
                                   setContentBlocks((blocks) =>
                                     blocks.map((b) =>
                                       b.id === block.id ? { ...b, caption } : b
                                     )
                                   );
                                 }}
-                                onAlignmentChange={(alignment) => {
+                                onAlignmentChange={(alignment: "left" | "center" | "right") => {
                                   setContentBlocks((blocks) =>
                                     blocks.map((b) =>
                                       b.id === block.id
@@ -1725,7 +1725,7 @@ export default function MaterialPoinManager({
                                     )
                                   );
                                 }}
-                                onSizeChange={(size) => {
+                                onSizeChange={(size: "small" | "medium" | "large" | "full") => {
                                   setContentBlocks((blocks) =>
                                     blocks.map((b) =>
                                       b.id === block.id ? { ...b, size } : b

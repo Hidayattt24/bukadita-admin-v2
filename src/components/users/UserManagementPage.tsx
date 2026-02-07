@@ -1,23 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { usersAPI, type Profile, type VisibilityRules } from "@/lib/api";
+import { useState, useCallback } from "react";
+import { type Profile, type VisibilityRules } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "next/navigation";
 import { Users } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import LoadingModal from "@/components/ui/LoadingModal";
 import DeleteConfirmModal from "@/components/ui/DeleteConfirmModal";
+import { useUsers, useCreateUser, useUpdateUser, useUpdateUserRole, useDeleteUser } from "@/hooks/useUsers";
 
 // Import sub-components
-import UserStatistics from "./user-management/UserStatistics";
-import UserSearchBar from "./user-management/UserSearchBar";
-import UserTable from "./user-management/UserTable";
-import UserFormModal from "./user-management/UserFormModal";
-import UserDetailModal from "./user-management/UserDetailModal";
+import UserStatistics from "./UserStatistics";
+import UserSearchBar from "./UserSearchBar";
+import UserTable from "./UserTable";
+import UserFormModal from "./UserFormModal";
+import UserDetailModal from "./UserDetailModal";
 
 // Import types
-import type { User, PaginationData, UserFormData } from "./user-management/types";
+import type { User, PaginationData, UserFormData } from "./types";
 
 export default function UserManagement() {
   const searchParams = useSearchParams();
@@ -26,7 +27,6 @@ export default function UserManagement() {
   const { toast, ToastContainer } = useToast();
 
   // State management
-  const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
     limit: 10,
@@ -34,7 +34,6 @@ export default function UserManagement() {
     totalPages: 0,
   });
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">(10);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState(roleFromUrl);
   const [visibility, setVisibility] = useState<VisibilityRules | null>(null);
@@ -56,6 +55,48 @@ export default function UserManagement() {
     date_of_birth: "",
     profil_url: "",
   });
+
+  // React Query hooks
+  const actualLimit = itemsPerPage === "all" ? 10000 : itemsPerPage;
+  const { data: usersData, isLoading: loading, refetch } = useUsers({
+    page: itemsPerPage === "all" ? 1 : pagination.page,
+    limit: actualLimit,
+    search: searchTerm,
+    role: roleFilter,
+  });
+
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const updateUserRoleMutation = useUpdateUserRole();
+  const deleteUserMutation = useDeleteUser();
+
+  // Transform data
+  const users: User[] = usersData?.items?.map((u: Profile): User => ({
+    id: u.id,
+    email: u.email || "",
+    full_name: u.full_name || "",
+    phone: u.phone || "",
+    role: u.role,
+    created_at: u.created_at,
+    address: u.address || undefined,
+    date_of_birth: u.date_of_birth || undefined,
+    profil_url: u.profil_url || undefined,
+  })) || [];
+
+  // Update pagination when data changes
+  if (usersData?.pagination && pagination.total !== (usersData.pagination.totalCount || 0)) {
+    setPagination({
+      page: usersData.pagination.currentPage || pagination.page,
+      limit: 10,
+      total: usersData.pagination.totalCount || 0,
+      totalPages: usersData.pagination.totalPages || 1,
+    });
+  }
+
+  // Update visibility when data changes
+  if (usersData?.visibility && !visibility) {
+    setVisibility(usersData.visibility || null);
+  }
 
   // Validation helpers
   const validateEmail = (email: string) => {
@@ -97,86 +138,6 @@ export default function UserManagement() {
     return Object.keys(errors).length === 0;
   };
 
-  // Fetch users
-  const fetchUsers = useCallback(
-    async (page = 1, search = "", role = "", limit: number | "all" = 10) => {
-      setLoading(true);
-      try {
-        const actualLimit = limit === "all" ? 10000 : limit;
-        const res = await usersAPI.list({
-          page: limit === "all" ? 1 : page,
-          limit: actualLimit,
-          search,
-          role,
-        });
-
-        if (!res.ok) {
-          throw new Error(res.error || `Gagal memuat pengguna (${res.status})`);
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const payload = res.data as any;
-        const array: Profile[] = payload.items || payload.data || [];
-
-        const transformedUsers: User[] = array.map(
-          (u): User => ({
-            id: u.id,
-            email: u.email || "",
-            full_name: u.full_name || "",
-            phone: u.phone || "",
-            role: u.role,
-            created_at: u.created_at,
-            address: u.address || undefined,
-            date_of_birth: u.date_of_birth || undefined,
-            profil_url: u.profil_url || undefined,
-          })
-        );
-
-        const meta = payload.pagination || {
-          page,
-          limit: 10,
-          total: transformedUsers.length,
-          totalPages: 1,
-        };
-
-        setUsers(transformedUsers);
-        setPagination({
-          page: meta.page || meta.currentPage || page,
-          limit: meta.limit || 10,
-          total: meta.total || meta.totalCount || transformedUsers.length,
-          totalPages: meta.totalPages || 1,
-        });
-        setVisibility(payload.visibility || payload.visibility_rules || null);
-      } catch (error) {
-        console.error("❌ Error fetching users:", error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Terjadi kesalahan saat memuat data pengguna";
-
-        toast.error("Error!", errorMessage);
-
-        setUsers([]);
-        setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  // Update roleFilter when URL changes
-  useEffect(() => {
-    if (roleFromUrl !== roleFilter) {
-      setRoleFilter(roleFromUrl);
-    }
-  }, [roleFromUrl, roleFilter]);
-
-  useEffect(() => {
-    fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, roleFilter, itemsPerPage]);
-
   // Handler functions
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -188,6 +149,18 @@ export default function UserManagement() {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
+  const handleFormChange = useCallback((field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  }, [formErrors]);
+
   const handleItemsPerPageChange = (value: string) => {
     const newValue = value === "all" ? "all" : parseInt(value);
     setItemsPerPage(newValue);
@@ -197,7 +170,6 @@ export default function UserManagement() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       setPagination((prev) => ({ ...prev, page: newPage }));
-      fetchUsers(newPage, searchTerm, roleFilter, itemsPerPage);
     }
   };
 
@@ -269,11 +241,7 @@ export default function UserManagement() {
     });
 
     try {
-      const deleteResult = await usersAPI.remove(selectedUser.id);
-
-      if (!deleteResult.ok) {
-        throw new Error(deleteResult.error || "Gagal menghapus pengguna");
-      }
+      await deleteUserMutation.mutateAsync(selectedUser.id);
 
       setIsLoadingAction(false);
 
@@ -281,8 +249,6 @@ export default function UserManagement() {
         "Berhasil Dihapus!",
         `Pengguna <strong class="text-red-600">"${selectedUser.full_name}"</strong> telah dihapus dari sistem`
       );
-
-      fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
     } catch (error) {
       console.error("Error deleting user:", error);
       setIsLoadingAction(false);
@@ -313,14 +279,7 @@ export default function UserManagement() {
       });
 
       if (isEditing && selectedUser) {
-        const updatePayload: {
-          full_name: string;
-          email: string;
-          phone: string;
-          address?: string;
-          date_of_birth?: string;
-          profil_url?: string;
-        } = {
+        const updatePayload = {
           full_name: formData.full_name,
           email: formData.email,
           phone: formData.phone,
@@ -329,17 +288,10 @@ export default function UserManagement() {
           profil_url: formData.profil_url || undefined,
         };
 
-        const updateResult = await usersAPI.update(selectedUser.id, updatePayload);
-
-        if (!updateResult.ok) {
-          throw new Error(updateResult.error || "Gagal mengupdate pengguna");
-        }
+        await updateUserMutation.mutateAsync({ id: selectedUser.id, data: updatePayload });
 
         if (formData.role !== selectedUser.role) {
-          const roleResult = await usersAPI.updateRole(selectedUser.id, formData.role);
-          if (!roleResult.ok) {
-            throw new Error(roleResult.error || "Gagal mengupdate role pengguna");
-          }
+          await updateUserRoleMutation.mutateAsync({ id: selectedUser.id, role: formData.role });
         }
 
         setIsLoadingAction(false);
@@ -349,7 +301,7 @@ export default function UserManagement() {
           `Data pengguna <strong class="text-blue-600">"${formData.full_name}"</strong> telah diperbarui`
         );
       } else {
-        const createResult = await usersAPI.create({
+        await createUserMutation.mutateAsync({
           email: formData.email,
           password: formData.password,
           full_name: formData.full_name,
@@ -359,10 +311,6 @@ export default function UserManagement() {
           date_of_birth: formData.date_of_birth || undefined,
           profil_url: formData.profil_url || undefined,
         });
-
-        if (!createResult.ok) {
-          throw new Error(createResult.error || "Gagal menambahkan pengguna");
-        }
 
         const roleLabel = formData.role === "admin" ? "Ketua Posyandu / Admin" : "Kader";
 
@@ -388,7 +336,6 @@ export default function UserManagement() {
         profil_url: "",
       });
       setFormErrors({});
-      fetchUsers(pagination.page, searchTerm, roleFilter, itemsPerPage);
     } catch (error: unknown) {
       console.error("Error saving user:", error);
 
@@ -403,10 +350,6 @@ export default function UserManagement() {
 
       toast.error("Gagal Menyimpan!", errorMessage);
     }
-  };
-
-  const handleFormChange = (field: keyof UserFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Statistics
