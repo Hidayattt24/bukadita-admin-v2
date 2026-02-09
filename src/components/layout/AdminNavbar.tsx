@@ -148,11 +148,15 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
   ];
 
   const userManagementLinks = [
-    {
-      label: "Ketua Posyandu / Admin",
-      href: "/admin/kelola-pengguna?role=admin",
-      icon: <Users className="h-4 w-4 shrink-0 text-neutral-200" />,
-    },
+    ...(profile?.role === "superadmin"
+      ? [
+          {
+            label: "Ketua Posyandu / Admin",
+            href: "/admin/kelola-pengguna?role=admin",
+            icon: <Users className="h-4 w-4 shrink-0 text-neutral-200" />,
+          },
+        ]
+      : []),
     {
       label: "Pengguna",
       href: "/admin/kelola-pengguna?role=pengguna",

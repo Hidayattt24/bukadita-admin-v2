@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Line,
   LineChart,
+  Cell,
 } from "recharts";
 import { TrendingUp, Users } from "lucide-react";
 import CustomDateRangePicker from "../shared/CustomDateRangePicker";
@@ -136,34 +137,7 @@ export default function DashboardCharts({
     return null;
   };
 
-  // Custom Tooltip for User Overview (only show number)
-  const UserTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: Array<{ value: number; payload?: { color?: string } }>;
-    label?: string;
-  }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      const color = data.payload?.color || BRAND_COLORS.primary;
-      return (
-        <div className="bg-white/95 backdrop-blur-sm border-2 border-[#27548A]/30 rounded-xl shadow-2xl p-4">
-          <p className="font-semibold text-slate-900 mb-2 text-sm">{label}</p>
-          <div className="flex items-center justify-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: color }}
-            ></div>
-            <span className="font-semibold text-2xl" style={{ color }}>{data.value}</span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   const handleQuickRange = (days: number) => {
     setDateRange(days);
@@ -326,59 +300,139 @@ export default function DashboardCharts({
         </div>
       </div>
 
-      {/* User Overview Chart */}
-      <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-lg md:rounded-2xl shadow-md md:shadow-lg border-2 border-slate-200 p-3 md:p-6 w-full">
-        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-6">
-          <div className="p-2 md:p-3 bg-gradient-to-br from-[#27548A] to-[#578FCA] rounded-lg md:rounded-xl shadow-md">
-            <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
+      {/* User Overview Chart - MODERN DESIGN */}
+      <div className="relative bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border-2 border-slate-100 overflow-hidden">
+        {/* Decorative Background */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-emerald-500/5 to-green-500/5 rounded-full blur-2xl -ml-24 -mb-24"></div>
+        
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-2 md:p-2.5 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-xl shadow-lg">
+                <Users className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm md:text-xl font-bold text-slate-800">
+                  Ringkasan Pengguna
+                </h3>
+                <p className="text-xs md:text-sm text-slate-600 hidden md:block">
+                  Gambaran data pengguna sistem
+                </p>
+              </div>
+            </div>
+            
+            {/* Total Summary Badge */}
+            <div className="hidden lg:flex items-center gap-2 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl px-4 py-2 border border-slate-200">
+              <div className="text-center">
+                <div className="text-xs text-slate-600">Total</div>
+                <div className="text-lg font-bold text-[#27548A]">{stats.total_users}</div>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm md:text-xl font-semibold text-slate-900">Ringkasan Pengguna</h3>
-            <p className="text-[10px] md:text-sm text-slate-600 truncate">Gambaran data pengguna sistem</p>
-          </div>
-        </div>
-        <div className="w-full overflow-x-auto -mx-3 md:mx-0">
-          <div className="min-w-[400px] md:min-w-0 px-3 md:px-0">
-            <ResponsiveContainer width="100%" height={200} className="md:h-[280px]">
-              <BarChart data={userOverviewData} layout="vertical" barSize={25} className="md:bar-size-[40]">
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  type="number"
-                  tick={{ fill: "#64748b", fontSize: 9, fontWeight: 500 }}
-                  axisLine={{ stroke: "#cbd5e1" }}
-                  className="text-[8px] md:text-xs"
-                />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={110}
-                  tick={{ fill: "#1e293b", fontSize: 9, fontWeight: 600 }}
-                  axisLine={{ stroke: "#cbd5e1" }}
-                  className="md:w-[180px] text-[9px] md:text-[13px]"
-                />
-                <Tooltip
-                  content={<UserTooltip />}
-                  cursor={{ fill: "rgba(99, 102, 241, 0.1)" }}
-                />
-                <Bar dataKey="value" name="Jumlah" radius={[0, 10, 10, 0]}>
-                  {userOverviewData.map((entry, index) => (
-                    <defs key={index}>
-                      <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="5%" stopColor={entry.color} stopOpacity={0.9} />
-                        <stop offset="95%" stopColor={entry.color} stopOpacity={0.6} />
-                      </linearGradient>
-                    </defs>
-                  ))}
-                  {userOverviewData.map((entry, index) => (
-                    <Bar
-                      key={`bar-${index}`}
-                      dataKey="value"
-                      fill={`url(#gradient-${index})`}
+
+          {/* Chart Container */}
+          <div className="bg-gradient-to-br from-slate-50/50 to-white rounded-xl p-3 md:p-4 border border-slate-200">
+            <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+              <div className="min-w-[500px] lg:min-w-0">
+                <ResponsiveContainer width="100%" height={240} className="md:h-[320px]">
+                  <BarChart data={userOverviewData} layout="vertical" barSize={40} margin={{ top: 10, right: 30, left: 20, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={true} vertical={false} />
+                    <XAxis
+                      type="number"
+                      tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }}
+                      axisLine={{ stroke: "#cbd5e1", strokeWidth: 2 }}
+                      tickLine={{ stroke: "#cbd5e1" }}
                     />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={150}
+                      tick={{ fill: "#1e293b", fontSize: 13, fontWeight: 700 }}
+                      axisLine={{ stroke: "#cbd5e1", strokeWidth: 2 }}
+                      tickLine={{ stroke: "#cbd5e1" }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(87, 143, 202, 0.1)' }}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0];
+                          const entry = userOverviewData.find(e => e.name === label);
+                          return (
+                            <div className="bg-white/98 backdrop-blur-md border-2 border-[#27548A]/20 rounded-2xl shadow-2xl p-4 min-w-[180px]">
+                              <p className="font-bold text-slate-900 mb-3 text-sm border-b border-slate-200 pb-2">
+                                {label}
+                              </p>
+                              <div className="flex items-center justify-center gap-3">
+                                <div
+                                  className="w-4 h-4 rounded-lg shadow-sm"
+                                  style={{ backgroundColor: entry?.color }}
+                                ></div>
+                                <span className="font-bold text-3xl" style={{ color: entry?.color }}>
+                                  {data.value}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 text-center mt-2">pengguna</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="value" name="Jumlah" radius={[0, 12, 12, 0]} maxBarSize={50}>
+                      {userOverviewData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          stroke={entry.color}
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Cards - Modern Style */}
+          <div className="grid grid-cols-3 gap-2 md:gap-3 mt-4 md:mt-6">
+            {userOverviewData.map((item, index) => (
+              <div
+                key={index}
+                className="bg-gradient-to-br from-white to-slate-50 rounded-lg md:rounded-xl p-3 md:p-4 border-2 border-slate-200 hover:border-slate-300 transition-all hover:shadow-md"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-3 h-3 md:w-4 md:h-4 rounded-lg shadow-sm"
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <span className="text-xs md:text-sm font-semibold text-slate-700 line-clamp-1">
+                    {item.name}
+                  </span>
+                </div>
+                <div className="text-xl md:text-3xl font-bold" style={{ color: item.color }}>
+                  {item.value}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">
+                  {index === 0 && "pengguna"}
+                  {index === 1 && "aktif"}
+                  {index === 2 && "baru"}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Scroll Hint */}
+          <div className="lg:hidden flex items-center justify-center gap-2 mt-3 text-xs text-slate-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+            </svg>
+            <span>Geser untuk melihat detail</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
           </div>
         </div>
       </div>

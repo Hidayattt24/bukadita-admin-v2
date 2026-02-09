@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { type Profile, type VisibilityRules } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "next/navigation";
@@ -56,9 +56,16 @@ export default function UserManagement() {
     profil_url: "",
   });
 
+  // Sync roleFilter with URL changes
+  useEffect(() => {
+    setRoleFilter(roleFromUrl);
+    // Reset to first page when role filter changes
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [roleFromUrl]);
+
   // React Query hooks
   const actualLimit = itemsPerPage === "all" ? 10000 : itemsPerPage;
-  const { data: usersData, isLoading: loading, refetch } = useUsers({
+  const { data: usersData, isLoading: loading } = useUsers({
     page: itemsPerPage === "all" ? 1 : pagination.page,
     limit: actualLimit,
     search: searchTerm,
@@ -84,19 +91,23 @@ export default function UserManagement() {
   })) || [];
 
   // Update pagination when data changes
-  if (usersData?.pagination && pagination.total !== (usersData.pagination.totalCount || 0)) {
-    setPagination({
-      page: usersData.pagination.currentPage || pagination.page,
-      limit: 10,
-      total: usersData.pagination.totalCount || 0,
-      totalPages: usersData.pagination.totalPages || 1,
-    });
-  }
+  useEffect(() => {
+    if (usersData?.pagination) {
+      setPagination({
+        page: usersData.pagination.currentPage || 1,
+        limit: 10, // Use default limit
+        total: usersData.pagination.totalCount || 0,
+        totalPages: usersData.pagination.totalPages || 1,
+      });
+    }
+  }, [usersData?.pagination]);
 
   // Update visibility when data changes
-  if (usersData?.visibility && !visibility) {
-    setVisibility(usersData.visibility || null);
-  }
+  useEffect(() => {
+    if (usersData?.visibility) {
+      setVisibility(usersData.visibility);
+    }
+  }, [usersData?.visibility]);
 
   // Validation helpers
   const validateEmail = (email: string) => {
@@ -352,11 +363,21 @@ export default function UserManagement() {
     }
   };
 
-  // Statistics
-  const totalUsers = pagination.total;
+  // Statistics - langsung dari data yang di-fetch
+  const totalUsers = usersData?.pagination?.totalCount || users.length || 0;
   const adminUsers = users.filter(
     (user) => user.role === "admin" || user.role === "superadmin"
   ).length;
+
+  // Debug log
+  console.log('[UserManagement] Stats:', {
+    totalUsers,
+    adminUsers,
+    roleFilter,
+    usersDataPaginationTotal: usersData?.pagination?.totalCount,
+    usersLength: users.length,
+    usersData: usersData,
+  });
 
   const canManageAdmin = Boolean(visibility?.allowed_roles?.includes("admin"));
   const isSelf = (u: User) => currentProfile?.id === u.id;

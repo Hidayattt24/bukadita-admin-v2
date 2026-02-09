@@ -7,13 +7,11 @@ import { Calendar, ChevronDown } from "lucide-react";
 interface CustomDatePickerProps {
   value: string;
   onChange: (value: string) => void;
-  error?: string;
 }
 
 export default function CustomDatePicker({
   value,
   onChange,
-  error,
 }: CustomDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -83,7 +81,7 @@ export default function CustomDatePicker({
         month: "short",
         year: "numeric",
       });
-    } catch (error) {
+    } catch {
       return "Pilih tanggal lahir";
     }
   };
@@ -173,9 +171,7 @@ export default function CustomDatePicker({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full px-3 py-2.5 border-2 rounded-xl focus:ring-2 focus:ring-[#27548A]/20 transition-all bg-white text-left flex items-center gap-2 ${
-          error
-            ? "border-red-500 bg-red-50"
-            : isOpen
+          isOpen
             ? "border-[#27548A] ring-2 ring-[#27548A]/20"
             : "border-slate-200 hover:border-slate-300"
         }`}

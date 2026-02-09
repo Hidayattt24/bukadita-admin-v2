@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminLayout from "@/components/layout/AdminLayout";
 import UserManagement from "@/components/users/UserManagementPage";
@@ -9,13 +9,25 @@ import UserManagement from "@/components/users/UserManagementPage";
 export default function KelolaPenggunaPage() {
   const { profile, isLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roleFilter = searchParams?.get("role") || "";
 
   // Redirect jika bukan admin atau superadmin
   useEffect(() => {
-    if (!isLoading && profile && profile.role !== 'admin' && profile.role !== 'superadmin') {
-      router.push('/admin/dashboard');
+    if (!isLoading && profile) {
+      // Jika bukan admin atau superadmin, redirect ke dashboard
+      if (profile.role !== 'admin' && profile.role !== 'superadmin') {
+        router.push('/admin/dashboard');
+        return;
+      }
+
+      // Jika admin (bukan superadmin) mencoba akses role=admin, redirect ke pengguna
+      if (profile.role === 'admin' && roleFilter === 'admin') {
+        router.push('/admin/kelola-pengguna?role=pengguna');
+        return;
+      }
     }
-  }, [profile, isLoading, router]);
+  }, [profile, isLoading, roleFilter, router]);
 
   // Show loading or access denied
   if (isLoading) {

@@ -56,7 +56,7 @@ export type LoginSuccess = {
 };
 
 const API_BASE = getApiBase();
-const LOGIN_URL = process.env.LOGIN_URL || `${API_BASE}/api/v1/auth/login`;
+const LOGIN_URL = process.env.LOGIN_URL || `${API_BASE}/api/v1/auth/admin-login`;
 const LOGOUT_URL = process.env.LOGOUT_URL || `${API_BASE}/api/v1/auth/logout`;
 
 export const authAPI = {
@@ -893,6 +893,190 @@ export const progressAPI = {
       {
         method: "GET",
       }
+    );
+  },
+};
+
+// ============================================================================
+// PROGRESS MONITORING API
+// ============================================================================
+
+export interface ProgressMonitoringStats {
+  total_users: number;
+  active_users: number;
+  struggling_users: number;
+  inactive_users: number;
+}
+
+export interface ModuleCompletionStats {
+  module_id: string;
+  module_title: string;
+  total_completions: number;
+  total_stuck: number;
+  total_started: number;
+  completion_rate: number;
+}
+
+export interface UserProgressItem {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_profil_url?: string;
+  total_modules: number;
+  completed_modules: number;
+  in_progress_modules: number;
+  not_started_modules: number;
+  total_materials_read: number;
+  total_quiz_attempts: number;
+  total_quiz_passed: number;
+  total_quiz_failed: number;
+  unique_quizzes_attempted: number; // NEW: Total unique quizzes attempted
+  pass_rate: number; // NEW: Pass rate percentage (0-100)
+  average_quiz_score: number;
+  module_quiz_summary: Array<{
+    module_id: string;
+    module_title: string;
+    quizzes_passed: number;
+    total_quizzes: number;
+  }>;
+  last_activity: string;
+  status: "active" | "struggling" | "inactive";
+}
+
+export interface UserProgressListResponse {
+  items: UserProgressItem[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+  };
+}
+
+export interface QuizAttemptDetail {
+  quiz_id: string;
+  quiz_title: string;
+  score: number;
+  passed: boolean;
+  attempted_at: string;
+  total_questions: number;
+  correct_answers: number;
+  is_attempted?: boolean;
+  answers: Array<{
+    question_id: string;
+    question_text: string;
+    user_answer: string;
+    correct_answer: string;
+    is_correct: boolean;
+  }>;
+}
+
+export interface ModuleProgressDetail {
+  module_id: string;
+  module_title: string;
+  status: "not-started" | "in-progress" | "completed";
+  materials_read: number;
+  total_materials: number;
+  quizzes_passed: number;
+  total_quizzes: number;
+  quiz_attempts: QuizAttemptDetail[];
+  last_accessed: string;
+  overall_progress: number;
+  total_time_spent: number;
+}
+
+export interface UserDetailProgress {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_profil_url?: string;
+  total_modules: number;
+  completed_modules: number;
+  in_progress_modules: number;
+  not_started_modules: number;
+  total_materials_read: number;
+  total_quiz_attempts: number;
+  total_quiz_passed: number;
+  total_quiz_failed: number;
+  unique_quizzes_attempted: number; // NEW: Total unique quizzes attempted
+  pass_rate: number; // NEW: Pass rate percentage (0-100)
+  average_quiz_score: number;
+  last_activity: string;
+  status: "active" | "struggling" | "inactive";
+  modules_progress: ModuleProgressDetail[];
+}
+
+export interface ReadingProgressStats {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  module_id: string;
+  module_title: string;
+  sub_materis: Array<{
+    sub_materi_id: string;
+    sub_materi_title: string;
+    total_poins: number;
+    read_poins: number;
+    scroll_completed_poins: number;
+    read_percentage: number;
+  }>;
+  total_poins: number;
+  read_poins: number;
+  scroll_completed_poins: number;
+  read_percentage: number;
+}
+
+export const progressMonitoringAPI = {
+  getStats: async () => {
+    return apiFetch<ProgressMonitoringStats>(
+      `/api/v1/admin/progress-monitoring/stats`,
+      { method: "GET" }
+    );
+  },
+
+  getModuleStats: async () => {
+    return apiFetch<ModuleCompletionStats[]>(
+      `/api/v1/admin/progress-monitoring/module-stats`,
+      { method: "GET" }
+    );
+  },
+
+  getUserList: async (params: {
+    search?: string;
+    status?: "active" | "struggling" | "inactive" | "all";
+    page?: number;
+    limit?: number;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (params.search) query.set("search", params.search);
+    if (params.status && params.status !== "all") query.set("status", params.status);
+    if (params.page) query.set("page", String(params.page));
+    if (params.limit) query.set("limit", String(params.limit));
+
+    return apiFetch<UserProgressListResponse>(
+      `/api/v1/admin/progress-monitoring/users?${query.toString()}`,
+      { method: "GET" }
+    );
+  },
+
+  getUserDetail: async (userId: string) => {
+    return apiFetch<UserDetailProgress>(
+      `/api/v1/admin/progress-monitoring/users/${encodeURIComponent(userId)}`,
+      { method: "GET" }
+    );
+  },
+
+  getReadingProgress: async () => {
+    return apiFetch<ReadingProgressStats[]>(
+      `/api/v1/admin/progress-monitoring/reading-progress`,
+      { method: "GET" }
+    );
+  },
+
+  getStuckUsers: async (moduleId: string) => {
+    return apiFetch<UserDetailProgress[]>(
+      `/api/v1/admin/progress-monitoring/stuck-users/${encodeURIComponent(moduleId)}`,
+      { method: "GET" }
     );
   },
 };

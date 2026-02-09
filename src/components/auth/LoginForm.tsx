@@ -12,7 +12,6 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const params = useSearchParams();
@@ -21,14 +20,12 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     const normalizedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
     // Basic validation to avoid malformed credentials
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailRegex.test(normalizedEmail)) {
       setLoading(false);
-      setError("Format email tidak valid.");
       showAlert.error(
         "Email Tidak Valid",
         "Mohon masukkan alamat email yang valid."
@@ -37,7 +34,6 @@ export default function LoginForm() {
     }
     if (trimmedPassword.length < 6) {
       setLoading(false);
-      setError("Password minimal 6 karakter.");
       showAlert.error(
         "Password Terlalu Pendek",
         "Password harus memiliki minimal 6 karakter."
@@ -47,7 +43,6 @@ export default function LoginForm() {
     const res = await login(normalizedEmail, trimmedPassword);
     setLoading(false);
     if (!res.ok) {
-      setError(res.error || "Email atau password salah.");
       showAlert.error(
         "Login Gagal",
         res.error || "Email atau password yang Anda masukkan salah. Silakan coba lagi."

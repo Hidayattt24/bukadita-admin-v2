@@ -17,14 +17,12 @@ import MaterialPreview from "../materials/MaterialPreview";
 import { useModules } from "@/hooks/useModules";
 import { 
   useMaterials, 
-  useMaterial, 
   useCreateMaterial, 
   useUpdateMaterial, 
   useDeleteMaterial 
 } from "@/hooks/useMaterials";
 import { 
   useQuizzes, 
-  useQuiz, 
   useCreateQuiz, 
   useUpdateQuiz, 
   useDeleteQuiz 
@@ -67,15 +65,11 @@ export interface ModuleItemRow {
 interface ModuleItemsPageProps {
   moduleId: string;
   resource: ResourceType;
-  filterByMaterialId?: string; // Optional: filter quiz by specific material
 }
-
-const STORAGE_PREFIX = "admin_module_resource_";
 
 export default function ModuleItemsPage({
   moduleId,
   resource,
-  filterByMaterialId,
 }: ModuleItemsPageProps) {
   const title = resource === "materi" ? "Materi" : "Kuis";
   const searchPlaceholder =
@@ -83,10 +77,10 @@ export default function ModuleItemsPage({
 
   // React Query hooks
   const { data: modulesData } = useModules();
-  const { data: materialsData, isLoading: loadingMaterials, refetch: refetchMaterials } = useMaterials(
+  const { data: materialsData, isLoading: loadingMaterials } = useMaterials(
     resource === "materi" ? { module_id: moduleId } : undefined
   );
-  const { data: quizzesData, isLoading: loadingQuizzes, refetch: refetchQuizzes } = useQuizzes(
+  const { data: quizzesData, isLoading: loadingQuizzes } = useQuizzes(
     resource === "kuis" ? { module_id: moduleId } : undefined
   );
   
@@ -217,23 +211,7 @@ export default function ModuleItemsPage({
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Helper to format server error
-  const formatServerError = (res: {
-    ok: false;
-    status: number;
-    error: string;
-    raw?: unknown;
-  }) => {
-    const j =
-      res.raw && typeof res.raw === "object"
-        ? (res.raw as Record<string, unknown>)
-        : undefined;
-    const code = typeof j?.code === "string" ? j?.code : undefined;
-    const message = (typeof j?.message === "string" && j?.message) || res.error;
-    const details = typeof j?.details === "string" ? j?.details : undefined;
-    const head = code ? `[${code}] ${message}` : message;
-    return details ? `${head}\nDetail: ${details}` : head;
-  };
+
 
   // Load sub-materi options when needed
   const loadSubMateriOptions = useCallback(async () => {
@@ -281,15 +259,12 @@ export default function ModuleItemsPage({
   const onManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      if (resource === "materi") {
-        await refetchMaterials();
-      } else {
-        await refetchQuizzes();
-      }
+      // Refetch will be triggered automatically by React Query
+      await new Promise(resolve => setTimeout(resolve, 500));
     } finally {
       setIsRefreshing(false);
     }
-  }, [resource, refetchMaterials, refetchQuizzes]);
+  }, []);
 
   // Filter data based on status and search term
   const filteredRows = useMemo(() => {
@@ -918,9 +893,6 @@ export default function ModuleItemsPage({
 
     // Small delay to ensure database commit is complete
     await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Force refetch to ensure UI is up to date with fresh data
-    await refetchQuizzes(); // Refetch to get latest data
 
     const message =
       questions.length > 0

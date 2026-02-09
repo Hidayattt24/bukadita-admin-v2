@@ -6,17 +6,13 @@ import {
   BookOpen,
   FileText,
   TrendingUp,
-  Activity,
   Award,
   BarChart3,
-  CheckCircle,
-  XCircle,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
   Search,
   Eye,
+  XCircle,
+  CheckCircle,
+  Activity,
 } from "lucide-react";
 import {
   BarChart,
@@ -33,6 +29,9 @@ import InfoModal from "../shared/InfoModal";
 import { PlaceholdersAndVanishInput } from "../ui/placeholders-and-vanish-input";
 import { AnimatePresence, motion } from "framer-motion";
 import { useDashboardStats, useQuizPerformance } from "@/hooks/useDashboard";
+import StrugglingUsersCard from "./StrugglingUsersCard";
+import TopStuckModulesCard from "./TopStuckModulesCard";
+import RecentStrugglingUsers from "./RecentStrugglingUsers";
 
 // Dynamic import untuk charts (client-side only)
 const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
@@ -106,7 +105,6 @@ export default function AdminDashboardPageNew() {
   const { data: quizPerformanceData, isLoading: loadingPerformance } = useQuizPerformance();
 
   // Local state
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [selectedQuiz, setSelectedQuiz] = useState<QuizPerformance["modules"][0]["quizzes"][0] | null>(null);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [selectedModuleDetail, setSelectedModuleDetail] = useState<QuizPerformance["modules"][0] | null>(null);
@@ -154,19 +152,19 @@ export default function AdminDashboardPageNew() {
     recent_activities: [],
   };
 
+  // Debug log
+  console.log('[Dashboard] Stats Data:', {
+    total_users: stats.total_users,
+    total_modules: stats.total_modules,
+    total_quizzes: stats.total_quizzes,
+    raw_data: statsData,
+  });
+
   const quizPerformance = quizPerformanceData as QuizPerformance | null;
   const loading = loadingStats;
   const error = statsError ? (statsError instanceof Error ? statsError.message : "Gagal memuat data dashboard") : null;
 
-  const toggleModule = (moduleId: string) => {
-    const newExpanded = new Set(expandedModules);
-    if (newExpanded.has(moduleId)) {
-      newExpanded.delete(moduleId);
-    } else {
-      newExpanded.add(moduleId);
-    }
-    setExpandedModules(newExpanded);
-  };
+
 
   if (error) {
     return (
@@ -340,6 +338,18 @@ export default function AdminDashboardPageNew() {
         </div>
       )}
 
+      {/* Quick Action Cards - Monitoring Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 w-full">
+        {/* Kader Bermasalah Card */}
+        <StrugglingUsersCard />
+
+        {/* Top Stuck Modules Card */}
+        <TopStuckModulesCard />
+      </div>
+
+      {/* Recent Struggling Users */}
+      <RecentStrugglingUsers />
+
       {/* Quiz Performance Section - Modular View */}
       <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md border border-gray-200 w-full">
         <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
@@ -370,115 +380,211 @@ export default function AdminDashboardPageNew() {
           </div>
         ) : quizPerformance && quizPerformance.modules.length > 0 ? (
           <div className="space-y-6">
-            {/* Visual Chart - Pass Rate per Module */}
-            <div className="bg-gradient-to-br from-[#27548A]/5 to-[#578FCA]/5 rounded-xl md:rounded-2xl p-3 md:p-6 border-2 border-[#27548A]/20">
-              <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-4">
-                <BarChart3 className="w-3.5 h-3.5 md:w-5 md:h-5 text-[#27548A]" />
-                <h3 className="text-xs md:text-lg font-semibold text-slate-800">Grafik Tingkat Kelulusan per Modul</h3>
-              </div>
-              <div className="w-full overflow-x-auto -mx-3 md:mx-0">
-                <div className="min-w-[500px] md:min-w-0 px-3 md:px-0">
-                  <ResponsiveContainer width="100%" height={220} className="md:h-[400px]">
-                <BarChart
-                  data={quizPerformance.modules.map((module) => ({
-                    name: module.module_title.length > 15
-                      ? module.module_title.substring(0, 15) + "..."
-                      : module.module_title,
-                    fullName: module.module_title,
-                    passRate: module.summary.average_pass_rate,
-                    passed: module.summary.total_passed,
-                    failed: module.summary.total_failed,
-                    total: module.summary.total_attempts,
-                  }))}
-                  margin={{ top: 20, right: 30, left: 80, bottom: 80 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: "#64748b", fontSize: 8, fontWeight: 500 }}
-                    axisLine={{ stroke: "#cbd5e1" }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={55}
-                    className="text-[7px] md:text-[10px]"
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    ticks={[0, 20, 40, 60, 80, 100]}
-                    tick={{ fill: "#64748b", fontSize: 8, fontWeight: 600 }}
-                    axisLine={{ stroke: "#cbd5e1" }}
-                    width={32}
-                    className="md:w-[60px]"
-                    label={{
-                      value: "Kelulusan (%)",
-                      angle: -90,
-                      position: "insideLeft",
-                      offset: 0,
-                      style: { fill: "#27548A", fontWeight: 700, fontSize: 9, textAnchor: "middle" },
-                      className: "text-[8px] md:text-[12px]"
-                    }}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-white/95 backdrop-blur-sm border-2 border-[#27548A]/30 rounded-xl shadow-2xl p-4">
-                            <p className="font-semibold text-slate-900 mb-2 text-sm">{data.fullName}</p>
-                            <div className="space-y-1 text-xs">
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-600">Tingkat Kelulusan:</span>
-                                <span className="font-semibold text-[#27548A]">{data.passRate}%</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-600">Lulus:</span>
-                                <span className="font-semibold text-green-600">{data.passed}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-600">Gagal:</span>
-                                <span className="font-semibold text-red-600">{data.failed}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-slate-600">Total Percobaan:</span>
-                                <span className="font-semibold text-slate-900">{data.total}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="passRate" radius={[8, 8, 0, 0]}>
-                    {quizPerformance.modules.map((module, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          module.summary.average_pass_rate >= 80
-                            ? "#10b981" // Green
-                            : module.summary.average_pass_rate >= 60
-                            ? "#f59e0b" // Amber
-                            : "#ef4444" // Red
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            {/* Visual Chart - Pass Rate per Module - MODERN DESIGN */}
+            <div className="relative bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border-2 border-slate-100 overflow-hidden">
+              {/* Decorative Background */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/5 to-indigo-500/5 rounded-full blur-2xl -ml-24 -mb-24"></div>
+              
+              <div className="relative z-10">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4 md:mb-6">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="p-2 md:p-2.5 bg-gradient-to-br from-[#578FCA] to-[#27548A] rounded-xl shadow-lg">
+                      <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-xl font-bold text-slate-800">
+                        Grafik Tingkat Kelulusan per Modul
+                      </h3>
+                      <p className="text-xs md:text-sm text-slate-600 hidden md:block">
+                        Visualisasi performa kelulusan kuis
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Stats Summary */}
+                  <div className="hidden lg:flex items-center gap-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl px-4 py-2 border border-slate-200">
+                    <div className="text-center">
+                      <div className="text-xs text-slate-600">Total Modul</div>
+                      <div className="text-lg font-bold text-[#27548A]">{quizPerformance.modules.length}</div>
+                    </div>
+                    <div className="w-px h-8 bg-slate-300"></div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-600">Rata-rata</div>
+                      <div className="text-lg font-bold text-green-600">
+                        {Math.round(
+                          quizPerformance.modules.reduce((sum, m) => sum + m.summary.average_pass_rate, 0) / 
+                          quizPerformance.modules.length
+                        )}%
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2 md:gap-6 mt-3 md:mt-4">
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-2 h-2 md:w-4 md:h-4 rounded-full bg-green-500"></div>
-                  <span className="text-[9px] md:text-xs font-semibold text-slate-700">&gt;=80% (Excellent)</span>
+
+                {/* Chart Container */}
+                <div className="bg-gradient-to-br from-slate-50/50 to-white rounded-xl p-3 md:p-4 border border-slate-200">
+                  {/* Mobile: Horizontal Scroll */}
+                  <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                    <div className="min-w-[600px] lg:min-w-0">
+                      <ResponsiveContainer width="100%" height={280} className="md:h-[420px]">
+                        <BarChart
+                          data={quizPerformance.modules.map((module) => ({
+                            name: module.module_title.length > 20
+                              ? module.module_title.substring(0, 20) + "..."
+                              : module.module_title,
+                            fullName: module.module_title,
+                            passRate: module.summary.average_pass_rate,
+                            passed: module.summary.total_passed,
+                            failed: module.summary.total_failed,
+                            total: module.summary.total_attempts,
+                          }))}
+                          margin={{ top: 20, right: 20, left: 20, bottom: 100 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
+                              <stop offset="100%" stopColor="#10b981" stopOpacity={0.3}/>
+                            </linearGradient>
+                            <linearGradient id="colorAmber" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                              <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                            </linearGradient>
+                            <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8}/>
+                              <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fill: "#475569", fontSize: 11, fontWeight: 600 }}
+                            axisLine={{ stroke: "#cbd5e1", strokeWidth: 2 }}
+                            tickLine={{ stroke: "#cbd5e1" }}
+                            angle={-45}
+                            textAnchor="end"
+                            height={90}
+                            interval={0}
+                          />
+                          <YAxis
+                            domain={[0, 100]}
+                            ticks={[0, 25, 50, 75, 100]}
+                            tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }}
+                            axisLine={{ stroke: "#cbd5e1", strokeWidth: 2 }}
+                            tickLine={{ stroke: "#cbd5e1" }}
+                            width={50}
+                            label={{
+                              value: "Tingkat Kelulusan (%)",
+                              angle: -90,
+                              position: "insideLeft",
+                              offset: 10,
+                              style: { 
+                                fill: "#27548A", 
+                                fontWeight: 700, 
+                                fontSize: 13,
+                                textAnchor: "middle" 
+                              },
+                            }}
+                          />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(87, 143, 202, 0.1)' }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-white/98 backdrop-blur-md border-2 border-[#27548A]/20 rounded-2xl shadow-2xl p-4 min-w-[200px]">
+                                    <p className="font-bold text-slate-900 mb-3 text-sm border-b border-slate-200 pb-2">
+                                      {data.fullName}
+                                    </p>
+                                    <div className="space-y-2 text-xs">
+                                      <div className="flex items-center justify-between gap-6">
+                                        <span className="text-slate-600 font-medium">Tingkat Kelulusan:</span>
+                                        <span className="font-bold text-[#27548A] text-base">{data.passRate}%</span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-6 bg-green-50 rounded-lg px-2 py-1">
+                                        <span className="text-slate-600 font-medium">✓ Lulus:</span>
+                                        <span className="font-bold text-green-600">{data.passed}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-6 bg-red-50 rounded-lg px-2 py-1">
+                                        <span className="text-slate-600 font-medium">✗ Gagal:</span>
+                                        <span className="font-bold text-red-600">{data.failed}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-6 pt-2 border-t border-slate-200">
+                                        <span className="text-slate-600 font-medium">Total Percobaan:</span>
+                                        <span className="font-bold text-slate-900">{data.total}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar 
+                            dataKey="passRate" 
+                            radius={[12, 12, 0, 0]}
+                            maxBarSize={60}
+                          >
+                            {quizPerformance.modules.map((module, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={
+                                  module.summary.average_pass_rate >= 80
+                                    ? "url(#colorGreen)"
+                                    : module.summary.average_pass_rate >= 60
+                                    ? "url(#colorAmber)"
+                                    : "url(#colorRed)"
+                                }
+                                stroke={
+                                  module.summary.average_pass_rate >= 80
+                                    ? "#10b981"
+                                    : module.summary.average_pass_rate >= 60
+                                    ? "#f59e0b"
+                                    : "#ef4444"
+                                }
+                                strokeWidth={2}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-2 h-2 md:w-4 md:h-4 rounded-full bg-amber-500"></div>
-                  <span className="text-[9px] md:text-xs font-semibold text-slate-700">60-79% (Good)</span>
+
+                {/* Legend - Modern Style */}
+                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 mt-4 md:mt-6 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-3 md:p-4 border border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 md:w-5 md:h-5 rounded-lg bg-gradient-to-br from-green-500 to-green-600 shadow-sm"></div>
+                    <span className="text-xs md:text-sm font-semibold text-slate-700">
+                      ≥80% <span className="hidden md:inline text-slate-500">(Excellent)</span>
+                    </span>
+                  </div>
+                  <div className="w-px h-6 bg-slate-300 hidden md:block"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 md:w-5 md:h-5 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 shadow-sm"></div>
+                    <span className="text-xs md:text-sm font-semibold text-slate-700">
+                      60-79% <span className="hidden md:inline text-slate-500">(Good)</span>
+                    </span>
+                  </div>
+                  <div className="w-px h-6 bg-slate-300 hidden md:block"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 md:w-5 md:h-5 rounded-lg bg-gradient-to-br from-red-500 to-red-600 shadow-sm"></div>
+                    <span className="text-xs md:text-sm font-semibold text-slate-700">
+                      &lt;60% <span className="hidden md:inline text-slate-500">(Needs Improvement)</span>
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <div className="w-2 h-2 md:w-4 md:h-4 rounded-full bg-red-500"></div>
-                  <span className="text-[9px] md:text-xs font-semibold text-slate-700">&lt;60% (Needs Improvement)</span>
+
+                {/* Mobile Scroll Hint */}
+                <div className="lg:hidden flex items-center justify-center gap-2 mt-3 text-xs text-slate-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                  </svg>
+                  <span>Geser untuk melihat semua modul</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -541,7 +647,7 @@ export default function AdminDashboardPageNew() {
                       </div>
 
                       {/* Quick Stats */}
-                      <div className="grid grid-cols-3 gap-1.5 md:gap-2 mb-2 md:mb-4">
+                      <div className="grid grid-cols-2 gap-1.5 md:gap-2 mb-2 md:mb-4">
                         <div className="bg-green-50 rounded-md md:rounded-lg p-1.5 md:p-2 text-center">
                           <div className="text-sm md:text-lg font-semibold text-green-600">
                             {module.summary.total_passed}
@@ -553,12 +659,6 @@ export default function AdminDashboardPageNew() {
                             {module.summary.total_failed}
                           </div>
                           <div className="text-[8px] md:text-[10px] text-slate-600 font-medium">Gagal</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-md md:rounded-lg p-1.5 md:p-2 text-center">
-                          <div className="text-sm md:text-lg font-semibold text-[#27548A]">
-                            {module.summary.average_pass_rate}%
-                          </div>
-                          <div className="text-[8px] md:text-[10px] text-slate-600 font-medium">Tingkat</div>
                         </div>
                       </div>
 
@@ -607,213 +707,6 @@ export default function AdminDashboardPageNew() {
         )}
       </div>
 
-      {/* Quiz Detail Modal */}
-      {selectedQuiz && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-3 md:p-4"
-          onClick={() => setSelectedQuiz(null)}
-        >
-          <div
-            className="bg-white rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto modern-scrollbar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
-              <div className="flex-1 min-w-0 pr-2">
-                <h3 className="text-base sm:text-lg md:text-2xl font-semibold text-slate-800 truncate">
-                  {selectedQuiz.quiz_title}
-                </h3>
-                <p className="text-[10px] sm:text-xs md:text-sm text-slate-600">
-                  Detail hasil dan pengguna
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedQuiz(null)}
-                className="p-1 sm:p-1.5 md:p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
-              >
-                <XCircle className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-slate-600" />
-              </button>
-            </div>
-
-            {/* Stats Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6">
-              <div className="bg-blue-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
-                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-blue-600">
-                  {selectedQuiz.total_attempts}
-                </div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Total Percobaan</div>
-              </div>
-              <div className="bg-green-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
-                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-green-600">
-                  {selectedQuiz.passed_count}
-                </div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Lulus</div>
-              </div>
-              <div className="bg-red-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
-                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-red-600">
-                  {selectedQuiz.failed_count}
-                </div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Gagal</div>
-              </div>
-              <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center border border-[#27548A]/20">
-                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-[#27548A]">
-                  {selectedQuiz.pass_rate}%
-                </div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Tingkat Kelulusan</div>
-              </div>
-            </div>
-
-            {/* User Results with All Attempts */}
-            <div>
-              <h4 className="text-sm sm:text-base md:text-lg font-semibold text-slate-800 mb-2 sm:mb-3 md:mb-4">
-                Hasil Pengguna ({selectedQuiz.unique_users})
-              </h4>
-              <div className="space-y-2 sm:space-y-3 md:space-y-4 max-h-[400px] sm:max-h-[450px] md:max-h-[500px] overflow-y-auto modern-scrollbar pr-1 sm:pr-2">
-                {selectedQuiz.user_results.map((result, idx: number) => {
-                  // Generate user avatar with profile photo or fallback
-                  const userAvatarElement = result.user_profil_url ? (
-                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-lg bg-slate-100 flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={result.user_profil_url}
-                        alt={result.user_name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to avatar if image fails
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = "flex";
-                        }}
-                      />
-                      <div
-                        className="absolute inset-0 bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-lg"
-                        style={{ display: "none" }}
-                      >
-                        {result.user_name.charAt(0).toUpperCase()}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-lg shadow-lg flex-shrink-0">
-                      {result.user_name.charAt(0).toUpperCase()}
-                    </div>
-                  );
-
-                  return (
-                    <div
-                      key={`${result.user_id}-${idx}`}
-                      className="bg-slate-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-200 sm:border-2 hover:border-[#27548A]/40 transition-colors"
-                    >
-                      {/* User Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-slate-200">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                          {userAvatarElement}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-slate-800 text-sm sm:text-base md:text-lg truncate">
-                              {result.user_name}
-                            </div>
-                            <div className="text-[10px] sm:text-xs md:text-sm text-slate-600">
-                              {result.total_attempts} percobaan total
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between sm:justify-end sm:text-right gap-2">
-                          <div className="sm:mr-2">
-                            <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600 mb-0.5 sm:mb-1">Skor Terbaik</div>
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <span className="text-lg sm:text-xl md:text-2xl font-semibold text-[#27548A]">
-                                {result.best_score}
-                              </span>
-                              {result.passed ? (
-                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600" />
-                              ) : (
-                                <XCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                    {/* All Attempts Table */}
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <div className="text-xs sm:text-sm md:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2">
-                        Riwayat Percobaan:
-                      </div>
-                      {result.attempts && result.attempts.length > 0 ? (
-                        <div className="space-y-1.5 sm:space-y-2">
-                          {result.attempts.map((attempt, attemptIdx: number) => {
-                            const attemptDate = new Date(attempt.completed_at);
-                            const formattedDate = attemptDate.toLocaleDateString("id-ID", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            });
-                            const formattedTime = attemptDate.toLocaleTimeString("id-ID", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            });
-
-                            return (
-                              <div
-                                key={`attempt-${attempt.attempt_id || attemptIdx}`}
-                                className="flex items-center justify-between p-2 sm:p-2.5 md:p-3 bg-white rounded-md sm:rounded-lg border border-slate-200"
-                              >
-                                <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0 flex-1">
-                                  <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-[#27548A]/20 to-[#578FCA]/20 text-[#27548A] font-semibold text-[10px] sm:text-xs md:text-sm border border-[#27548A]/30 flex-shrink-0">
-                                    #{attemptIdx + 1}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                                      <span className="font-semibold text-slate-800 text-xs sm:text-sm md:text-base">
-                                        Skor: {attempt.score}
-                                      </span>
-                                      <span
-                                        className={`text-[9px] sm:text-[10px] md:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-semibold ${
-                                          attempt.passed
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-red-100 text-red-700"
-                                        }`}
-                                      >
-                                        {attempt.passed ? "LULUS" : "GAGAL"}
-                                      </span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 md:gap-3 text-[9px] sm:text-[10px] md:text-xs text-slate-600">
-                                      <span>
-                                        {attempt.correct_answers}/{attempt.total_questions} benar
-                                      </span>
-                                      <span className="hidden sm:inline">•</span>
-                                      <span className="flex items-center gap-1">
-                                        <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                        {formattedDate} {formattedTime}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex-shrink-0 ml-2">
-                                  {attempt.score === result.best_score && (
-                                    <span className="text-[9px] sm:text-[10px] md:text-xs bg-amber-100 text-amber-700 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-semibold whitespace-nowrap">
-                                      Terbaik
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-3 sm:py-4 text-slate-500 text-xs sm:text-sm">
-                          Tidak ada riwayat percobaan
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Module Detail Modal */}
       <AnimatePresence mode="wait">
         {selectedModuleDetail && (
@@ -861,7 +754,7 @@ export default function AdminDashboardPageNew() {
               </div>
 
               {/* Modal Content */}
-              <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-120px)] md:max-h-[calc(90vh-140px)] modern-scrollbar">
+              <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-120px)] md:max-h-[calc(90vh-140px)]">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
                   <motion.div
@@ -995,6 +888,105 @@ export default function AdminDashboardPageNew() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Quiz Detail Modal */}
+      {selectedQuiz && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-3 md:p-4"
+          onClick={() => setSelectedQuiz(null)}
+        >
+          <div
+            className="bg-white rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
+              <div className="flex-1 min-w-0 pr-2">
+                <h3 className="text-base sm:text-lg md:text-2xl font-semibold text-slate-800 truncate">
+                  {selectedQuiz.quiz_title}
+                </h3>
+                <p className="text-[10px] sm:text-xs md:text-sm text-slate-600">
+                  Detail hasil dan pengguna
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedQuiz(null)}
+                className="p-1 sm:p-1.5 md:p-2 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
+              >
+                <XCircle className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6">
+              <div className="bg-blue-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-blue-600">
+                  {selectedQuiz.total_attempts}
+                </div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Total Percobaan</div>
+              </div>
+              <div className="bg-green-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-green-600">
+                  {selectedQuiz.passed_count}
+                </div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Lulus</div>
+              </div>
+              <div className="bg-red-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-red-600">
+                  {selectedQuiz.failed_count}
+                </div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Gagal</div>
+              </div>
+              <div className="bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 text-center border border-[#27548A]/20">
+                <div className="text-lg sm:text-xl md:text-2xl font-semibold text-[#27548A]">
+                  {selectedQuiz.pass_rate}%
+                </div>
+                <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-600">Tingkat Kelulusan</div>
+              </div>
+            </div>
+
+            {/* User Results */}
+            <div>
+              <h4 className="text-sm sm:text-base md:text-lg font-semibold text-slate-800 mb-2 sm:mb-3 md:mb-4">
+                Hasil Pengguna ({selectedQuiz.unique_users})
+              </h4>
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 max-h-[400px] sm:max-h-[450px] md:max-h-[500px] overflow-y-auto pr-1 sm:pr-2">
+                {selectedQuiz.user_results.map((result) => (
+                  <div
+                    key={result.user_id}
+                    className="bg-slate-50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-200 sm:border-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center text-white font-semibold text-xs sm:text-sm md:text-lg shadow-lg flex-shrink-0">
+                          {result.user_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-slate-800 text-sm sm:text-base md:text-lg truncate">
+                            {result.user_name}
+                          </div>
+                          <div className="text-[10px] sm:text-xs md:text-sm text-slate-600">
+                            {result.total_attempts} percobaan
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <span className="text-lg sm:text-xl md:text-2xl font-semibold text-[#27548A]">
+                          {result.best_score}
+                        </span>
+                        {result.passed ? (
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600" />
+                        ) : (
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quiz Info Modal */}
       <InfoModal

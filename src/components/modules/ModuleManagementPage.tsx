@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import { Folder, Users } from "lucide-react";
+import { Folder } from "lucide-react";
 import { materialsAPI, quizzesAPI } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import LoadingModal from "@/components/ui/LoadingModal";
@@ -19,7 +19,7 @@ export default function ModuleManagement() {
   const { toast, ToastContainer } = useToast();
   
   // React Query hooks
-  const { data: modulesData, isLoading: loading, refetch } = useModules();
+  const { data: modulesData } = useModules();
   const createModuleMutation = useCreateModule();
   const updateModuleMutation = useUpdateModule();
   const deleteModuleMutation = useDeleteModule();
@@ -30,7 +30,7 @@ export default function ModuleManagement() {
     return Array.isArray(dataAny) ? dataAny : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
   };
 
-  const modules = modulesData ? parseList(modulesData) : [];
+  const modules = useMemo(() => modulesData ? parseList(modulesData) : [], [modulesData]);
   
   // State management
   const [search, setSearch] = useState("");
@@ -56,12 +56,7 @@ export default function ModuleManagement() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Helpers
-  const toNumOrNull = (v: string) => {
-    if (v === "" || v === null || v === undefined) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
+
 
   const resetForm = () => {
     setFormData({
