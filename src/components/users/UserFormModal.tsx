@@ -279,7 +279,6 @@ export default function UserFormModal({
               <CustomDatePicker
                 value={formData.date_of_birth}
                 onChange={(value) => onChange("date_of_birth", value)}
-                error={formErrors.date_of_birth}
               />
               {formErrors.date_of_birth && (
                 <motion.p

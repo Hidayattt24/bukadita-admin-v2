@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ChevronDown, Check, User, UserCog } from "lucide-react";
+import { ChevronDown, Check, User, UserCog } from "lucide-react";
 
 interface CustomRoleSelectProps {
   value: "pengguna" | "admin";
