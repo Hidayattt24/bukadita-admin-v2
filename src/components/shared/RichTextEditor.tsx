@@ -6,10 +6,6 @@ import {
   Italic,
   List,
   ListOrdered,
-  Heading1,
-  Heading2,
-  Link as LinkIcon,
-  Code,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -70,7 +66,7 @@ export default function RichTextEditor({
       lineStart,
       value.indexOf("\n", start) !== -1
         ? value.indexOf("\n", start)
-        : value.length
+        : value.length,
     );
 
     // Cek apakah sudah ada prefix
@@ -78,7 +74,7 @@ export default function RichTextEditor({
       // Hapus prefix
       const newLine = currentLine.replace(
         new RegExp(`^\\s*${prefix.trim()}\\s*`),
-        ""
+        "",
       );
       const newText =
         value.substring(0, lineStart) +
@@ -86,7 +82,7 @@ export default function RichTextEditor({
         value.substring(
           value.indexOf("\n", start) !== -1
             ? value.indexOf("\n", start)
-            : value.length
+            : value.length,
         );
       onChange(newText);
     } else {
@@ -98,7 +94,7 @@ export default function RichTextEditor({
         value.substring(
           value.indexOf("\n", start) !== -1
             ? value.indexOf("\n", start)
-            : value.length
+            : value.length,
         );
       onChange(newText);
     }
@@ -120,16 +116,6 @@ export default function RichTextEditor({
       action: () => insertMarkdown("*", "*"),
     },
     {
-      icon: Heading1,
-      label: "Heading 1",
-      action: () => insertLinePrefix("# "),
-    },
-    {
-      icon: Heading2,
-      label: "Heading 2",
-      action: () => insertLinePrefix("## "),
-    },
-    {
       icon: List,
       label: "Bullet List",
       action: () => insertLinePrefix("- "),
@@ -138,16 +124,6 @@ export default function RichTextEditor({
       icon: ListOrdered,
       label: "Numbered List",
       action: () => insertLinePrefix("1. "),
-    },
-    {
-      icon: LinkIcon,
-      label: "Link",
-      action: () => insertMarkdown("[", "](url)"),
-    },
-    {
-      icon: Code,
-      label: "Code",
-      action: () => insertMarkdown("`", "`"),
     },
   ];
 
@@ -177,10 +153,10 @@ export default function RichTextEditor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-5 min-h-[400px] resize-y text-base leading-relaxed bg-white"
+        className="w-full p-4 min-h-[150px] resize-y text-sm leading-relaxed bg-white"
         style={{
           fontFamily: "system-ui, -apple-system, sans-serif",
-          lineHeight: "1.8",
+          lineHeight: "1.6",
           border: "none",
           outline: "none",
           boxShadow: "none",
@@ -188,29 +164,10 @@ export default function RichTextEditor({
       />
 
       {/* Helper Text - Clean design */}
-      <div className="px-4 py-2.5 bg-blue-50/50">
-        <div className="flex items-center gap-2">
-          <svg
-            className="w-4 h-4 text-blue-600 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span className="text-xs text-gray-600">
-            Mendukung Markdown:{" "}
-            <span className="text-blue-600 font-medium">**bold**</span>,{" "}
-            <span className="text-blue-600 font-medium">*italic*</span>,{" "}
-            <span className="text-blue-600 font-medium"># heading</span>,{" "}
-            <span className="text-blue-600 font-medium">- list</span>
-          </span>
-        </div>
+      <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
+        <span className="text-xs text-gray-500">
+          Gunakan <strong>**bold**</strong>, <em>*italic*</em>, dan - untuk list
+        </span>
       </div>
     </div>
   );

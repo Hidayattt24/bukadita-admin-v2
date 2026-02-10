@@ -1,10 +1,16 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import ModuleItemsPage from "@/components/modules/ModuleItemsPage";
+import AdminLayout from "@/components/layout/AdminLayout";
+import ModernMaterialsPage from "@/components/modules/ModernMaterialsPage";
 
 export default function ModulMateriPage() {
   const params = useParams();
   const moduleId = String(params?.id || "");
-  return <ModuleItemsPage moduleId={moduleId} resource="materi" />;
+
+  return (
+    <AdminLayout>
+      <ModernMaterialsPage moduleId={moduleId} />
+    </AdminLayout>
+  );
 }
