@@ -200,10 +200,93 @@ export default function ModernMaterialsPage({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#578FCA] mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="mb-8">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse"></div>
+              <div className="flex-1">
+                <div className="h-8 bg-gray-200 rounded-lg w-64 mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Statistics Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-32 mb-3 animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded w-16 animate-pulse"></div>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-gray-200 animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Action Bar Skeleton */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 p-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="w-full sm:w-auto h-10 bg-gray-200 rounded-lg animate-pulse sm:w-48"></div>
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-[#578FCA] to-[#27548A]">
+                    <th className="px-6 py-4 text-left">
+                      <div className="h-4 bg-white/30 rounded w-32 animate-pulse"></div>
+                    </th>
+                    <th className="px-6 py-4 text-left">
+                      <div className="h-4 bg-white/30 rounded w-20 animate-pulse"></div>
+                    </th>
+                    <th className="px-6 py-4 text-left">
+                      <div className="h-4 bg-white/30 rounded w-24 animate-pulse"></div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <tr
+                      key={i}
+                      className={`border-b border-gray-100 ${
+                        i % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 animate-pulse"></div>
+                          <div className="h-5 bg-gray-200 rounded w-48 animate-pulse"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-6 bg-gray-200 rounded-full w-24 animate-pulse"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 bg-gray-200 rounded-lg animate-pulse"></div>
+                          <div className="h-7 w-7 bg-gray-200 rounded-lg animate-pulse"></div>
+                          <div className="h-7 w-7 bg-gray-200 rounded-lg animate-pulse"></div>
+                          <div className="h-7 w-7 bg-gray-200 rounded-lg animate-pulse"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     );

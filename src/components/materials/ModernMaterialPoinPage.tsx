@@ -278,16 +278,16 @@ export default function ModernMaterialPoinPage({
                   </tr>
                 ) : (
                   filteredPoins.map((poin, index) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const media = (poin as any).poin_media || (poin as any).media || [];
+                    /* eslint-disable @typescript-eslint/no-explicit-any */
+                    const media =
+                      (poin as any).poin_media || (poin as any).media || [];
                     const hasVideo = media.some(
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (m: any) => m.media_type === "video",
                     );
                     const hasImage = media.some(
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (m: any) => m.media_type === "image",
                     );
+                    /* eslint-enable @typescript-eslint/no-explicit-any */
 
                     return (
                       <tr

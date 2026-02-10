@@ -1,12 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-} from "lucide-react";
+import { Bold, Italic, List, ListOrdered } from "lucide-react";
 
 interface RichTextEditorProps {
   value: string;

@@ -165,10 +165,32 @@ export default function SubMateriPreviewModal({
           {/* Content Body - Like user view */}
           <div className="flex-1 overflow-y-auto bg-gray-50">
             {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-[#578FCA] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-600">Memuat data...</p>
+              <div className="p-6 space-y-6">
+                {/* Content Skeleton */}
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Media Skeleton */}
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="h-5 bg-gray-200 rounded w-32 mb-4 animate-pulse"></div>
+                  <div className="space-y-3">
+                    <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Additional Content Skeleton */}
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-11/12 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                  </div>
                 </div>
               </div>
             ) : poins.length === 0 ? (
