@@ -42,6 +42,7 @@ export interface ModuleProgress {
 export interface QuizAttempt {
   quiz_id: string;
   quiz_title: string;
+  sub_materi_title?: string; // Sub-materi title for proper display
   score: number;
   passed: boolean;
   attempted_at: string | null;

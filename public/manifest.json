@@ -1,0 +1,16 @@
+{
+  "name": "Bukadita Admin",
+  "short_name": "Bukadita Admin",
+  "description": "Bukadita Admin Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#578FCA",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
