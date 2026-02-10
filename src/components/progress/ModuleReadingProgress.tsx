@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Search, AlertCircle, FileText } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 import type { ModuleProgressDetail } from "@/lib/api";
 import type { ModuleProgress } from "./types";
 
@@ -7,13 +16,15 @@ interface ModuleReadingProgressProps {
   modules: ModuleProgressDetail[] | ModuleProgress[];
 }
 
-export default function ModuleReadingProgress({ modules }: ModuleReadingProgressProps) {
+export default function ModuleReadingProgress({
+  modules,
+}: ModuleReadingProgressProps) {
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const [localSearchQuery, setLocalSearchQuery] = useState("");
 
   // Filter modules based on search query
   const filteredModules = modules.filter((module) =>
-    module.module_title.toLowerCase().includes(localSearchQuery.toLowerCase())
+    module.module_title.toLowerCase().includes(localSearchQuery.toLowerCase()),
   );
 
   const toggleModule = (moduleId: string) => {
@@ -21,28 +32,41 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
   };
 
   // Group quiz attempts by sub-materi to determine reading status
-  const getSubMateriReadingStatus = (module: ModuleProgressDetail | ModuleProgress) => {
-    // Group by quiz title (which represents sub-materi)
-    const subMateriMap = new Map<string, { read: boolean; quizTitle: string }>();
-    
-    module.quiz_attempts.forEach((attempt: { quiz_title?: string; is_attempted?: boolean }) => {
-      const quizTitle = attempt.quiz_title || "Sub Materi";
-      const isRead = attempt.is_attempted !== false;
-      
-      // If already marked as read, keep it read
-      if (subMateriMap.has(quizTitle)) {
-        const existing = subMateriMap.get(quizTitle)!;
-        subMateriMap.set(quizTitle, {
-          quizTitle,
-          read: existing.read || isRead,
-        });
-      } else {
-        subMateriMap.set(quizTitle, {
-          quizTitle,
-          read: isRead,
-        });
-      }
-    });
+  const getSubMateriReadingStatus = (
+    module: ModuleProgressDetail | ModuleProgress,
+  ) => {
+    // Group by sub-materi title (from sub_materi_title field or fallback to quiz_title)
+    const subMateriMap = new Map<
+      string,
+      { read: boolean; quizTitle: string }
+    >();
+
+    module.quiz_attempts.forEach(
+      (attempt: {
+        quiz_title?: string;
+        sub_materi_title?: string;
+        is_attempted?: boolean;
+      }) => {
+        // Use sub_materi_title if available, otherwise fallback to quiz_title
+        const subMateriTitle =
+          attempt.sub_materi_title || attempt.quiz_title || "Sub Materi";
+        const isRead = attempt.is_attempted !== false;
+
+        // If already marked as read, keep it read
+        if (subMateriMap.has(subMateriTitle)) {
+          const existing = subMateriMap.get(subMateriTitle)!;
+          subMateriMap.set(subMateriTitle, {
+            quizTitle: subMateriTitle,
+            read: existing.read || isRead,
+          });
+        } else {
+          subMateriMap.set(subMateriTitle, {
+            quizTitle: subMateriTitle,
+            read: isRead,
+          });
+        }
+      },
+    );
 
     return Array.from(subMateriMap.values());
   };
@@ -77,10 +101,11 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
       {filteredModules.map((module) => {
         const isExpanded = expandedModule === module.module_id;
         const subMateris = getSubMateriReadingStatus(module);
-        const readCount = subMateris.filter(sm => sm.read).length;
+        const readCount = subMateris.filter((sm) => sm.read).length;
         const totalCount = subMateris.length;
-        const readPercentage = totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 0;
-        
+        const readPercentage =
+          totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 0;
+
         return (
           <div
             key={module.module_id}
@@ -105,10 +130,15 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
                         <span className="font-medium">
                           {readCount}/{totalCount} sub-materi dibaca
                         </span>
-                        <span className={`font-semibold ${
-                          readPercentage >= 80 ? "text-green-600" :
-                          readPercentage >= 50 ? "text-yellow-600" : "text-red-600"
-                        }`}>
+                        <span
+                          className={`font-semibold ${
+                            readPercentage >= 80
+                              ? "text-green-600"
+                              : readPercentage >= 50
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                          }`}
+                        >
                           {readPercentage}% selesai
                         </span>
                       </>
@@ -139,7 +169,9 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
                   <div className="text-center py-8 text-slate-500">
                     <AlertCircle className="w-12 h-12 mx-auto mb-2 text-slate-300" />
                     <p className="text-sm font-medium">Belum Ada Data Bacaan</p>
-                    <p className="text-xs italic mt-1">Kader belum membaca materi di modul ini</p>
+                    <p className="text-xs italic mt-1">
+                      Kader belum membaca materi di modul ini
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -151,8 +183,8 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
                       <div
                         key={idx}
                         className={`bg-white rounded-lg p-3 border-l-4 ${
-                          subMateri.read 
-                            ? "border-green-500 bg-green-50/30" 
+                          subMateri.read
+                            ? "border-green-500 bg-green-50/30"
                             : "border-red-500 bg-red-50/30"
                         }`}
                       >
@@ -166,7 +198,9 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
                                 {subMateri.quizTitle}
                               </h6>
                               <p className="text-xs text-slate-600 mt-0.5">
-                                {subMateri.read ? "Sudah dibaca oleh kader" : "Belum dibaca"}
+                                {subMateri.read
+                                  ? "Sudah dibaca oleh kader"
+                                  : "Belum dibaca"}
                               </p>
                             </div>
                           </div>
@@ -202,28 +236,40 @@ export default function ModuleReadingProgress({ modules }: ModuleReadingProgress
                     </h5>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600">Total Sub-Materi:</span>
-                        <span className="font-bold text-slate-800">{totalCount}</span>
+                        <span className="text-slate-600">
+                          Total Sub-Materi:
+                        </span>
+                        <span className="font-bold text-slate-800">
+                          {totalCount}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-600">Sudah Dibaca:</span>
-                        <span className="font-bold text-green-600">{readCount}</span>
+                        <span className="font-bold text-green-600">
+                          {readCount}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-600">Belum Dibaca:</span>
-                        <span className="font-bold text-red-600">{totalCount - readCount}</span>
+                        <span className="font-bold text-red-600">
+                          {totalCount - readCount}
+                        </span>
                       </div>
                       <div className="pt-3 border-t border-slate-200">
                         <div className="flex items-center justify-between text-xs text-slate-600 mb-2">
                           <span>Progress Bacaan</span>
-                          <span className="font-semibold">{readPercentage}%</span>
+                          <span className="font-semibold">
+                            {readPercentage}%
+                          </span>
                         </div>
                         <div className="w-full bg-slate-200 rounded-full h-3">
                           <div
                             className={`h-3 rounded-full transition-all duration-500 ${
-                              readPercentage >= 80 ? "bg-gradient-to-r from-green-500 to-green-600" :
-                              readPercentage >= 50 ? "bg-gradient-to-r from-yellow-500 to-yellow-600" :
-                              "bg-gradient-to-r from-red-500 to-red-600"
+                              readPercentage >= 80
+                                ? "bg-gradient-to-r from-green-500 to-green-600"
+                                : readPercentage >= 50
+                                  ? "bg-gradient-to-r from-yellow-500 to-yellow-600"
+                                  : "bg-gradient-to-r from-red-500 to-red-600"
                             }`}
                             style={{ width: `${readPercentage}%` }}
                           />
