@@ -681,10 +681,12 @@ export const poinsAPI = {
 export interface Quiz {
   id: string | number;
   module_id: string | number;
-  sub_materi_id?: string | number; // Now optional
+  sub_materi_id?: string | number;
+  material_id?: string | number; // Alias for backward compatibility
   quiz_type?: "module" | "sub_materi";
   title: string;
   description?: string;
+  time_limit?: number; // Alias for backward compatibility (in seconds)
   time_limit_seconds?: number;
   passing_score?: number;
   published?: boolean;
@@ -781,6 +783,7 @@ export const quizzesAPI = {
     payload: {
       title?: string;
       description?: string;
+      sub_materi_id?: string | number;
       time_limit_seconds?: number;
       passing_score?: number;
       published?: boolean;

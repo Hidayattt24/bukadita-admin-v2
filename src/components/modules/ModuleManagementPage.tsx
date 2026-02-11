@@ -134,6 +134,16 @@ export default function ModuleManagement() {
     refreshAllCounts(modules).catch(console.error);
   }
 
+  // Refresh counts when modules data changes
+  if (modules.length > 0) {
+    const currentModuleIds = modules.map(m => String(m.id)).sort().join(',');
+    const cachedModuleIds = Object.keys(modulesCounts).sort().join(',');
+    
+    if (currentModuleIds !== cachedModuleIds) {
+      refreshAllCounts(modules).catch(console.error);
+    }
+  }
+
   // Save modules to localStorage and notify sidebar
   const saveModules = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(modules));
@@ -210,8 +220,6 @@ export default function ModuleManagement() {
         "Berhasil Dihapus!",
         `Modul <strong class="text-red-600">"${moduleToDelete.title}"</strong> telah dihapus dari sistem`
       );
-      
-      saveModules();
     } catch (error) {
       console.error("Error deleting module:", error);
       setIsLoadingAction(false);
@@ -234,6 +242,10 @@ export default function ModuleManagement() {
       title: formData.title.trim(),
       description: (formData.description ?? '').trim(),
       published: !!formData.published,
+      category: formData.category ? formData.category.trim() : undefined,
+      duration_label: formData.durationLabel ? formData.durationLabel.trim() : undefined,
+      duration_minutes: formData.durationMinutes ? parseInt(formData.durationMinutes, 10) : undefined,
+      lessons: formData.lessons ? parseInt(formData.lessons, 10) : undefined,
     };
 
     setSubmitting(true);
@@ -258,8 +270,6 @@ export default function ModuleManagement() {
           "Berhasil Diupdate!",
           `Modul <strong class="text-blue-600">"${payload.title}"</strong> telah diperbarui`
         );
-        
-        saveModules();
       } else {
         await createModuleMutation.mutateAsync(payload);
 
@@ -272,8 +282,6 @@ export default function ModuleManagement() {
           "Berhasil Ditambahkan!",
           `Modul <strong class="text-emerald-600">"${payload.title}"</strong> telah ditambahkan ke sistem`
         );
-        
-        saveModules();
       }
     } catch (error: unknown) {
       console.error("Error saving module:", error);

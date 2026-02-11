@@ -1,10 +1,16 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import ModuleItemsPage from "@/components/modules/ModuleItemsPage";
+import AdminLayout from "@/components/layout/AdminLayout";
+import ModernQuizzesPage from "@/components/modules/ModernQuizzesPage";
 
 export default function ModulKuisPage() {
   const params = useParams();
   const moduleId = String(params?.id || "");
-  return <ModuleItemsPage moduleId={moduleId} resource="kuis" />;
+
+  return (
+    <AdminLayout>
+      <ModernQuizzesPage moduleId={moduleId} />
+    </AdminLayout>
+  );
 }

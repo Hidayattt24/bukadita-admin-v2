@@ -31,6 +31,51 @@ export function useQuizzes(params?: {
   });
 }
 
+// Hook untuk fetch quizzes dengan detail lengkap (termasuk questions)
+export function useQuizzesWithDetails(params?: { 
+  module_id?: string | number; 
+  sub_materi_id?: string | number;
+}) {
+  return useQuery({
+    queryKey: [...quizKeys.list(params), 'with-details'],
+    queryFn: async () => {
+      // First, get the list of quizzes
+      const listRes = await quizzesAPI.list(params || {});
+      if (!listRes.ok) {
+        throw new Error(listRes.error || "Failed to fetch quizzes");
+      }
+
+      // Extract quizzes array from response
+      const quizzes = Array.isArray(listRes.data) 
+        ? listRes.data 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        : (listRes.data as any)?.quizzes || (listRes.data as any)?.items || [];
+
+      // Fetch details for each quiz to get questions
+      const detailedQuizzes = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        quizzes.map(async (quiz: any) => {
+          try {
+            const detailRes = await quizzesAPI.get(quiz.id);
+            return detailRes.ok ? detailRes.data : quiz;
+          } catch (error) {
+            console.error(`Failed to fetch details for quiz ${quiz.id}:`, error);
+            return quiz; // Return original quiz if detail fetch fails
+          }
+        })
+      );
+
+      return {
+        ...listRes.data,
+        quizzes: detailedQuizzes,
+        items: detailedQuizzes,
+      };
+    },
+    enabled: !!(params?.module_id || params?.sub_materi_id),
+    staleTime: 30000, // Cache for 30 seconds to avoid too many requests
+  });
+}
+
 // Hook untuk fetch single quiz
 export function useQuiz(id: string | number) {
   return useQuery({
@@ -85,6 +130,7 @@ export function useUpdateQuiz() {
       data: {
         title?: string;
         description?: string;
+        sub_materi_id?: string | number;
         time_limit_seconds?: number;
         passing_score?: number;
         published?: boolean;

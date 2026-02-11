@@ -1108,7 +1108,7 @@ export default function MaterialPoinManager({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-3 sm:p-6 max-w-7xl mx-auto">
         {/* Header */}
         <MaterialHeader material={material} poinsCount={poins.length} />
 
@@ -1141,19 +1141,19 @@ export default function MaterialPoinManager({
                 {/* Form Section - Full Width for Better Writing Experience */}
                 <form
                   onSubmit={editingPoin ? handleUpdatePoin : handleAddPoin}
-                  className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/50 overflow-hidden"
+                  className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-8 shadow-2xl border border-white/50 overflow-hidden"
                 >
                   {/* Decorative background */}
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#27548A] via-[#578FCA] to-[#27548A]"></div>
                   <div className="absolute -top-24 -right-24 w-64 h-64 bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/5 rounded-full blur-3xl"></div>
 
                   <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#27548A] to-[#578FCA] flex items-center justify-center shadow-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#27548A] to-[#578FCA] flex items-center justify-center shadow-lg flex-shrink-0">
                           {editingPoin ? (
                             <svg
-                              className="w-7 h-7 text-white"
+                              className="w-6 h-6 sm:w-7 sm:h-7 text-white"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1167,7 +1167,7 @@ export default function MaterialPoinManager({
                             </svg>
                           ) : (
                             <svg
-                              className="w-7 h-7 text-white"
+                              className="w-6 h-6 sm:w-7 sm:h-7 text-white"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1182,17 +1182,17 @@ export default function MaterialPoinManager({
                           )}
                         </div>
                         <div>
-                          <h2 className="text-2xl font-bold bg-gradient-to-r from-[#27548A] to-[#578FCA] bg-clip-text text-transparent">
+                          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#27548A] to-[#578FCA] bg-clip-text text-transparent">
                             {editingPoin ? "Edit Poin" : "Tambah Poin Baru"}
                           </h2>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-xs sm:text-sm text-gray-500 mt-1">
                             Buat konten pembelajaran yang menarik
                           </p>
                         </div>
                       </div>
-                      <div className="px-4 py-2 bg-gradient-to-r from-[#27548A]/10 to-[#578FCA]/10 border border-[#27548A]/20 rounded-xl flex items-center gap-2">
+                      <div className="px-3 sm:px-4 py-2 bg-gradient-to-r from-[#27548A]/10 to-[#578FCA]/10 border border-[#27548A]/20 rounded-xl flex items-center gap-2">
                         <svg
-                          className="w-5 h-5 text-[#27548A]"
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-[#27548A]"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1210,12 +1210,12 @@ export default function MaterialPoinManager({
                       </div>
                     </div>
 
-                    <div className="space-y-6 text-black">
+                    <div className="space-y-4 sm:space-y-6 text-black">
                       <div>
-                        <label className="block text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center">
+                        <label className="block text-sm sm:text-base font-bold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center flex-shrink-0">
                             <svg
-                              className="w-4 h-4 text-[#27548A]"
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#27548A]"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1228,25 +1228,25 @@ export default function MaterialPoinManager({
                               />
                             </svg>
                           </div>
-                          Judul Poin
+                          <span className="flex-1">Judul Poin</span>
                           <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          className="w-full px-5 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#578FCA]/50 focus:border-[#27548A] transition-all duration-300 bg-white hover:border-gray-300 placeholder-gray-400"
+                          className="w-full px-4 sm:px-5 py-3 sm:py-4 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#578FCA]/50 focus:border-[#27548A] transition-all duration-300 bg-white hover:border-gray-300 placeholder-gray-400"
                           placeholder="Masukkan judul poin yang menarik..."
                           required
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         <div>
-                          <label className="block text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center">
+                          <label className="block text-sm sm:text-base font-bold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center flex-shrink-0">
                               <svg
-                                className="w-4 h-4 text-[#27548A]"
+                                className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#27548A]"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1259,22 +1259,22 @@ export default function MaterialPoinManager({
                                 />
                               </svg>
                             </div>
-                            Label Durasi
+                            <span className="flex-1">Label Durasi</span>
                           </label>
                           <input
                             type="text"
                             value={durationLabel}
                             onChange={(e) => setDurationLabel(e.target.value)}
-                            className="w-full px-5 py-4 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#578FCA]/50 focus:border-[#27548A] transition-all duration-300 bg-white hover:border-gray-300 placeholder-gray-400"
+                            className="w-full px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#578FCA]/50 focus:border-[#27548A] transition-all duration-300 bg-white hover:border-gray-300 placeholder-gray-400"
                             placeholder="contoh: Bacaan 5 menit"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center">
+                          <label className="block text-sm sm:text-base font-bold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center flex-shrink-0">
                               <svg
-                                className="w-4 h-4 text-[#27548A]"
+                                className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#27548A]"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1287,14 +1287,14 @@ export default function MaterialPoinManager({
                                 />
                               </svg>
                             </div>
-                            Durasi (menit)
+                            <span className="flex-1">Durasi (menit)</span>
                           </label>
                           <input
                             type="number"
                             min="0"
                             value={durationMinutes}
                             onChange={(e) => setDurationMinutes(e.target.value)}
-                            className="w-full px-5 py-4 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#578FCA]/50 focus:border-[#27548A] transition-all duration-300 bg-white hover:border-gray-300 placeholder-gray-400"
+                            className="w-full px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#578FCA]/50 focus:border-[#27548A] transition-all duration-300 bg-white hover:border-gray-300 placeholder-gray-400"
                             placeholder="Estimasi waktu dalam menit"
                           />
                         </div>
@@ -1634,15 +1634,15 @@ export default function MaterialPoinManager({
                       </div>
 
                       {/* Add Block Buttons */}
-                      <div className="flex gap-3 mb-6">
+                      <div className="flex flex-col sm:flex-row gap-3 mb-6">
                         <button
                           type="button"
                           onClick={addTextBlock}
-                          className="flex-1 group flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white rounded-xl text-base font-bold transition-all shadow-lg shadow-[#27548A]/30 hover:shadow-xl hover:-translate-y-0.5"
+                          className="flex-1 group flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#27548A]/30 hover:shadow-xl hover:-translate-y-0.5"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
                             <svg
-                              className="w-5 h-5"
+                              className="w-4 h-4 sm:w-5 sm:h-5"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1660,10 +1660,10 @@ export default function MaterialPoinManager({
                         <button
                           type="button"
                           onClick={addMediaBlock}
-                          className="flex-1 group flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:from-[#4579b0] hover:to-[#1e3f6b] text-white rounded-xl text-base font-bold transition-all shadow-lg shadow-[#578FCA]/30 hover:shadow-xl hover:-translate-y-0.5"
+                          className="flex-1 group flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:from-[#4579b0] hover:to-[#1e3f6b] text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#578FCA]/30 hover:shadow-xl hover:-translate-y-0.5"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <ImageIcon className="w-5 h-5" />
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                           </div>
                           Tambah Media
                         </button>
@@ -1671,7 +1671,7 @@ export default function MaterialPoinManager({
 
                       {/* Content Blocks */}
                       <div
-                        className="space-y-4"
+                        className="space-y-3 sm:space-y-4"
                         ref={contentBlocksContainerRef}
                       >
                         {contentBlocks.map((block, index) => (
@@ -1685,18 +1685,18 @@ export default function MaterialPoinManager({
                             className="group relative bg-gradient-to-br from-white to-gray-50/50 border-2 border-gray-200 rounded-xl hover:border-[#578FCA]/50 hover:shadow-lg transition-all duration-300"
                           >
                             {block.type === "text" ? (
-                              <div className="p-5">
+                              <div className="p-3 sm:p-5">
                                 <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center">
-                                      <FileText className="w-4 h-4 text-[#27548A]" />
+                                  <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-700">
+                                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-br from-[#27548A]/10 to-[#578FCA]/10 flex items-center justify-center flex-shrink-0">
+                                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#27548A]" />
                                     </div>
                                     <span>Blok Teks #{index + 1}</span>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => removeBlock(block.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all text-sm font-medium border border-red-200 hover:border-red-300"
+                                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all text-xs sm:text-sm font-medium border border-red-200 hover:border-red-300"
                                     title="Hapus blok"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -1711,22 +1711,22 @@ export default function MaterialPoinManager({
                                 />
                               </div>
                             ) : (
-                              <div className="p-5">
+                              <div className="p-3 sm:p-5">
                                 <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/10 flex items-center justify-center">
-                                      <ImageIcon className="w-4 h-4 text-[#578FCA]" />
+                                  <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-700">
+                                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-br from-[#578FCA]/10 to-[#27548A]/10 flex items-center justify-center flex-shrink-0">
+                                      <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#578FCA]" />
                                     </div>
                                     <span>Blok Media #{index + 1}</span>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => removeBlock(block.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all text-sm font-medium border border-red-200 hover:border-red-300"
+                                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all text-xs sm:text-sm font-medium border border-red-200 hover:border-red-300"
                                     title="Hapus blok"
                                   >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>Hapus</span>
+                                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <span className="hidden sm:inline">Hapus</span>
                                   </button>
                                 </div>
                                 <MediaBlockEditor
@@ -1772,26 +1772,26 @@ export default function MaterialPoinManager({
                             )}
 
                             {/* Block Controls */}
-                            <div className="absolute -right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <div className="flex flex-col gap-1 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-xl shadow-xl p-1.5">
+                            <div className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <div className="flex flex-col gap-1 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-xl shadow-xl p-1 sm:p-1.5">
                                 {index > 0 && (
                                   <button
                                     type="button"
                                     onClick={() => moveBlock(block.id, "up")}
-                                    className="p-2.5 hover:bg-[#578FCA]/10 text-gray-600 hover:text-[#27548A] rounded-lg transition-colors"
+                                    className="p-2 sm:p-2.5 hover:bg-[#578FCA]/10 text-gray-600 hover:text-[#27548A] rounded-lg transition-colors"
                                     title="Pindah ke atas"
                                   >
-                                    <MoveUp className="w-5 h-5" />
+                                    <MoveUp className="w-4 h-4 sm:w-5 sm:h-5" />
                                   </button>
                                 )}
                                 {index < contentBlocks.length - 1 && (
                                   <button
                                     type="button"
                                     onClick={() => moveBlock(block.id, "down")}
-                                    className="p-2.5 hover:bg-[#578FCA]/10 text-gray-600 hover:text-[#27548A] rounded-lg transition-colors"
+                                    className="p-2 sm:p-2.5 hover:bg-[#578FCA]/10 text-gray-600 hover:text-[#27548A] rounded-lg transition-colors"
                                     title="Pindah ke bawah"
                                   >
-                                    <MoveDown className="w-5 h-5" />
+                                    <MoveDown className="w-4 h-4 sm:w-5 sm:h-5" />
                                   </button>
                                 )}
                               </div>
@@ -1846,16 +1846,16 @@ export default function MaterialPoinManager({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 mt-10 pt-8 border-t-2 border-gray-200">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 sm:mt-10 pt-6 sm:pt-8 border-t-2 border-gray-200">
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="inline-flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white text-base font-semibold rounded-xl shadow-lg shadow-[#27548A]/40 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                      className="inline-flex items-center justify-center gap-2.5 px-4 sm:px-6 py-3 bg-gradient-to-r from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white text-sm sm:text-base font-semibold rounded-xl shadow-lg shadow-[#27548A]/40 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {submitting ? (
                         <>
                           <svg
-                            className="animate-spin h-5 w-5 text-white"
+                            className="animate-spin h-5 w-5 text-white flex-shrink-0"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1874,14 +1874,16 @@ export default function MaterialPoinManager({
                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                             ></path>
                           </svg>
-                          {getBlockMediaFiles().length > 0
-                            ? `Mengupload ${getBlockMediaFiles().length} file...`
-                            : "Menyimpan..."}
+                          <span className="truncate">
+                            {getBlockMediaFiles().length > 0
+                              ? `Mengupload ${getBlockMediaFiles().length} file...`
+                              : "Menyimpan..."}
+                          </span>
                         </>
                       ) : (
                         <>
                           <svg
-                            className="w-5 h-5"
+                            className="w-5 h-5 flex-shrink-0"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1907,10 +1909,10 @@ export default function MaterialPoinManager({
                               setShowAddPoin(false);
                             }
                       }
-                      className="inline-flex items-center gap-2.5 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-base font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-2 border-gray-300"
+                      className="inline-flex items-center justify-center gap-2.5 px-4 sm:px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-sm sm:text-base font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-2 border-gray-300"
                     >
                       <svg
-                        className="w-5 h-5"
+                        className="w-5 h-5 flex-shrink-0"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1925,9 +1927,9 @@ export default function MaterialPoinManager({
                       Batal
                     </button>
 
-                    <div className="ml-auto px-5 py-3 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-xl flex items-center gap-3 shadow-sm">
+                    <div className="hidden sm:flex sm:ml-auto px-5 py-3 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-xl items-center gap-3 shadow-sm">
                       <svg
-                        className="w-6 h-6 text-emerald-600"
+                        className="w-6 h-6 text-emerald-600 flex-shrink-0"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
