@@ -492,7 +492,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -509,7 +509,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -525,50 +525,50 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
       {/* Custom Radio Button Styles */}
       <style jsx>{radioButtonStyles}</style>
       
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-white hover:bg-gradient-to-r hover:from-[#578FCA] hover:to-[#27548A] rounded-lg transition-all mb-6 border border-gray-200 hover:border-transparent shadow-sm"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-white hover:bg-gradient-to-r hover:from-[#578FCA] hover:to-[#27548A] rounded-lg transition-all mb-4 sm:mb-6 border border-gray-200 hover:border-transparent shadow-sm text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="font-medium">Kembali</span>
           </button>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-lg">
-                <FileQuestion className="w-7 h-7 text-white" />
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100">
+            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-4">
+              <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-lg">
+                <FileQuestion className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">{quiz.title}</h1>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">{quiz.title}</h1>
                 {quiz.description && (
                   <p className="text-gray-600">{quiz.description}</p>
                 )}
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-3 sm:gap-4 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
-                <Clock className="w-4 h-4 text-[#578FCA]" />
-                <span className="text-sm font-medium text-gray-700">
+                <Clock className="w-4 h-4 text-[#578FCA] flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-gray-700">
                   {Math.floor((quiz.time_limit_seconds || quiz.time_limit || 1800) / 60)} Menit
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-lg">
-                <Target className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-medium text-gray-700">
+                <Target className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-gray-700">
                   Nilai Lulus: {quiz.passing_score || 70}%
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-lg">
-                <FileQuestion className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-gray-700">
+                <FileQuestion className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-gray-700">
                   {questions.length} Pertanyaan
                 </span>
               </div>
@@ -586,7 +586,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                   resetForm();
                 }
               }}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:shadow-lg text-white rounded-xl shadow-md transition-all font-medium"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:shadow-lg text-white rounded-xl shadow-md transition-all font-medium text-sm sm:text-base"
             >
               {showAddQuestion ? (
                 <>
@@ -758,41 +758,61 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
         {/* Questions List */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-[#578FCA] to-[#27548A]">
+          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-[#578FCA] to-[#27548A]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <FileQuestion className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <FileQuestion className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Daftar Pertanyaan</h2>
-                  <p className="text-sm text-white/80">{questions.length} pertanyaan tersedia</p>
+                  <h2 className="text-base sm:text-lg font-bold text-white">Daftar Pertanyaan</h2>
+                  <p className="text-xs sm:text-sm text-white/80">{questions.length} pertanyaan tersedia</p>
                 </div>
               </div>
             </div>
           </div>
 
           {questions.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <Eye className="w-10 h-10 text-gray-300" />
+            <div className="p-8 sm:p-12 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                <Eye className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
-              <p className="text-gray-600 font-medium mb-2">Belum ada pertanyaan</p>
-              <p className="text-sm text-gray-500">Klik &quot;Tambah Pertanyaan&quot; untuk mulai membuat kuis.</p>
+              <p className="text-sm sm:text-base text-gray-600 font-medium mb-2">Belum ada pertanyaan</p>
+              <p className="text-xs sm:text-sm text-gray-500">Klik &quot;Tambah Pertanyaan&quot; untuk mulai membuat kuis.</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
               {questions.map((question, index) => (
-                <div key={question.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start gap-4">
-                    {/* Question Number Badge */}
-                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-md">
-                      <span className="text-white font-bold text-sm">{index + 1}</span>
+                <div key={question.id} className="p-3 sm:p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                    {/* Question Number Badge and Action Buttons (Mobile) */}
+                    <div className="flex items-center justify-between w-full sm:w-auto">
+                      <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-md">
+                        <span className="text-white font-bold text-sm">{index + 1}</span>
+                      </div>
+                      
+                      {/* Action Buttons (Mobile - visible) */}
+                      <div className="flex sm:hidden items-center gap-2">
+                        <button
+                          onClick={() => handleEditQuestion(question)}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-200"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuestion(question)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Question Content */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-gray-900 mb-3">
+                    <div className="flex-1 min-w-0 w-full">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">
                         {question.question_text}
                       </h3>
                       
@@ -803,20 +823,20 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                           return (
                             <div 
                               key={optIndex} 
-                              className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                              className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border-2 transition-all ${
                                 isCorrect 
                                   ? 'bg-emerald-50 border-emerald-300' 
                                   : 'bg-gray-50 border-gray-200'
                               }`}
                             >
-                              <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-semibold text-sm ${
+                              <div className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
                                 isCorrect 
                                   ? 'bg-emerald-500 text-white' 
                                   : 'bg-white text-gray-600 border-2 border-gray-300'
                               }`}>
                                 {String.fromCharCode(65 + optIndex)}
                               </div>
-                              <span className={`flex-1 text-sm ${
+                              <span className={`flex-1 text-xs sm:text-sm ${
                                 isCorrect ? 'text-emerald-900 font-medium' : 'text-gray-700'
                               }`}>
                                 {option}
@@ -824,7 +844,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                               {isCorrect && (
                                 <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  Benar
+                                  <span className="hidden sm:inline">Benar</span>
                                 </div>
                               )}
                             </div>
@@ -834,18 +854,18 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
                       {/* Explanation */}
                       {question.explanation && (
-                        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <Lightbulb className="w-5 h-5 text-[#578FCA] flex-shrink-0 mt-0.5" />
-                          <div className="flex-1">
+                        <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-[#578FCA] flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-[#27548A] mb-1">Penjelasan:</p>
-                            <p className="text-sm text-gray-700">{question.explanation}</p>
+                            <p className="text-xs sm:text-sm text-gray-700">{question.explanation}</p>
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex-shrink-0 flex items-center gap-2">
+                    {/* Action Buttons (Desktop) */}
+                    <div className="hidden sm:flex flex-shrink-0 items-center gap-2">
                       <button
                         onClick={() => handleEditQuestion(question)}
                         className="p-2.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-transparent hover:border-amber-200"
