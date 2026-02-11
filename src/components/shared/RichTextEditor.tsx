@@ -1,7 +1,18 @@
 "use client";
 
 import { useRef } from "react";
-import { Bold, Italic, List, ListOrdered } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Heading1,
+  Heading2,
+  Link,
+  Code,
+  Lightbulb,
+  BookOpen,
+} from "lucide-react";
 
 interface RichTextEditorProps {
   value: string;
@@ -101,43 +112,70 @@ export default function RichTextEditor({
 
   const toolbarButtons = [
     {
+      icon: Heading1,
+      label: "Judul Besar",
+      action: () => insertLinePrefix("# "),
+    },
+    {
+      icon: Heading2,
+      label: "Judul Sedang",
+      action: () => insertLinePrefix("## "),
+    },
+    {
       icon: Bold,
-      label: "Bold",
+      label: "Tebal",
       action: () => insertMarkdown("**", "**"),
     },
     {
       icon: Italic,
-      label: "Italic",
+      label: "Miring",
       action: () => insertMarkdown("*", "*"),
     },
     {
+      icon: Code,
+      label: "Kode",
+      action: () => insertMarkdown("`", "`"),
+    },
+    {
+      icon: Link,
+      label: "Tautan",
+      action: () => insertMarkdown("[", "](url)"),
+    },
+    {
       icon: List,
-      label: "Bullet List",
+      label: "Poin",
       action: () => insertLinePrefix("- "),
     },
     {
       icon: ListOrdered,
-      label: "Numbered List",
+      label: "Nomor",
       action: () => insertLinePrefix("1. "),
     },
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="rounded-xl overflow-hidden bg-white shadow-sm border border-gray-200">
+      {/* Info Bantuan */}
+      <div className="px-4 py-3 bg-gradient-to-r from-[#27548A]/5 to-[#578FCA]/5 border-b border-gray-200">
+        <p className="text-sm text-gray-700 font-medium flex items-center gap-2">
+          <Lightbulb className="w-4 h-4 text-[#27548A] flex-shrink-0" />
+          <span className="font-semibold">Panduan:</span> Pilih teks lalu klik
+          tombol di bawah untuk memformat, atau langsung klik tombol untuk
+          menambahkan format baru.
+        </p>
+      </div>
+
       {/* Toolbar - Clean design */}
-      <div className="flex items-center gap-1.5 p-2 bg-gray-50 flex-wrap">
+      <div className="flex items-center gap-1.5 p-3 bg-gray-50 flex-wrap border-b border-gray-200">
         {toolbarButtons.map((button, index) => (
           <button
             key={index}
             type="button"
             onClick={button.action}
-            className="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-150 group relative"
+            className="p-2.5 hover:bg-[#578FCA]/10 hover:text-[#27548A] rounded-lg transition-all duration-200 border border-transparent hover:border-[#578FCA]/30"
             title={button.label}
           >
-            <button.icon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
-            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1.5 px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
-              {button.label}
-            </span>
+            <button.icon className="w-5 h-5 text-gray-600 group-hover:text-[#27548A] transition-colors" />
           </button>
         ))}
       </div>
@@ -148,21 +186,102 @@ export default function RichTextEditor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-4 min-h-[150px] resize-y text-sm leading-relaxed bg-white"
+        className="w-full p-4 min-h-[150px] resize-y text-sm leading-relaxed bg-white text-black"
         style={{
           fontFamily: "system-ui, -apple-system, sans-serif",
           lineHeight: "1.6",
           border: "none",
           outline: "none",
           boxShadow: "none",
+          color: "#000000",
         }}
       />
 
       {/* Helper Text - Clean design */}
-      <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
-        <span className="text-xs text-gray-500">
-          Gunakan <strong>**bold**</strong>, <em>*italic*</em>, dan - untuk list
-        </span>
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+        <div className="text-xs text-gray-600 space-y-2">
+          <div className="font-semibold text-[#27548A] mb-2 flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5" />
+            Contoh Penggunaan:
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <Heading1 className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]"># Judul</strong> → digunakan
+                untuk <strong>Judul Besar</strong>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <Heading2 className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">## Subjudul</strong> →
+                digunakan untuk <strong>Judul Sedang</strong>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <Bold className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">**tebal**</strong> → membuat
+                teks <strong>tebal</strong>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <Italic className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">*miring*</strong> → membuat
+                teks <em>miring</em>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <Code className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">`kode`</strong> → format
+                untuk{" "}
+                <code className="bg-gray-200 px-1 rounded text-[10px]">
+                  kode program
+                </code>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <Link className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">[teks](url)</strong> →
+                membuat tautan/link
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <List className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">- item</strong> → membuat
+                daftar poin (• item)
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-6 h-6 rounded bg-[#27548A]/10 flex items-center justify-center">
+                <ListOrdered className="w-3.5 h-3.5 text-[#27548A]" />
+              </div>
+              <div className="flex-1">
+                <strong className="text-[#27548A]">1. item</strong> → membuat
+                daftar bernomor (1. item)
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
