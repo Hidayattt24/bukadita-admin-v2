@@ -36,6 +36,11 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [showEditQuestion, setShowEditQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  
+  // NEW: State for questions_to_show
+  const [questionsToShow, setQuestionsToShow] = useState<string>("");
+  const [isEditingQuestionsToShow, setIsEditingQuestionsToShow] = useState(false);
+  const [isSavingQuestionsToShow, setIsSavingQuestionsToShow] = useState(false);
 
   // Add/Edit question form state
   const [questionText, setQuestionText] = useState("");
@@ -94,6 +99,8 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
         if (res.ok) {
           setQuiz(res.data);
           setQuestions(res.data.questions || []);
+          // NEW: Set questions_to_show value
+          setQuestionsToShow(res.data.questions_to_show ? String(res.data.questions_to_show) : "");
         } else {
           error("Error", "Gagal memuat kuis");
         }
@@ -114,6 +121,52 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
     setCorrectIndex(0);
     setExplanation("");
     setEditingQuestion(null);
+  };
+  
+  // NEW: Function to save questions_to_show
+  const handleSaveQuestionsToShow = async () => {
+    if (!kuisId || !quiz) return;
+    
+    const value = questionsToShow.trim() ? parseInt(questionsToShow) : undefined;
+    
+    // Validate
+    if (value !== undefined) {
+      if (isNaN(value)) {
+        error("Input Tidak Valid", "Masukkan angka yang valid");
+        return;
+      }
+      if (value < 1) {
+        error("Input Tidak Valid", "Jumlah soal minimal 1");
+        return;
+      }
+      if (value > questions.length) {
+        error(
+          "Jumlah Soal Melebihi Batas", 
+          `Anda hanya memiliki ${questions.length} soal. Tidak bisa menampilkan ${value} soal. Silakan tambahkan soal terlebih dahulu atau kurangi jumlah soal yang ditampilkan.`
+        );
+        return;
+      }
+    }
+    
+    setIsSavingQuestionsToShow(true);
+    try {
+      const res = await quizzesAPI.update(kuisId, {
+        questions_to_show: value,
+      });
+      
+      if (res.ok) {
+        setQuiz(res.data);
+        setIsEditingQuestionsToShow(false);
+        success("Berhasil Disimpan!", "Jumlah soal yang ditampilkan berhasil diperbarui", 2000);
+      } else {
+        error("Gagal Menyimpan", res.error || "Gagal memperbarui jumlah soal");
+      }
+    } catch (err) {
+      console.error('Error updating questions_to_show:', err);
+      error("Terjadi Kesalahan", "Terjadi kesalahan saat memperbarui");
+    } finally {
+      setIsSavingQuestionsToShow(false);
+    }
   };
 
   const loadQuestionToForm = (question: QuizQuestion) => {
@@ -571,6 +624,60 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                 <span className="text-xs sm:text-sm font-medium text-gray-700">
                   {questions.length} Pertanyaan
                 </span>
+              </div>
+              
+              {/* NEW: Questions to Show Input - Modern Design */}
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 shadow-sm min-w-fit">
+                <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                {isEditingQuestionsToShow ? (
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="number"
+                        value={questionsToShow}
+                        onChange={(e) => setQuestionsToShow(e.target.value)}
+                        min="1"
+                        max={questions.length}
+                        placeholder="Semua"
+                        className="w-28 px-3 py-2 text-sm font-bold text-gray-900 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                      />
+                      <span className="text-xs text-amber-700 font-medium">Max: {questions.length} soal</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveQuestionsToShow}
+                        disabled={isSavingQuestionsToShow}
+                        className="p-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Simpan"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsEditingQuestionsToShow(false);
+                          setQuestionsToShow(quiz.questions_to_show ? String(quiz.questions_to_show) : "");
+                        }}
+                        className="p-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-md hover:shadow-lg"
+                        title="Batal"
+                      >
+                        <XIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
+                      Tampilkan: <span className="text-amber-700">{quiz.questions_to_show || "Semua"}</span> soal
+                    </span>
+                    <button
+                      onClick={() => setIsEditingQuestionsToShow(true)}
+                      className="p-1.5 bg-gradient-to-r from-[#578FCA] to-[#27548A] text-white hover:shadow-lg rounded-lg transition-all"
+                      title="Edit Jumlah Soal"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

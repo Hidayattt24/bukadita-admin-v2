@@ -565,6 +565,13 @@ export default function ModernQuizzesPage({
                             <Target className="w-3.5 h-3.5" />
                             <span>Passing: {quiz.passing_score || 70}%</span>
                           </div>
+                          {/* NEW: Questions to Show Info */}
+                          {quiz.questions_to_show && (
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                              <span>Tampil: {quiz.questions_to_show} soal</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">

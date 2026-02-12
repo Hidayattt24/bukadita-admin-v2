@@ -38,7 +38,13 @@ export default function ModuleReadingProgress({
     // Group by sub-materi title (from sub_materi_title field or fallback to quiz_title)
     const subMateriMap = new Map<
       string,
-      { read: boolean; quizTitle: string }
+      {
+        read: boolean;
+        quizTitle: string;
+        readingPercentage: number;
+        totalPoins: number;
+        scrollCompletedPoins: number;
+      }
     >();
 
     module.quiz_attempts.forEach(
@@ -46,11 +52,20 @@ export default function ModuleReadingProgress({
         quiz_title?: string;
         sub_materi_title?: string;
         is_attempted?: boolean;
+        reading_completed?: boolean;
+        reading_percentage?: number;
+        total_poins?: number;
+        scroll_completed_poins?: number;
       }) => {
         // Use sub_materi_title if available, otherwise fallback to quiz_title
         const subMateriTitle =
           attempt.sub_materi_title || attempt.quiz_title || "Sub Materi";
-        const isRead = attempt.is_attempted !== false;
+
+        // Use reading_completed from scroll tracking, not quiz attempts
+        const isRead = attempt.reading_completed === true;
+        const readingPercentage = attempt.reading_percentage || 0;
+        const totalPoins = attempt.total_poins || 0;
+        const scrollCompletedPoins = attempt.scroll_completed_poins || 0;
 
         // If already marked as read, keep it read
         if (subMateriMap.has(subMateriTitle)) {
@@ -58,11 +73,23 @@ export default function ModuleReadingProgress({
           subMateriMap.set(subMateriTitle, {
             quizTitle: subMateriTitle,
             read: existing.read || isRead,
+            readingPercentage: Math.max(
+              existing.readingPercentage,
+              readingPercentage,
+            ),
+            totalPoins: Math.max(existing.totalPoins, totalPoins),
+            scrollCompletedPoins: Math.max(
+              existing.scrollCompletedPoins,
+              scrollCompletedPoins,
+            ),
           });
         } else {
           subMateriMap.set(subMateriTitle, {
             quizTitle: subMateriTitle,
             read: isRead,
+            readingPercentage,
+            totalPoins,
+            scrollCompletedPoins,
           });
         }
       },
@@ -197,11 +224,20 @@ export default function ModuleReadingProgress({
                               <h6 className="font-semibold text-slate-800 text-sm truncate">
                                 {subMateri.quizTitle}
                               </h6>
-                              <p className="text-xs text-slate-600 mt-0.5">
-                                {subMateri.read
-                                  ? "Sudah dibaca oleh kader"
-                                  : "Belum dibaca"}
-                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs text-slate-600">
+                                  {subMateri.read
+                                    ? "Sudah dibaca oleh kader"
+                                    : "Belum dibaca"}
+                                </p>
+                                {subMateri.totalPoins > 0 && (
+                                  <span className="text-xs font-semibold text-slate-500">
+                                    ({subMateri.scrollCompletedPoins}/
+                                    {subMateri.totalPoins} poin -{" "}
+                                    {subMateri.readingPercentage}%)
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex-shrink-0">
