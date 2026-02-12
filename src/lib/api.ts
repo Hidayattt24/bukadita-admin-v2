@@ -689,6 +689,7 @@ export interface Quiz {
   time_limit?: number; // Alias for backward compatibility (in seconds)
   time_limit_seconds?: number;
   passing_score?: number;
+  questions_to_show?: number; // NEW: Jumlah soal yang ditampilkan (null = semua)
   published?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -770,6 +771,7 @@ export const quizzesAPI = {
     description?: string;
     time_limit_seconds?: number;
     passing_score?: number;
+    questions_to_show?: number; // NEW
     published?: boolean;
   }) => {
     return apiFetch<Quiz>(`/api/v1/admin/quizzes`, {
@@ -786,6 +788,7 @@ export const quizzesAPI = {
       sub_materi_id?: string | number;
       time_limit_seconds?: number;
       passing_score?: number;
+      questions_to_show?: number; // NEW
       published?: boolean;
     }
   ) => {
@@ -959,12 +962,18 @@ export interface UserProgressListResponse {
 export interface QuizAttemptDetail {
   quiz_id: string;
   quiz_title: string;
+  sub_materi_title?: string;
   score: number;
   passed: boolean;
   attempted_at: string;
   total_questions: number;
   correct_answers: number;
   is_attempted?: boolean;
+  // Reading progress fields from scroll tracking
+  reading_completed?: boolean;
+  reading_percentage?: number;
+  total_poins?: number;
+  scroll_completed_poins?: number;
   answers: Array<{
     question_id: string;
     question_text: string;

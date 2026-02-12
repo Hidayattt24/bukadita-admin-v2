@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import AdminShell from "@/components/layout/AdminShell";
 import { ToastProvider } from "@/components/ui/toast";
 import QueryProvider from "@/providers/QueryProvider";
+import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
+import PWAProvider from "../providers/PWAProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -11,6 +13,14 @@ const poppins = Poppins({
   display: 'swap',
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#578FCA",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -36,6 +46,15 @@ export const metadata: Metadata = {
   creator: "Universitas Syiah Kuala",
   publisher: "BUKADITA",
   metadataBase: new URL("https://admin.bukadita.id"),
+  applicationName: "BUKADITA Admin",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "BUKADITA Admin",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: "BUKADITA Admin | Buku Digital Kader Posyandu",
     description: "Sistem monitoring pembelajaran kader posyandu berbasis digital untuk meningkatkan kualitas pelayanan kesehatan masyarakat",
@@ -84,13 +103,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="BUKADITA Admin" />
+        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png" />
+      </head>
       <body className={`${poppins.variable} font-poppins antialiased`}>
         <QueryProvider>
           <ToastProvider>
-            <AdminShell>
-              <div>{children}</div>
-            </AdminShell>
+            <PWAProvider>
+              <AdminShell>
+                <div>{children}</div>
+              </AdminShell>
+              <PWAInstallPrompt />
+            </PWAProvider>
           </ToastProvider>
         </QueryProvider>
       </body>

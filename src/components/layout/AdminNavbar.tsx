@@ -371,6 +371,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col h-screen overflow-hidden w-full md:w-auto">
+        {/* Desktop Layout with margin animation */}
         <motion.div
           animate={{
             marginLeft: open ? "300px" : "80px",
@@ -387,10 +388,10 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
           </main>
         </motion.div>
         
-        {/* Mobile Layout - No margin */}
+        {/* Mobile Layout - No margin, with fixed header */}
         <div className="flex md:hidden flex-1 flex-col h-screen overflow-hidden">
-          <AdminHeader />
-          <main className="flex-1 overflow-y-auto p-3 pt-16 bg-gray-50 modern-scrollbar">
+          <AdminHeader onMenuClick={() => setOpen(!open)} />
+          <main className="flex-1 overflow-y-auto p-4 pt-16 bg-gray-50 modern-scrollbar">
             {children}
           </main>
         </div>

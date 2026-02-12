@@ -144,13 +144,6 @@ export default function ModuleManagement() {
     }
   }
 
-  // Save modules to localStorage and notify sidebar
-  const saveModules = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(modules));
-    window.dispatchEvent(new Event('modules:updated'));
-    refreshAllCounts(modules).catch(console.error);
-  };
-
   // Validation
   const validateForm = () => {
     const errors: Record<string, string> = {};
