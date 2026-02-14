@@ -1,5 +1,5 @@
 // Service Worker for Bukadita Admin PWA
-const CACHE_NAME = 'bukadita-admin-v2';
+const CACHE_NAME = 'bukadita-admin-v3'; // ✅ Bump version to force update
 const urlsToCache = [
   '/manifest.json',
   '/icons/icon-192x192.png',
@@ -22,19 +22,30 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new service worker...');
+  
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+    Promise.all([
+      // Delete all old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Delete any cached root path from old service workers
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.delete('/');
+      })
+    ]).then(() => {
+      console.log('[SW] Old caches cleared, claiming clients...');
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
 // Fetch event - serve from cache, fallback to network
@@ -59,10 +70,17 @@ self.addEventListener('fetch', (event) => {
 
   // ✅ Skip auth-protected routes - always fetch fresh to handle redirects properly
   const authProtectedRoutes = ['/admin/dashboard', '/admin/', '/'];
-  const isAuthProtected = authProtectedRoutes.some(route => url.pathname.startsWith(route));
+  const isAuthProtected = authProtectedRoutes.some(route => {
+    // Exact match for root path
+    if (route === '/' && url.pathname === '/') return true;
+    // Prefix match for other routes
+    if (route !== '/' && url.pathname.startsWith(route)) return true;
+    return false;
+  });
   
   if (isAuthProtected) {
     // For auth-protected routes, always go to network (don't cache)
+    console.log('[SW] Auth-protected route, fetching from network:', url.pathname);
     event.respondWith(
       fetch(request, { redirect: 'follow' })
         .catch((error) => {
