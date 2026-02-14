@@ -36,8 +36,8 @@ function AdminLayoutContent({ children }: { children: ReactNode }) {
     }
   }, [pathname, isAuthenticated, profile, router]);
 
-  // If on login or register page, render children without admin chrome
-  if (pathname === "/login" || pathname === "/register") {
+  // If on login, register, or 404 page, render children without admin chrome
+  if (pathname === "/login" || pathname === "/register" || pathname === "/not-found") {
     return <>{children}</>;
   }
 
