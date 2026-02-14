@@ -68,15 +68,15 @@ self.addEventListener('fetch', (event) => {
   // ✅ Skip cross-origin requests
   if (url.origin !== self.location.origin) return;
 
-  // ✅ Skip auth-protected routes - always fetch fresh to handle redirects properly
-  const authProtectedRoutes = ['/admin/dashboard', '/admin/', '/'];
-  const isAuthProtected = authProtectedRoutes.some(route => {
-    // Exact match for root path
-    if (route === '/' && url.pathname === '/') return true;
-    // Prefix match for other routes
-    if (route !== '/' && url.pathname.startsWith(route)) return true;
-    return false;
-  });
+  // ✅ CRITICAL: Skip root path entirely - let browser handle redirect natively
+  if (url.pathname === '/') {
+    console.log('[SW] Skipping root path, letting browser handle redirect');
+    return; // Don't call event.respondWith, let browser handle it
+  }
+
+  // ✅ Skip other auth-protected routes - always fetch fresh to handle redirects properly
+  const authProtectedRoutes = ['/admin/dashboard', '/admin/'];
+  const isAuthProtected = authProtectedRoutes.some(route => url.pathname.startsWith(route));
   
   if (isAuthProtected) {
     // For auth-protected routes, always go to network (don't cache)
