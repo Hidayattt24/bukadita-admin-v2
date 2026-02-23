@@ -18,8 +18,8 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps = {}) {
     profile?.role === "superadmin"
       ? "Superadmin"
       : profile?.role === "admin"
-      ? "Admin"
-      : null;
+        ? "Admin"
+        : null;
 
   const handleLogout = async () => {
     const result = await Swal.fire({
