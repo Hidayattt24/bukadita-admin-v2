@@ -16,9 +16,9 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps = {}) {
   const displayName = profile?.full_name || profile?.email || "Admin";
   const roleLabel =
     profile?.role === "superadmin"
-      ? "Superadmin"
+      ? "Pembina Posyandu"
       : profile?.role === "admin"
-        ? "Admin"
+        ? "Ketua Posyandu"
         : null;
 
   const handleLogout = async () => {
@@ -77,7 +77,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps = {}) {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+              <h1 className="text-xl font-bold text-white">Panel Manajemen Posyandu</h1>
               <p className="text-xs text-white/80 font-medium">
                 Bukadita - Buku Kader Digital Posyandu
               </p>
