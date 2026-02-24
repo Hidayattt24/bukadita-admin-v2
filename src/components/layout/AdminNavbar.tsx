@@ -422,7 +422,7 @@ export const Logo = () => {
         <span className="font-bold text-white text-base whitespace-pre">
           BUKADITA
         </span>
-        <span className="text-xs text-white/80">Admin Panel</span>
+        <span className="text-xs text-white/80">Panel Manajemen Posyandu</span>
       </motion.div>
     </Link>
   );
