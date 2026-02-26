@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useMemo } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import ContentRenderer from "@/components/shared/ContentRenderer";
 import { renderContent } from "@/lib/markdown-utils";
 
 interface ContentBlock {
@@ -22,27 +22,67 @@ interface LiveContentPreviewProps {
   title?: string;
 }
 
+// Mock MediaItem interface to match ContentRenderer expectations
+interface MockMediaItem {
+  id: string;
+  file_url: string;
+  mime_type: string;
+  caption?: string;
+  original_filename?: string;
+}
+
 export default function LiveContentPreview({
   blocks,
   title = "Preview Konten",
 }: LiveContentPreviewProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
-  const sizeClasses = {
-    small: "max-w-sm",
-    medium: "max-w-2xl",
-    large: "max-w-4xl",
-    full: "w-full",
-  };
+  // Convert blocks to HTML content and media items for ContentRenderer
+  const { htmlContent, mediaItems } = useMemo(() => {
+    let html = "";
+    const media: MockMediaItem[] = [];
 
-  const alignmentClasses = {
-    left: "mr-auto",
-    center: "mx-auto",
-    right: "ml-auto",
-  };
+    sortedBlocks.forEach((block) => {
+      if (block.type === "text" && block.content?.trim()) {
+        // Convert markdown to HTML
+        const contentHtml = renderContent(block.content, true);
+        html += `<div data-block-id="${block.id}" data-block-type="text" data-block-order="${block.order}">${contentHtml}</div>\n\n`;
+      } else if (block.type === "media" && (block.file || block.preview)) {
+        // Create media placeholder and add to media items
+        const mediaId = block.id;
+        html += `<div data-block-id="${mediaId}" data-block-type="media" data-block-order="${block.order}" data-media-caption="${block.caption || ""}" class="media-placeholder">[MEDIA_PLACEHOLDER_${mediaId}]</div>\n\n`;
+
+        // Determine MIME type
+        let mimeType = "image/jpeg"; // default
+        if (block.file) {
+          mimeType = block.file.type;
+        } else if (block.preview) {
+          if (block.preview.match(/\.(mp4|webm|ogg|avi|mov)$/i)) {
+            mimeType = "video/mp4";
+          } else if (block.preview.match(/\.(mp3|wav|ogg)$/i)) {
+            mimeType = "audio/mpeg";
+          } else if (block.preview.match(/\.pdf$/i)) {
+            mimeType = "application/pdf";
+          }
+        }
+
+        // Create mock media item
+        const mockMedia: MockMediaItem = {
+          id: mediaId,
+          file_url: block.preview || (block.file ? URL.createObjectURL(block.file) : ""),
+          mime_type: mimeType,
+          caption: block.caption,
+          original_filename: block.file?.name || "media",
+        };
+
+        media.push(mockMedia);
+      }
+    });
+
+    return { htmlContent: html, mediaItems: media };
+  }, [sortedBlocks]);
 
   return (
     <div className="sticky top-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -71,9 +111,7 @@ export default function LiveContentPreview({
 
       {/* Content */}
       {!isCollapsed && (
-        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto" style={{
-          color: '#111827'
-        }}>
+        <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           {sortedBlocks.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <Eye className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -83,96 +121,11 @@ export default function LiveContentPreview({
               </p>
             </div>
           ) : (
-            <div className="space-y-6 preview-content">
-              {sortedBlocks.map((block) => (
-                <div key={block.id}>
-                  {block.type === "text" && block.content?.trim() ? (
-                    <div className="prose prose-sm max-w-none" style={{ color: '#111827' }}>
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: renderContent(block.content, true),
-                        }}
-                        style={{ color: '#111827' }}
-                      />
-                    </div>
-                  ) : block.type === "media" && (block.file || block.preview) ? (
-                    <div
-                      className={`${alignmentClasses[block.alignment || "center"]} ${
-                        sizeClasses[block.size || "medium"]
-                      }`}
-                    >
-                      {/* Image Preview */}
-                      {(block.file?.type.startsWith("image/") ||
-                        block.preview?.includes("image") ||
-                        block.preview?.match(/\.(jpg|jpeg|png|gif|webp)$/i)) &&
-                      !imageErrors.has(block.id) ? (
-                        <div className="rounded-lg overflow-hidden shadow-sm border border-gray-200">
-                          <Image
-                            src={
-                              block.preview ||
-                              (block.file ? URL.createObjectURL(block.file) : "")
-                            }
-                            alt={block.caption || "Media"}
-                            width={800}
-                            height={600}
-                            className="w-full h-auto"
-                            unoptimized
-                            onError={() =>
-                              setImageErrors((prev) => new Set(prev).add(block.id))
-                            }
-                          />
-                          {block.caption && (
-                            <div className="px-3 py-2 bg-gray-50 border-t border-gray-200">
-                              <p className="text-sm text-gray-900 italic">
-                                {block.caption}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ) : block.file?.type.startsWith("video/") ? (
-                        <div className="rounded-lg overflow-hidden shadow-sm border border-gray-200">
-                          <video
-                            src={URL.createObjectURL(block.file)}
-                            controls
-                            className="w-full"
-                          />
-                          {block.caption && (
-                            <div className="px-3 py-2 bg-gray-50 border-t border-gray-200">
-                              <p className="text-sm text-gray-900 italic">
-                                {block.caption}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 text-center">
-                          <div className="text-gray-400 mb-2">
-                            <svg
-                              className="w-12 h-12 mx-auto"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            {block.file
-                              ? `File: ${block.file.name}`
-                              : "Media akan ditampilkan di sini"}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
+            <ContentRenderer
+              htmlContent={htmlContent}
+              mediaItems={mediaItems}
+              className="prose prose-sm max-w-none"
+            />
           )}
         </div>
       )}

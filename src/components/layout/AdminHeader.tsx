@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2";
+import showAlert from "@/components/ui/CustomAlert";
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
@@ -22,35 +22,20 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps = {}) {
         : null;
 
   const handleLogout = async () => {
-    const result = await Swal.fire({
-      title: "Keluar dari Admin?",
-      text: "Anda yakin ingin logout dari aplikasi?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Ya, Logout",
-      cancelButtonText: "Batal",
-      reverseButtons: true,
-      focusCancel: true,
-      showLoaderOnConfirm: true,
-      preConfirm: async () => {
-        try {
-          await logout();
-        } catch (e) {
-          Swal.showValidationMessage("Gagal logout. Coba lagi.");
-          throw e;
-        }
-      },
-      allowOutsideClick: () => !Swal.isLoading(),
-    });
+    const result = await showAlert.logoutConfirm();
 
     if (result.isConfirmed) {
-      await Swal.fire({
-        title: "Logout berhasil",
-        icon: "success",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-      router.push("/login");
+      try {
+        await logout();
+        await showAlert.logoutSuccess();
+        router.push("/login");
+      } catch (error) {
+        console.error("Logout error:", error);
+        await showAlert.error(
+          "Logout Failed",
+          "An error occurred while logging out. Please try again."
+        );
+      }
     }
   };
 

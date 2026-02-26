@@ -111,6 +111,25 @@ const getCustomStyles = () => `
     background: linear-gradient(91deg, #27548A 1.11%, #578FCA 105.6%) !important;
   }
 
+  /* Danger/Delete variant */
+  .swal2-popup.swal2-danger .swal2-confirm {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .swal2-popup.swal2-danger .swal2-confirm:hover {
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4) !important;
+  }
+
+  .swal2-popup.swal2-danger .swal2-title {
+    color: #dc2626 !important;
+  }
+
+  /* Success variant */
+  .swal2-popup.swal2-success-custom .swal2-title {
+    color: #059669 !important;
+  }
+
   @media (max-width: 640px) {
     .swal2-popup {
       padding: 1.5rem !important;
@@ -208,6 +227,82 @@ export const showAlert = {
   close: () => {
     Swal.close();
   },
+
+  // Modern styled alerts for specific use cases
+  deleteBlock: () => {
+    return Swal.fire({
+      title: "Hapus Blok? 🗑️",
+      html: '<p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Apakah Anda yakin ingin menghapus blok ini? Tindakan ini tidak dapat dibatalkan.</p>',
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: '<span style="font-weight: 600;">✓ Ya, Hapus</span>',
+      cancelButtonText: '<span style="font-weight: 600;">✕ Batal</span>',
+      reverseButtons: true,
+      customClass: {
+        popup: "swal2-danger rounded-2xl shadow-2xl border-2 border-gray-100",
+        title: "text-2xl font-bold",
+        htmlContainer: "text-base",
+        confirmButton:
+          "px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300",
+        cancelButton:
+          "px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300",
+      },
+      buttonsStyling: true,
+    });
+  },
+
+  deleteSuccess: () => {
+    return Swal.fire({
+      title: "Berhasil! ✓",
+      html: '<p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Blok tersebut telah berhasil dihapus dari konten.</p>',
+      icon: "success",
+      timer: 2000,
+      showConfirmButton: false,
+      customClass: {
+        popup: "swal2-success-custom rounded-2xl shadow-2xl border-2 border-green-100",
+      },
+    });
+  },
+
+  logoutConfirm: () => {
+    return Swal.fire({
+      title: "Keluar dari Area Admin?",
+      html: '<p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Apakah Anda yakin ingin keluar dari aplikasi?</p>',
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#27548A",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: '<span style="font-weight: 600;">✓ Ya, Keluar</span>',
+      cancelButtonText: '<span style="font-weight: 600;">✕ Tetap Disini</span>',
+      reverseButtons: true,
+      customClass: {
+        popup: "rounded-2xl shadow-2xl border-2 border-gray-100",
+        title: "text-2xl font-bold",
+        htmlContainer: "text-base",
+        confirmButton:
+          "px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300",
+        cancelButton:
+          "px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300",
+      },
+      buttonsStyling: true,
+    });
+  },
+
+  logoutSuccess: () => {
+    return Swal.fire({
+      title: "Berhasil Keluar! ✓",
+      html: '<p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Anda telah keluar. Mengalihkan...</p>',
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+      customClass: {
+        popup: "swal2-success-custom rounded-2xl shadow-2xl border-2 border-green-100",
+      },
+    });
+  },
 };
 
 export default showAlert;
+

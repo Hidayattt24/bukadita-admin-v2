@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import Swal from "sweetalert2";
+import showAlert from "@/components/ui/CustomAlert";
+import { useToast } from "@/hooks/useToast";
 import {
   Trash2,
   FileText,
@@ -10,6 +11,8 @@ import {
   ImageIcon,
   MoveUp,
   MoveDown,
+  Type,
+  ArrowUp,
 } from "lucide-react";
 import {
   poinsAPI,
@@ -44,6 +47,8 @@ interface MaterialPoinManagerProps {
 export default function MaterialPoinManager({
   materialId,
 }: MaterialPoinManagerProps) {
+  const { toast, ToastContainer } = useToast();
+  
   const [material, setMaterial] = useState<MaterialRecordWithPoins | null>(
     null,
   );
@@ -89,6 +94,9 @@ export default function MaterialPoinManager({
   // Ref for scrolling to newly added blocks
   const contentBlocksContainerRef = useRef<HTMLDivElement>(null);
   const latestBlockRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top state
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Helper function to get media from poin (backend now consistently uses poin_media)
   const getPoinMedia = (poin: PoinDetailRecord): MediaItem[] => {
@@ -158,28 +166,7 @@ export default function MaterialPoinManager({
   };
 
   const removeBlock = async (blockId: string) => {
-    const result = await Swal.fire({
-      title:
-        '<span style="color: #1f2937; font-size: 24px; font-weight: 700;">Hapus Blok? 🗑️</span>',
-      html: '<p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Apakah Anda yakin ingin menghapus blok ini? Tindakan ini tidak dapat dibatalkan.</p>',
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: '<span style="font-weight: 600;">✓ Ya, Hapus</span>',
-      cancelButtonText: '<span style="font-weight: 600;">✕ Batal</span>',
-      reverseButtons: true,
-      customClass: {
-        popup: "rounded-2xl shadow-2xl border-2 border-gray-100",
-        title: "text-2xl font-bold",
-        htmlContainer: "text-base",
-        confirmButton:
-          "px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300",
-        cancelButton:
-          "px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300",
-      },
-      buttonsStyling: true,
-    });
+    const result = await showAlert.deleteBlock();
 
     if (result.isConfirmed) {
       setContentBlocks((blocks) => {
@@ -188,17 +175,7 @@ export default function MaterialPoinManager({
         return filtered.map((block, index) => ({ ...block, order: index }));
       });
 
-      Swal.fire({
-        title:
-          '<span style="color: #059669; font-size: 24px; font-weight: 700;">Berhasil! ✓</span>',
-        html: '<p style="color: #6b7280; font-size: 16px; margin-top: 8px;">Blok telah dihapus dari konten</p>',
-        icon: "success",
-        timer: 2000,
-        showConfirmButton: false,
-        customClass: {
-          popup: "rounded-2xl shadow-2xl border-2 border-green-100",
-        },
-      });
+      showAlert.deleteSuccess();
     }
   };
 
@@ -426,20 +403,17 @@ export default function MaterialPoinManager({
               "Materi tidak ditemukan. Periksa apakah ID materi benar.";
           }
 
-          await Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: errorMsg,
-            footer: `Status: ${res.status} - ${res.error}`,
-          });
+          toast.error(
+            "Gagal Memuat Materi",
+            `${errorMsg}<br><small>Status: ${res.status} - ${res.error}</small>`
+          );
         }
       } catch (error) {
         console.error("Error loading material:", error);
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Terjadi kesalahan saat memuat materi",
-        });
+        toast.error(
+          "Gagal Memuat Materi",
+          "Terjadi kesalahan saat memuat materi. Silakan coba lagi."
+        );
       } finally {
         setLoading(false);
       }
@@ -447,6 +421,23 @@ export default function MaterialPoinManager({
 
     loadMaterial();
   }, [materialId]);
+
+  // Scroll to top handler
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   const resetForm = () => {
     setTitle("");
@@ -613,20 +604,18 @@ export default function MaterialPoinManager({
     const trimmedContentHtml = contentHtml.trim();
 
     if (!trimmedTitle) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Peringatan",
-        text: "Judul poin harus diisi",
-      });
+      toast.warning(
+        "Peringatan!",
+        "Judul poin harus diisi"
+      );
       return;
     }
 
     if (!trimmedContentHtml) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Peringatan",
-        text: "Konten poin harus diisi",
-      });
+      toast.warning(
+        "Peringatan!",
+        "Konten poin harus diisi"
+      );
       return;
     }
 
@@ -679,14 +668,10 @@ export default function MaterialPoinManager({
                 error instanceof Error && error.message?.includes("bucket");
 
               // Show specific error to user
-              await Swal.fire({
-                icon: "error",
-                title: "Gagal Upload Media",
-                text: errorMessage,
-                footer: isStorageError
-                  ? '<a href="https://github.com/yourusername/bukadita/blob/main/bukadita-api-v2/SETUP_STORAGE.md" target="_blank">Lihat panduan setup storage</a>'
-                  : undefined,
-              });
+              toast.error(
+                "Gagal Upload Media!",
+                errorMessage + (isStorageError ? '<br><small>Lihat dokumentasi setup storage</small>' : '')
+              );
 
               // Stop creating poin if media upload fails
               setSubmitting(false);
@@ -731,16 +716,13 @@ export default function MaterialPoinManager({
         const mediaCount = mediaFiles.length;
         const successMessage =
           mediaCount > 0
-            ? `Poin berhasil ditambahkan dengan ${mediaCount} file media`
-            : "Poin berhasil ditambahkan";
+            ? `Poin <strong class="text-emerald-600">"${trimmedTitle}"</strong> berhasil ditambahkan dengan ${mediaCount} file media`
+            : `Poin <strong class="text-emerald-600">"${trimmedTitle}"</strong> berhasil ditambahkan`;
 
-        await Swal.fire({
-          icon: "success",
-          title: "Berhasil",
-          text: successMessage,
-          timer: 2000,
-          showConfirmButton: false,
-        });
+        toast.create(
+          "Berhasil Ditambahkan!",
+          successMessage
+        );
       } else {
         // Enhanced error handling based on backend documentation
         let errorTitle = "Gagal Menambah Poin";
@@ -763,15 +745,10 @@ export default function MaterialPoinManager({
             "Terjadi kesalahan pada server. Silakan coba lagi nanti.";
         }
 
-        await Swal.fire({
-          icon: "error",
-          title: errorTitle,
-          text: errorMessage,
-          footer:
-            mediaFiles.length > 0
-              ? "Tip: Coba kurangi jumlah atau ukuran file yang diunggah"
-              : undefined,
-        });
+        toast.error(
+          errorTitle,
+          errorMessage + (mediaFiles.length > 0 ? '<br><small>Tip: Coba kurangi jumlah atau ukuran file yang diunggah</small>' : '')
+        );
       }
     } catch (error) {
       console.error("Error adding poin:", error);
@@ -792,15 +769,10 @@ export default function MaterialPoinManager({
         }
       }
 
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: errorMessage,
-        footer:
-          mediaFiles.length > 0
-            ? `Mencoba upload ${mediaFiles.length} file`
-            : undefined,
-      });
+      toast.error(
+        "Gagal Menambah Poin!",
+        errorMessage + (mediaFiles.length > 0 ? `<br><small>Mencoba upload ${mediaFiles.length} file</small>` : '')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -822,11 +794,10 @@ export default function MaterialPoinManager({
     const mediaFiles = getBlockMediaFiles();
 
     if (!title.trim() || !contentHtml.trim()) {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Judul dan konten harus diisi",
-      });
+      toast.warning(
+        "Peringatan!",
+        "Judul dan konten harus diisi"
+      );
       return;
     }
 
@@ -842,11 +813,10 @@ export default function MaterialPoinManager({
 
       const res = await poinsAPI.update(editingPoin.id, payload);
       if (!res.ok) {
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Gagal memperbarui poin",
-        });
+        toast.error(
+          "Gagal Memperbarui!",
+          "Terjadi kesalahan saat memperbarui poin. Silakan coba lagi."
+        );
         return;
       }
 
@@ -888,14 +858,10 @@ export default function MaterialPoinManager({
             error instanceof Error && error.message?.includes("bucket");
 
           // Show specific error to user
-          await Swal.fire({
-            icon: "error",
-            title: "Gagal Upload Media",
-            text: errorMessage,
-            footer: isStorageError
-              ? '<a href="https://github.com/yourusername/bukadita/blob/main/bukadita-api-v2/SETUP_STORAGE.md" target="_blank">Lihat panduan setup storage</a>'
-              : undefined,
-          });
+          toast.error(
+            "Gagal Upload Media!",
+            errorMessage + (isStorageError ? '<br><small>Lihat dokumentasi setup storage</small>' : '')
+          );
 
           // Stop update if media upload fails
           setSubmitting(false);
@@ -941,23 +907,19 @@ export default function MaterialPoinManager({
         existingMedia.filter((m) => m.captionChanged).length;
       const successMessage =
         mediaChanges > 0
-          ? "Poin berhasil diperbarui dengan perubahan media"
-          : "Poin berhasil diperbarui";
+          ? `Poin <strong class="text-blue-600">"${title}"</strong> berhasil diperbarui dengan perubahan media`
+          : `Poin <strong class="text-blue-600">"${title}"</strong> berhasil diperbarui`;
 
-      await Swal.fire({
-        icon: "success",
-        title: "Berhasil",
-        text: successMessage,
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      toast.update(
+        "Berhasil Diperbarui!",
+        successMessage
+      );
     } catch (error) {
       console.error("Error updating poin:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Terjadi kesalahan saat memperbarui poin",
-      });
+      toast.error(
+        "Gagal Memperbarui!",
+        "Terjadi kesalahan saat memperbarui poin. Silakan coba lagi."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -969,15 +931,10 @@ export default function MaterialPoinManager({
   };
 
   const handleDeletePoin = async (poin: PoinDetailRecord) => {
-    const result = await Swal.fire({
-      title: "Hapus Poin?",
-      text: `Poin "${poin.title}" akan dihapus.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Hapus",
-      cancelButtonText: "Batal",
-      reverseButtons: true,
-    });
+    const result = await showAlert.confirm(
+      "Hapus Poin?",
+      `Poin "${poin.title}" akan dihapus. Tindakan ini tidak dapat dibatalkan.`
+    );
 
     if (result.isConfirmed) {
       try {
@@ -989,27 +946,22 @@ export default function MaterialPoinManager({
             setMaterial(materialRes.data);
             setPoins(materialRes.data.poin_details || []);
           }
-          await Swal.fire({
-            icon: "success",
-            title: "Berhasil",
-            text: "Poin berhasil dihapus",
-            timer: 1500,
-            showConfirmButton: false,
-          });
+          toast.delete(
+            "Berhasil Dihapus!",
+            `Poin <strong class="text-red-600">"${poin.title}"</strong> telah dihapus`
+          );
         } else {
-          await Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Gagal menghapus poin",
-          });
+          toast.error(
+            "Gagal Menghapus!",
+            "Terjadi kesalahan saat menghapus poin. Silakan coba lagi."
+          );
         }
       } catch (error) {
         console.error("Error deleting poin:", error);
-        await Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Terjadi kesalahan saat menghapus poin",
-        });
+        toast.error(
+          "Gagal Menghapus!",
+          "Terjadi kesalahan saat menghapus poin. Silakan coba lagi."
+        );
       }
     }
   };
@@ -1633,42 +1585,6 @@ export default function MaterialPoinManager({
                         </div>
                       </div>
 
-                      {/* Add Block Buttons */}
-                      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                        <button
-                          type="button"
-                          onClick={addTextBlock}
-                          className="flex-1 group flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#27548A]/30 hover:shadow-xl hover:-translate-y-0.5"
-                        >
-                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
-                            <svg
-                              className="w-4 h-4 sm:w-5 sm:h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                              />
-                            </svg>
-                          </div>
-                          Tambah Teks
-                        </button>
-                        <button
-                          type="button"
-                          onClick={addMediaBlock}
-                          className="flex-1 group flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:from-[#4579b0] hover:to-[#1e3f6b] text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#578FCA]/30 hover:shadow-xl hover:-translate-y-0.5"
-                        >
-                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
-                            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </div>
-                          Tambah Media
-                        </button>
-                      </div>
-
                       {/* Content Blocks */}
                       <div
                         className="space-y-3 sm:space-y-4"
@@ -1813,6 +1729,30 @@ export default function MaterialPoinManager({
                             </p>
                           </div>
                         )}
+                      </div>
+
+                      {/* Add Block Buttons - Always at the end */}
+                      <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                        <button
+                          type="button"
+                          onClick={addTextBlock}
+                          className="flex-1 group flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#27548A]/30 hover:shadow-xl hover:-translate-y-0.5"
+                        >
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <Type className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          Tambah Teks
+                        </button>
+                        <button
+                          type="button"
+                          onClick={addMediaBlock}
+                          className="flex-1 group flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:from-[#4579b0] hover:to-[#1e3f6b] text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#578FCA]/30 hover:shadow-xl hover:-translate-y-0.5"
+                        >
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </div>
+                          Tambah Media
+                        </button>
                       </div>
 
                       <div className="mt-6 p-5 bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-200 rounded-xl">
@@ -1972,6 +1912,20 @@ export default function MaterialPoinManager({
           <MaterialPreview poins={poins} materialTitle={material.title} />
         )}
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 w-12 h-12 bg-gradient-to-br from-[#27548A] to-[#578FCA] hover:from-[#1e3f6b] hover:to-[#4579b0] text-white rounded-full shadow-2xl hover:shadow-[#27548A]/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="w-6 h-6 group-hover:animate-bounce" />
+        </button>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 }

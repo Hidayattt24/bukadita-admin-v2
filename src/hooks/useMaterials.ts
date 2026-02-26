@@ -81,6 +81,7 @@ export function useUpdateMaterial() {
         slug?: string;
         published?: boolean;
         module_id?: string;
+        order_index?: number;
       };
     }) => {
       const res = await materialsAPI.update(id, data);
