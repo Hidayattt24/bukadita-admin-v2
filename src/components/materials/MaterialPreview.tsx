@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { FileText } from "lucide-react";
 import { type Poin, type MediaItem } from "@/lib/api";
 import ContentRenderer from "@/components/shared/ContentRenderer";
