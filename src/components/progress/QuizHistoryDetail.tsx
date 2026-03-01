@@ -69,9 +69,14 @@ export default function QuizHistoryDetail({ modules }: QuizHistoryDetailProps) {
     answers: Array<{
       question_id: string;
       question_text: string;
-      user_answer: string;
-      correct_answer: string;
+      // ✅ Support both formats: old (user_answer as string) and new (selected_option_index)
+      user_answer?: string;
+      selected_option_index?: number;
+      correct_answer?: string;
+      correct_answer_index?: number;
+      options?: string[] | Array<{ text: string }>; // ✅ Support both array formats
       is_correct: boolean;
+      explanation?: string;
     }>;
   };
 
@@ -400,63 +405,165 @@ export default function QuizHistoryDetail({ modules }: QuizHistoryDetailProps) {
                                               Detail Jawaban
                                             </h6>
                                             <div className="space-y-2">
-                                              {attempt.answers.map((answer) => (
-                                                <div
-                                                  key={answer.question_id}
-                                                  className={`bg-white rounded-lg p-3 border-l-4 ${
-                                                    answer.is_correct
-                                                      ? "border-green-500 bg-green-50/30"
-                                                      : "border-red-500 bg-red-50/30"
-                                                  }`}
-                                                >
-                                                  <div className="flex items-start gap-2 mb-2">
-                                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
-                                                      {attempt.answers.indexOf(
-                                                        answer,
-                                                      ) + 1}
-                                                    </span>
-                                                    <p className="text-xs md:text-sm text-slate-900 font-medium flex-1">
-                                                      {answer.question_text}
-                                                    </p>
-                                                    {answer.is_correct ? (
-                                                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                                    ) : (
-                                                      <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                                                    )}
-                                                  </div>
-                                                  <div className="ml-8 space-y-1 text-xs md:text-sm">
-                                                    <div className="flex items-start gap-2">
-                                                      <span className="text-slate-600 min-w-[90px] font-medium">
-                                                        Jawaban user:
+                                              {attempt.answers.map((answer) => {
+                                                // ✅ Transform data: convert index to text if needed
+                                                const getUserAnswerText =
+                                                  () => {
+                                                    // If user_answer already exists as string, use it
+                                                    if (
+                                                      answer.user_answer &&
+                                                      typeof answer.user_answer ===
+                                                        "string"
+                                                    ) {
+                                                      return answer.user_answer;
+                                                    }
+
+                                                    // Otherwise, get from options array using selected_option_index
+                                                    if (
+                                                      answer.options &&
+                                                      answer.selected_option_index !==
+                                                        undefined
+                                                    ) {
+                                                      const options =
+                                                        Array.isArray(
+                                                          answer.options,
+                                                        )
+                                                          ? answer.options.map(
+                                                              (opt) =>
+                                                                typeof opt ===
+                                                                "string"
+                                                                  ? opt
+                                                                  : opt.text,
+                                                            )
+                                                          : [];
+
+                                                      return (
+                                                        options[
+                                                          answer
+                                                            .selected_option_index
+                                                        ] || "Tidak dijawab"
+                                                      );
+                                                    }
+
+                                                    return "Tidak dijawab";
+                                                  };
+
+                                                const getCorrectAnswerText =
+                                                  () => {
+                                                    // If correct_answer already exists as string, use it
+                                                    if (
+                                                      answer.correct_answer &&
+                                                      typeof answer.correct_answer ===
+                                                        "string"
+                                                    ) {
+                                                      return answer.correct_answer;
+                                                    }
+
+                                                    // Otherwise, get from options array using correct_answer_index
+                                                    if (
+                                                      answer.options &&
+                                                      answer.correct_answer_index !==
+                                                        undefined
+                                                    ) {
+                                                      const options =
+                                                        Array.isArray(
+                                                          answer.options,
+                                                        )
+                                                          ? answer.options.map(
+                                                              (opt) =>
+                                                                typeof opt ===
+                                                                "string"
+                                                                  ? opt
+                                                                  : opt.text,
+                                                            )
+                                                          : [];
+
+                                                      return (
+                                                        options[
+                                                          answer
+                                                            .correct_answer_index
+                                                        ] || "N/A"
+                                                      );
+                                                    }
+
+                                                    return "N/A";
+                                                  };
+
+                                                const userAnswerText =
+                                                  getUserAnswerText();
+                                                const correctAnswerText =
+                                                  getCorrectAnswerText();
+
+                                                return (
+                                                  <div
+                                                    key={answer.question_id}
+                                                    className={`bg-white rounded-lg p-3 border-l-4 ${
+                                                      answer.is_correct
+                                                        ? "border-green-500 bg-green-50/30"
+                                                        : "border-red-500 bg-red-50/30"
+                                                    }`}
+                                                  >
+                                                    <div className="flex items-start gap-2 mb-2">
+                                                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
+                                                        {attempt.answers.indexOf(
+                                                          answer,
+                                                        ) + 1}
                                                       </span>
-                                                      <span
-                                                        className={`font-semibold ${
-                                                          answer.user_answer ===
-                                                          "Tidak dijawab"
-                                                            ? "text-slate-500 italic"
-                                                            : answer.is_correct
-                                                              ? "text-green-700"
-                                                              : "text-red-700"
-                                                        }`}
-                                                      >
-                                                        {answer.user_answer}
-                                                      </span>
+                                                      <p className="text-xs md:text-sm text-slate-900 font-medium flex-1">
+                                                        {answer.question_text}
+                                                      </p>
+                                                      {answer.is_correct ? (
+                                                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                                      ) : (
+                                                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                                      )}
                                                     </div>
-                                                    {!answer.is_correct && (
+                                                    <div className="ml-8 space-y-1 text-xs md:text-sm">
                                                       <div className="flex items-start gap-2">
                                                         <span className="text-slate-600 min-w-[90px] font-medium">
-                                                          Jawaban benar:
+                                                          Jawaban user:
                                                         </span>
-                                                        <span className="font-semibold text-green-700">
-                                                          {
-                                                            answer.correct_answer
-                                                          }
+                                                        <span
+                                                          className={`font-semibold ${
+                                                            userAnswerText ===
+                                                            "Tidak dijawab"
+                                                              ? "text-slate-500 italic"
+                                                              : answer.is_correct
+                                                                ? "text-green-700"
+                                                                : "text-red-700"
+                                                          }`}
+                                                        >
+                                                          {userAnswerText}
                                                         </span>
                                                       </div>
-                                                    )}
+                                                      {!answer.is_correct && (
+                                                        <div className="flex items-start gap-2">
+                                                          <span className="text-slate-600 min-w-[90px] font-medium">
+                                                            Jawaban benar:
+                                                          </span>
+                                                          <span className="font-semibold text-green-700">
+                                                            {correctAnswerText}
+                                                          </span>
+                                                        </div>
+                                                      )}
+                                                      {answer.explanation && (
+                                                        <div className="mt-2 pt-2 border-t border-slate-200">
+                                                          <div className="flex items-start gap-2">
+                                                            <span className="text-slate-600 min-w-[90px] font-medium">
+                                                              Penjelasan:
+                                                            </span>
+                                                            <span className="text-slate-700 flex-1">
+                                                              {
+                                                                answer.explanation
+                                                              }
+                                                            </span>
+                                                          </div>
+                                                        </div>
+                                                      )}
+                                                    </div>
                                                   </div>
-                                                </div>
-                                              ))}
+                                                );
+                                              })}
                                             </div>
                                           </div>
                                         )}
