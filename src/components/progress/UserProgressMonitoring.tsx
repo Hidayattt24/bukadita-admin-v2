@@ -665,14 +665,6 @@ export default function UserProgressMonitoring() {
                               {module.total_stuck} kader
                             </span>
                           </div>
-
-                          {/* Additional Info */}
-                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-600">
-                            <span>
-                              {percentage.toFixed(1)}% dari{" "}
-                              {module.total_started} kader
-                            </span>
-                          </div>
                         </div>
 
                         {/* View Button */}
