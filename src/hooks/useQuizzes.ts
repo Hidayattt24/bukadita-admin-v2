@@ -134,6 +134,7 @@ export function useUpdateQuiz() {
         time_limit_seconds?: number;
         passing_score?: number;
         published?: boolean;
+        questions_to_show?: number;
       };
     }) => {
       const res = await quizzesAPI.update(id, data);
