@@ -129,9 +129,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
     {
       label: "Dashboard",
       href: "/admin/dashboard",
-      icon: (
-        <ChartPie className="h-5 w-5 shrink-0 text-neutral-200" />
-      ),
+      icon: <ChartPie className="h-5 w-5 shrink-0 text-neutral-200" />,
     },
     {
       label: "Kelola Modul",
@@ -141,9 +139,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
     {
       label: "Progress & Attempts",
       href: "/admin/progress",
-      icon: (
-        <TrendingUp className="h-5 w-5 shrink-0 text-neutral-200" />
-      ),
+      icon: <TrendingUp className="h-5 w-5 shrink-0 text-neutral-200" />,
     },
   ];
 
@@ -158,7 +154,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
         ]
       : []),
     {
-      label: "Pengguna",
+      label: "Kader",
       href: "/admin/kelola-pengguna?role=pengguna",
       icon: <Users className="h-4 w-4 shrink-0 text-neutral-200" />,
     },
@@ -176,12 +172,13 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
               <SidebarLink link={mainLinks[0]} />
 
               {/* User Management Section - Only for Admin/Superadmin */}
-              {(profile?.role === "admin" || profile?.role === "superadmin") && (
+              {(profile?.role === "admin" ||
+                profile?.role === "superadmin") && (
                 <div className="space-y-1">
                   <button
                     onClick={() => setOpenUsers(!openUsers)}
                     className={cn(
-                      "group/sidebar flex w-full items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-white/10 transition-colors text-white"
+                      "group/sidebar flex w-full items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-white/10 transition-colors text-white",
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -227,7 +224,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
                             "flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition-colors",
                             isActive(link.href)
                               ? "bg-white/20 text-white font-semibold"
-                              : "text-neutral-300 hover:bg-white/10 hover:text-white"
+                              : "text-neutral-300 hover:bg-white/10 hover:text-white",
                           )}
                         >
                           {link.icon}
@@ -268,11 +265,14 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
                   <div key={m.id} className="space-y-1">
                     <button
                       onClick={() =>
-                        setOpenModules((prev) => ({ ...prev, [m.id]: !moduleOpen }))
+                        setOpenModules((prev) => ({
+                          ...prev,
+                          [m.id]: !moduleOpen,
+                        }))
                       }
                       title={m.title}
                       className={cn(
-                        "group/sidebar flex w-full items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-white/10 transition-colors text-white"
+                        "group/sidebar flex w-full items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-white/10 transition-colors text-white",
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -314,7 +314,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
                             "flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition-colors",
                             isActive(`/admin/modul/${m.id}/materi`)
                               ? "bg-white/20 text-white"
-                              : "text-white/80 hover:bg-white/10 hover:text-white"
+                              : "text-white/80 hover:bg-white/10 hover:text-white",
                           )}
                         >
                           <BookOpen className="h-4 w-4" />
@@ -326,7 +326,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
                             "flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition-colors",
                             isActive(`/admin/modul/${m.id}/kuis`)
                               ? "bg-white/20 text-white"
-                              : "text-white/80 hover:bg-white/10 hover:text-white"
+                              : "text-white/80 hover:bg-white/10 hover:text-white",
                           )}
                         >
                           <ListChecks className="h-4 w-4" />
@@ -387,7 +387,7 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </motion.div>
-        
+
         {/* Mobile Layout - No margin, with fixed header */}
         <div className="flex md:hidden flex-1 flex-col h-screen overflow-hidden">
           <AdminHeader onMenuClick={() => setOpen(!open)} />

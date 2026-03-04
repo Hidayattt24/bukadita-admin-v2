@@ -617,7 +617,6 @@ export default function UserProgressMonitoring() {
             <div className="space-y-3">
               {[...moduleStats]
                 .sort((a, b) => b.total_stuck - a.total_stuck)
-                .slice(0, 5)
                 .map((module, idx) => {
                   // Calculate percentage based on total users who started the module
                   // This gives a more realistic view of how many users are stuck
