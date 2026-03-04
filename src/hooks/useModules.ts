@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { modulesAPI } from "@/lib/api";
+import { progressMonitoringKeys } from "./useProgressMonitoring";
 
 // Query Keys
 export const moduleKeys = {
   all: ["modules"] as const,
   lists: () => [...moduleKeys.all, "list"] as const,
-  list: (filters?: Record<string, unknown>) => [...moduleKeys.lists(), filters] as const,
+  list: (filters?: Record<string, unknown>) =>
+    [...moduleKeys.lists(), filters] as const,
   details: () => [...moduleKeys.all, "detail"] as const,
   detail: (id: string | number) => [...moduleKeys.details(), id] as const,
 };
@@ -62,6 +64,12 @@ export function useCreateModule() {
     onSuccess: () => {
       // Invalidate and refetch modules list
       queryClient.invalidateQueries({ queryKey: moduleKeys.lists() });
+      // Invalidate progress monitoring so stuck modules chart updates
+      queryClient.invalidateQueries({ queryKey: progressMonitoringKeys.all });
+      // Trigger custom event for AdminNavbar to reload
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("modules:updated"));
+      }
     },
   });
 }
@@ -71,11 +79,11 @@ export function useUpdateModule() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      id, 
-      data 
-    }: { 
-      id: string | number; 
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string | number;
       data: {
         title?: string;
         description?: string;
@@ -89,8 +97,16 @@ export function useUpdateModule() {
       return res.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: moduleKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: moduleKeys.detail(variables.id),
+      });
       queryClient.invalidateQueries({ queryKey: moduleKeys.lists() });
+      // Invalidate progress monitoring so stuck modules chart updates
+      queryClient.invalidateQueries({ queryKey: progressMonitoringKeys.all });
+      // Trigger custom event for AdminNavbar to reload
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("modules:updated"));
+      }
     },
   });
 }
@@ -110,6 +126,12 @@ export function useDeleteModule() {
     onSuccess: () => {
       // Invalidate modules list
       queryClient.invalidateQueries({ queryKey: moduleKeys.lists() });
+      // Invalidate progress monitoring so stuck modules chart updates
+      queryClient.invalidateQueries({ queryKey: progressMonitoringKeys.all });
+      // Trigger custom event for AdminNavbar to reload
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("modules:updated"));
+      }
     },
   });
 }

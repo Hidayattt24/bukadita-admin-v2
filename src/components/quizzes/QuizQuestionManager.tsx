@@ -3,22 +3,23 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { 
-  ArrowLeft, 
-  Plus, 
-  Trash2, 
-  Eye, 
-  Edit, 
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Eye,
+  Edit,
   FileQuestion,
   Clock,
   Target,
   CheckCircle2,
   Lightbulb,
   Save,
-  X as XIcon
+  X as XIcon,
 } from "lucide-react";
 import { quizzesAPI, type Quiz, type QuizQuestion } from "@/lib/api";
 import { useModernToast } from "@/hooks/useModernToast";
+import { useUpdateQuiz } from "@/hooks/useQuizzes";
 
 // Alias for backward compatibility
 type QuizRecord = Quiz;
@@ -27,19 +28,25 @@ interface QuizQuestionManagerProps {
   kuisId: string;
 }
 
-export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps) {
+export default function QuizQuestionManager({
+  kuisId,
+}: QuizQuestionManagerProps) {
   const router = useRouter();
   const { success, error, warning, ToastContainer } = useModernToast();
+  const updateQuizMutation = useUpdateQuiz();
   const [quiz, setQuiz] = useState<QuizRecord | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [showEditQuestion, setShowEditQuestion] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
-  
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(
+    null,
+  );
+
   // NEW: State for questions_to_show
   const [questionsToShow, setQuestionsToShow] = useState<string>("");
-  const [isEditingQuestionsToShow, setIsEditingQuestionsToShow] = useState(false);
+  const [isEditingQuestionsToShow, setIsEditingQuestionsToShow] =
+    useState(false);
   const [isSavingQuestionsToShow, setIsSavingQuestionsToShow] = useState(false);
 
   // Add/Edit question form state
@@ -100,12 +107,16 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
           setQuiz(res.data);
           setQuestions(res.data.questions || []);
           // NEW: Set questions_to_show value
-          setQuestionsToShow(res.data.questions_to_show ? String(res.data.questions_to_show) : "");
+          setQuestionsToShow(
+            res.data.questions_to_show
+              ? String(res.data.questions_to_show)
+              : "",
+          );
         } else {
           error("Error", "Gagal memuat kuis");
         }
       } catch (err) {
-        console.error('Error loading quiz:', err);
+        console.error("Error loading quiz:", err);
         error("Error", "Terjadi kesalahan saat memuat kuis");
       } finally {
         setLoading(false);
@@ -122,13 +133,15 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
     setExplanation("");
     setEditingQuestion(null);
   };
-  
+
   // NEW: Function to save questions_to_show
   const handleSaveQuestionsToShow = async () => {
     if (!kuisId || !quiz) return;
-    
-    const value = questionsToShow.trim() ? parseInt(questionsToShow) : undefined;
-    
+
+    const value = questionsToShow.trim()
+      ? parseInt(questionsToShow)
+      : undefined;
+
     // Validate
     if (value !== undefined) {
       if (isNaN(value)) {
@@ -141,29 +154,37 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
       }
       if (value > questions.length) {
         error(
-          "Jumlah Soal Melebihi Batas", 
-          `Anda hanya memiliki ${questions.length} soal. Tidak bisa menampilkan ${value} soal. Silakan tambahkan soal terlebih dahulu atau kurangi jumlah soal yang ditampilkan.`
+          "Jumlah Soal Melebihi Batas",
+          `Anda hanya memiliki ${questions.length} soal. Tidak bisa menampilkan ${value} soal. Silakan tambahkan soal terlebih dahulu atau kurangi jumlah soal yang ditampilkan.`,
         );
         return;
       }
     }
-    
+
     setIsSavingQuestionsToShow(true);
     try {
-      const res = await quizzesAPI.update(kuisId, {
-        questions_to_show: value,
+      const result = await updateQuizMutation.mutateAsync({
+        id: kuisId,
+        data: {
+          questions_to_show: value,
+        },
       });
-      
-      if (res.ok) {
-        setQuiz(res.data);
-        setIsEditingQuestionsToShow(false);
-        success("Berhasil Disimpan!", "Jumlah soal yang ditampilkan berhasil diperbarui", 2000);
-      } else {
-        error("Gagal Menyimpan", res.error || "Gagal memperbarui jumlah soal");
-      }
+
+      setQuiz(result);
+      setIsEditingQuestionsToShow(false);
+      success(
+        "Berhasil Disimpan!",
+        "Jumlah soal yang ditampilkan berhasil diperbarui",
+        2000,
+      );
     } catch (err) {
-      console.error('Error updating questions_to_show:', err);
-      error("Terjadi Kesalahan", "Terjadi kesalahan saat memperbarui");
+      console.error("Error updating questions_to_show:", err);
+      error(
+        "Terjadi Kesalahan",
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat memperbarui",
+      );
     } finally {
       setIsSavingQuestionsToShow(false);
     }
@@ -219,11 +240,14 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
     // Validate that the selected correct answer is not empty
     if (!options[correctIndex] || !options[correctIndex].trim()) {
-      warning("Peringatan", "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong");
+      warning(
+        "Peringatan",
+        "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong",
+      );
       return;
     }
 
-    const validOptions = options.filter(opt => opt.trim());
+    const validOptions = options.filter((opt) => opt.trim());
     if (validOptions.length < 2) {
       warning("Peringatan", "Minimal harus ada 2 opsi jawaban");
       return;
@@ -272,14 +296,14 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
         setShowAddQuestion(false);
         success("Berhasil", "Pertanyaan berhasil ditambahkan", 2000);
       } else {
-        console.error('Failed to add question:', res);
+        console.error("Failed to add question:", res);
 
-        let errorMessage = 'Gagal menambah pertanyaan';
-        let errorDetails = '';
+        let errorMessage = "Gagal menambah pertanyaan";
+        let errorDetails = "";
 
         if (res.status === 422) {
-          errorMessage = 'Data pertanyaan tidak valid';
-          if (res.raw && typeof res.raw === 'object') {
+          errorMessage = "Data pertanyaan tidak valid";
+          if (res.raw && typeof res.raw === "object") {
             const rawError = res.raw as Record<string, unknown>;
             if (rawError.message) {
               errorDetails = String(rawError.message);
@@ -289,11 +313,13 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
           }
         }
 
-        const finalMessage = errorDetails ? `${errorDetails}` : (res.error || errorMessage);
+        const finalMessage = errorDetails
+          ? `${errorDetails}`
+          : res.error || errorMessage;
         error("Error", finalMessage);
       }
     } catch (err) {
-      console.error('Error adding question:', err);
+      console.error("Error adding question:", err);
       error("Error", "Terjadi kesalahan saat menambah pertanyaan");
     } finally {
       setSubmitting(false);
@@ -320,11 +346,14 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
     // Validate that the selected correct answer is not empty
     if (!options[correctIndex] || !options[correctIndex].trim()) {
-      warning("Peringatan", "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong");
+      warning(
+        "Peringatan",
+        "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong",
+      );
       return;
     }
 
-    const validOptions = options.filter(opt => opt.trim());
+    const validOptions = options.filter((opt) => opt.trim());
     if (validOptions.length < 2) {
       warning("Peringatan", "Minimal harus ada 2 opsi jawaban");
       return;
@@ -371,16 +400,20 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
         }
         resetForm();
         // Keep form open for adding another question
-        success("Berhasil", "Pertanyaan berhasil ditambahkan. Silakan tambah pertanyaan lagi.", 2000);
+        success(
+          "Berhasil",
+          "Pertanyaan berhasil ditambahkan. Silakan tambah pertanyaan lagi.",
+          2000,
+        );
       } else {
-        console.error('Failed to add question:', res);
+        console.error("Failed to add question:", res);
 
-        let errorMessage = 'Gagal menambah pertanyaan';
-        let errorDetails = '';
+        let errorMessage = "Gagal menambah pertanyaan";
+        let errorDetails = "";
 
         if (res.status === 422) {
-          errorMessage = 'Data pertanyaan tidak valid';
-          if (res.raw && typeof res.raw === 'object') {
+          errorMessage = "Data pertanyaan tidak valid";
+          if (res.raw && typeof res.raw === "object") {
             const rawError = res.raw as Record<string, unknown>;
             if (rawError.message) {
               errorDetails = String(rawError.message);
@@ -390,11 +423,13 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
           }
         }
 
-        const finalMessage = errorDetails ? `${errorDetails}` : (res.error || errorMessage);
+        const finalMessage = errorDetails
+          ? `${errorDetails}`
+          : res.error || errorMessage;
         error("Error", finalMessage);
       }
     } catch (err) {
-      console.error('Error adding question:', err);
+      console.error("Error adding question:", err);
       error("Error", "Terjadi kesalahan saat menambah pertanyaan");
     } finally {
       setSubmitting(false);
@@ -424,11 +459,14 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
     // Validate that the selected correct answer is not empty
     if (!options[correctIndex] || !options[correctIndex].trim()) {
-      warning("Peringatan", "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong");
+      warning(
+        "Peringatan",
+        "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong",
+      );
       return;
     }
 
-    const validOptions = options.filter(opt => opt.trim());
+    const validOptions = options.filter((opt) => opt.trim());
     if (validOptions.length < 2) {
       warning("Peringatan", "Minimal harus ada 2 opsi jawaban");
       return;
@@ -476,14 +514,14 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
         setShowEditQuestion(false);
         success("Berhasil", "Pertanyaan berhasil diperbarui", 2000);
       } else {
-        console.error('Failed to update question:', res);
+        console.error("Failed to update question:", res);
 
-        let errorMessage = 'Gagal memperbarui pertanyaan';
-        let errorDetails = '';
+        let errorMessage = "Gagal memperbarui pertanyaan";
+        let errorDetails = "";
 
         if (res.status === 422) {
-          errorMessage = 'Data pertanyaan tidak valid';
-          if (res.raw && typeof res.raw === 'object') {
+          errorMessage = "Data pertanyaan tidak valid";
+          if (res.raw && typeof res.raw === "object") {
             const rawError = res.raw as Record<string, unknown>;
             if (rawError.message) {
               errorDetails = String(rawError.message);
@@ -493,11 +531,13 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
           }
         }
 
-        const finalMessage = errorDetails ? `${errorDetails}` : (res.error || errorMessage);
+        const finalMessage = errorDetails
+          ? `${errorDetails}`
+          : res.error || errorMessage;
         error("Error", finalMessage);
       }
     } catch (err) {
-      console.error('Error updating question:', err);
+      console.error("Error updating question:", err);
       error("Error", "Terjadi kesalahan saat memperbarui pertanyaan");
     } finally {
       setSubmitting(false);
@@ -511,15 +551,15 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
   const handleDeleteQuestion = async (question: QuizQuestion) => {
     const result = await Swal.fire({
-      title: 'Hapus Pertanyaan?',
+      title: "Hapus Pertanyaan?",
       text: `Pertanyaan "${question.question_text.slice(0, 50)}..." akan dihapus.`,
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'Hapus',
-      cancelButtonText: 'Batal',
+      confirmButtonText: "Hapus",
+      cancelButtonText: "Batal",
       reverseButtons: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
     });
 
     if (result.isConfirmed) {
@@ -537,7 +577,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
           error("Error", "Gagal menghapus pertanyaan");
         }
       } catch (err) {
-        console.error('Error deleting question:', err);
+        console.error("Error deleting question:", err);
         error("Error", "Terjadi kesalahan saat menghapus pertanyaan");
       }
     }
@@ -569,7 +609,9 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
                 <XIcon className="w-8 h-8 text-red-600" />
               </div>
-              <div className="text-red-600 font-medium">Kuis tidak ditemukan</div>
+              <div className="text-red-600 font-medium">
+                Kuis tidak ditemukan
+              </div>
             </div>
           </div>
         </div>
@@ -581,7 +623,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
       {/* Custom Radio Button Styles */}
       <style jsx>{radioButtonStyles}</style>
-      
+
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
@@ -599,18 +641,23 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                 <FileQuestion className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">{quiz.title}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">
+                  {quiz.title}
+                </h1>
                 {quiz.description && (
                   <p className="text-gray-600">{quiz.description}</p>
                 )}
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-3 sm:gap-4 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
                 <Clock className="w-4 h-4 text-[#578FCA] flex-shrink-0" />
                 <span className="text-xs sm:text-sm font-medium text-gray-700">
-                  {Math.floor((quiz.time_limit_seconds || quiz.time_limit || 1800) / 60)} Menit
+                  {Math.floor(
+                    (quiz.time_limit_seconds || quiz.time_limit || 1800) / 60,
+                  )}{" "}
+                  Menit
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-lg">
@@ -625,7 +672,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                   {questions.length} Pertanyaan
                 </span>
               </div>
-              
+
               {/* NEW: Questions to Show Input - Modern Design */}
               <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 shadow-sm min-w-fit">
                 <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0" />
@@ -641,7 +688,9 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                         placeholder="Semua"
                         className="w-28 px-3 py-2 text-sm font-bold text-gray-900 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                       />
-                      <span className="text-xs text-amber-700 font-medium">Max: {questions.length} soal</span>
+                      <span className="text-xs text-amber-700 font-medium">
+                        Max: {questions.length} soal
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -655,7 +704,11 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                       <button
                         onClick={() => {
                           setIsEditingQuestionsToShow(false);
-                          setQuestionsToShow(quiz.questions_to_show ? String(quiz.questions_to_show) : "");
+                          setQuestionsToShow(
+                            quiz.questions_to_show
+                              ? String(quiz.questions_to_show)
+                              : "",
+                          );
                         }}
                         className="p-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-md hover:shadow-lg"
                         title="Batal"
@@ -667,7 +720,11 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                 ) : (
                   <div className="flex items-center gap-2.5">
                     <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
-                      Tampilkan: <span className="text-amber-700">{quiz.questions_to_show || "Semua"}</span> soal
+                      Tampilkan:{" "}
+                      <span className="text-amber-700">
+                        {quiz.questions_to_show || "Semua"}
+                      </span>{" "}
+                      soal
                     </span>
                     <button
                       onClick={() => setIsEditingQuestionsToShow(true)}
@@ -712,17 +769,32 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
 
         {/* Add/Edit Question Form */}
         {(showAddQuestion || showEditQuestion) && (
-          <form onSubmit={editingQuestion ? handleUpdateQuestion : handleAddQuestion} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <form
+            onSubmit={
+              editingQuestion ? handleUpdateQuestion : handleAddQuestion
+            }
+            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6"
+          >
             <div className="flex items-center gap-3 mb-6">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${editingQuestion ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 'bg-gradient-to-br from-[#578FCA] to-[#27548A]'}`}>
-                {editingQuestion ? <Edit className="w-6 h-6 text-white" /> : <Plus className="w-6 h-6 text-white" />}
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${editingQuestion ? "bg-gradient-to-br from-amber-500 to-orange-500" : "bg-gradient-to-br from-[#578FCA] to-[#27548A]"}`}
+              >
+                {editingQuestion ? (
+                  <Edit className="w-6 h-6 text-white" />
+                ) : (
+                  <Plus className="w-6 h-6 text-white" />
+                )}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {editingQuestion ? 'Edit Pertanyaan' : 'Tambah Pertanyaan Baru'}
+                  {editingQuestion
+                    ? "Edit Pertanyaan"
+                    : "Tambah Pertanyaan Baru"}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {editingQuestion ? 'Perbarui informasi pertanyaan' : 'Lengkapi form untuk menambah pertanyaan'}
+                  {editingQuestion
+                    ? "Perbarui informasi pertanyaan"
+                    : "Lengkapi form untuk menambah pertanyaan"}
                 </p>
               </div>
             </div>
@@ -731,7 +803,9 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2">
                   Pertanyaan <span className="text-red-500">*</span>
-                  <span className="text-xs font-normal text-gray-500 ml-2">(minimal 10 karakter)</span>
+                  <span className="text-xs font-normal text-gray-500 ml-2">
+                    (minimal 10 karakter)
+                  </span>
                 </label>
                 <textarea
                   value={questionText}
@@ -746,7 +820,9 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-3">
                   Opsi Jawaban <span className="text-red-500">*</span>
-                  <span className="text-xs font-normal text-gray-500 ml-2">(pilih salah satu sebagai jawaban benar)</span>
+                  <span className="text-xs font-normal text-gray-500 ml-2">
+                    (pilih salah satu sebagai jawaban benar)
+                  </span>
                 </label>
                 <div className="space-y-2">
                   {options.map((option, index) => (
@@ -768,8 +844,8 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                           onChange={(e) => updateOption(index, e.target.value)}
                           className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition-all text-gray-900 ${
                             correctIndex === index
-                              ? 'border-[#578FCA] bg-blue-50 focus:ring-[#578FCA] focus:border-[#27548A]'
-                              : 'border-gray-200 focus:ring-[#578FCA] focus:border-[#27548A]'
+                              ? "border-[#578FCA] bg-blue-50 focus:ring-[#578FCA] focus:border-[#27548A]"
+                              : "border-gray-200 focus:ring-[#578FCA] focus:border-[#27548A]"
                           }`}
                           placeholder={`Opsi ${String.fromCharCode(65 + index)}...`}
                         />
@@ -805,14 +881,16 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                 <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg">
                   <Lightbulb className="w-4 h-4 text-[#578FCA] flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-gray-900">
-                    Klik radio button di sebelah kiri opsi untuk menandai jawaban yang benar
+                    Klik radio button di sebelah kiri opsi untuk menandai
+                    jawaban yang benar
                   </p>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2">
-                  Penjelasan <span className="text-gray-500 font-normal">(opsional)</span>
+                  Penjelasan{" "}
+                  <span className="text-gray-500 font-normal">(opsional)</span>
                 </label>
                 <textarea
                   value={explanation}
@@ -833,7 +911,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                   className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:shadow-lg text-white rounded-xl font-medium shadow-md transition-all disabled:opacity-60"
                 >
                   <Plus className="w-4 h-4" />
-                  {submitting ? 'Menyimpan...' : 'Simpan & Tambah Lagi'}
+                  {submitting ? "Menyimpan..." : "Simpan & Tambah Lagi"}
                 </button>
               )}
               <button
@@ -841,19 +919,27 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                 disabled={submitting}
                 className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-white font-medium shadow-md transition-all disabled:opacity-60 ${
                   editingQuestion
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg'
-                    : 'bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:shadow-lg'
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg"
+                    : "bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:shadow-lg"
                 }`}
               >
                 <Save className="w-4 h-4" />
-                {submitting ? 'Menyimpan...' : (editingQuestion ? 'Perbarui Pertanyaan' : 'Simpan Pertanyaan')}
+                {submitting
+                  ? "Menyimpan..."
+                  : editingQuestion
+                    ? "Perbarui Pertanyaan"
+                    : "Simpan Pertanyaan"}
               </button>
               <button
                 type="button"
-                onClick={editingQuestion ? handleCancelEdit : () => {
-                  resetForm();
-                  setShowAddQuestion(false);
-                }}
+                onClick={
+                  editingQuestion
+                    ? handleCancelEdit
+                    : () => {
+                        resetForm();
+                        setShowAddQuestion(false);
+                      }
+                }
                 className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
               >
                 <XIcon className="w-4 h-4" />
@@ -872,8 +958,12 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                   <FileQuestion className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-white">Daftar Pertanyaan</h2>
-                  <p className="text-xs sm:text-sm text-white/80">{questions.length} pertanyaan tersedia</p>
+                  <h2 className="text-base sm:text-lg font-bold text-white">
+                    Daftar Pertanyaan
+                  </h2>
+                  <p className="text-xs sm:text-sm text-white/80">
+                    {questions.length} pertanyaan tersedia
+                  </p>
                 </div>
               </div>
             </div>
@@ -884,20 +974,29 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
               <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
                 <Eye className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
-              <p className="text-sm sm:text-base text-gray-600 font-medium mb-2">Belum ada pertanyaan</p>
-              <p className="text-xs sm:text-sm text-gray-500">Klik &quot;Tambah Pertanyaan&quot; untuk mulai membuat kuis.</p>
+              <p className="text-sm sm:text-base text-gray-600 font-medium mb-2">
+                Belum ada pertanyaan
+              </p>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Klik &quot;Tambah Pertanyaan&quot; untuk mulai membuat kuis.
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
               {questions.map((question, index) => (
-                <div key={question.id} className="p-3 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div
+                  key={question.id}
+                  className="p-3 sm:p-6 hover:bg-gray-50 transition-colors"
+                >
                   <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                     {/* Question Number Badge and Action Buttons (Mobile) */}
                     <div className="flex items-center justify-between w-full sm:w-auto">
                       <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-md">
-                        <span className="text-white font-bold text-sm">{index + 1}</span>
+                        <span className="text-white font-bold text-sm">
+                          {index + 1}
+                        </span>
                       </div>
-                      
+
                       {/* Action Buttons (Mobile - visible) */}
                       <div className="flex sm:hidden items-center gap-2">
                         <button
@@ -922,36 +1021,45 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                       <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">
                         {question.question_text}
                       </h3>
-                      
+
                       {/* Options */}
                       <div className="space-y-2 mb-3">
                         {question.options.map((option, optIndex) => {
-                          const isCorrect = optIndex === question.correct_answer_index;
+                          const isCorrect =
+                            optIndex === question.correct_answer_index;
                           return (
-                            <div 
-                              key={optIndex} 
+                            <div
+                              key={optIndex}
                               className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border-2 transition-all ${
-                                isCorrect 
-                                  ? 'bg-emerald-50 border-emerald-300' 
-                                  : 'bg-gray-50 border-gray-200'
+                                isCorrect
+                                  ? "bg-emerald-50 border-emerald-300"
+                                  : "bg-gray-50 border-gray-200"
                               }`}
                             >
-                              <div className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
-                                isCorrect 
-                                  ? 'bg-emerald-500 text-white' 
-                                  : 'bg-white text-gray-600 border-2 border-gray-300'
-                              }`}>
+                              <div
+                                className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
+                                  isCorrect
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-white text-gray-600 border-2 border-gray-300"
+                                }`}
+                              >
                                 {String.fromCharCode(65 + optIndex)}
                               </div>
-                              <span className={`flex-1 text-xs sm:text-sm ${
-                                isCorrect ? 'text-emerald-900 font-medium' : 'text-gray-700'
-                              }`}>
+                              <span
+                                className={`flex-1 text-xs sm:text-sm ${
+                                  isCorrect
+                                    ? "text-emerald-900 font-medium"
+                                    : "text-gray-700"
+                                }`}
+                              >
                                 {option}
                               </span>
                               {isCorrect && (
                                 <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  <span className="hidden sm:inline">Benar</span>
+                                  <span className="hidden sm:inline">
+                                    Benar
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -964,8 +1072,12 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
                         <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
                           <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-[#578FCA] flex-shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-[#27548A] mb-1">Penjelasan:</p>
-                            <p className="text-xs sm:text-sm text-gray-700">{question.explanation}</p>
+                            <p className="text-xs font-bold text-[#27548A] mb-1">
+                              Penjelasan:
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-700">
+                              {question.explanation}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -995,7 +1107,7 @@ export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps
           )}
         </div>
       </div>
-      
+
       {/* Toast Container */}
       <ToastContainer />
     </div>

@@ -5,15 +5,17 @@ import { quizzesAPI } from "@/lib/api";
 export const quizKeys = {
   all: ["quizzes"] as const,
   lists: () => [...quizKeys.all, "list"] as const,
-  list: (filters?: Record<string, unknown>) => [...quizKeys.lists(), filters] as const,
+  list: (filters?: Record<string, unknown>) =>
+    [...quizKeys.lists(), filters] as const,
   details: () => [...quizKeys.all, "detail"] as const,
   detail: (id: string | number) => [...quizKeys.details(), id] as const,
-  byModule: (moduleId: string | number) => [...quizKeys.all, "module", moduleId] as const,
+  byModule: (moduleId: string | number) =>
+    [...quizKeys.all, "module", moduleId] as const,
 };
 
 // Hook untuk fetch quizzes
-export function useQuizzes(params?: { 
-  module_id?: string | number; 
+export function useQuizzes(params?: {
+  module_id?: string | number;
   sub_materi_id?: string | number;
   page?: number;
   limit?: number;
@@ -32,12 +34,12 @@ export function useQuizzes(params?: {
 }
 
 // Hook untuk fetch quizzes dengan detail lengkap (termasuk questions)
-export function useQuizzesWithDetails(params?: { 
-  module_id?: string | number; 
+export function useQuizzesWithDetails(params?: {
+  module_id?: string | number;
   sub_materi_id?: string | number;
 }) {
   return useQuery({
-    queryKey: [...quizKeys.list(params), 'with-details'],
+    queryKey: [...quizKeys.list(params), "with-details"],
     queryFn: async () => {
       // First, get the list of quizzes
       const listRes = await quizzesAPI.list(params || {});
@@ -46,10 +48,10 @@ export function useQuizzesWithDetails(params?: {
       }
 
       // Extract quizzes array from response
-      const quizzes = Array.isArray(listRes.data) 
-        ? listRes.data 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        : (listRes.data as any)?.quizzes || (listRes.data as any)?.items || [];
+      const quizzes = Array.isArray(listRes.data)
+        ? listRes.data
+        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (listRes.data as any)?.quizzes || (listRes.data as any)?.items || [];
 
       // Fetch details for each quiz to get questions
       const detailedQuizzes = await Promise.all(
@@ -59,10 +61,13 @@ export function useQuizzesWithDetails(params?: {
             const detailRes = await quizzesAPI.get(quiz.id);
             return detailRes.ok ? detailRes.data : quiz;
           } catch (error) {
-            console.error(`Failed to fetch details for quiz ${quiz.id}:`, error);
+            console.error(
+              `Failed to fetch details for quiz ${quiz.id}:`,
+              error,
+            );
             return quiz; // Return original quiz if detail fetch fails
           }
-        })
+        }),
       );
 
       return {
@@ -122,11 +127,11 @@ export function useUpdateQuiz() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      id, 
-      data 
-    }: { 
-      id: string | number; 
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string | number;
       data: {
         title?: string;
         description?: string;
@@ -134,6 +139,7 @@ export function useUpdateQuiz() {
         time_limit_seconds?: number;
         passing_score?: number;
         published?: boolean;
+        questions_to_show?: number;
       };
     }) => {
       const res = await quizzesAPI.update(id, data);
@@ -143,7 +149,9 @@ export function useUpdateQuiz() {
       return res.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: quizKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: quizKeys.detail(variables.id),
+      });
       queryClient.invalidateQueries({ queryKey: quizKeys.lists() });
     },
   });

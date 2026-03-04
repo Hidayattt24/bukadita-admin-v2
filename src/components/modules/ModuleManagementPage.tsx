@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { Folder } from "lucide-react";
 import { materialsAPI, quizzesAPI } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -11,13 +11,18 @@ import ModuleSearchBar from "./ModuleSearchBar";
 import ModuleCard from "./ModuleCard";
 import ModuleFormModal from "./ModuleFormModal";
 import type { ModuleItem, ModuleFormData } from "./types";
-import { useModules, useCreateModule, useUpdateModule, useDeleteModule } from "@/hooks/useModules";
+import {
+  useModules,
+  useCreateModule,
+  useUpdateModule,
+  useDeleteModule,
+} from "@/hooks/useModules";
 
 const STORAGE_KEY = "admin_modules";
 
 export default function ModuleManagement() {
   const { toast, ToastContainer } = useToast();
-  
+
   // React Query hooks
   const { data: modulesData } = useModules();
   const createModuleMutation = useCreateModule();
@@ -26,23 +31,38 @@ export default function ModuleManagement() {
 
   // Transform data
   const parseList = (d: unknown): ModuleItem[] => {
-    const dataAny = d as ModuleItem[] | { items?: ModuleItem[]; data?: ModuleItem[] };
-    return Array.isArray(dataAny) ? dataAny : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
+    const dataAny = d as
+      | ModuleItem[]
+      | { items?: ModuleItem[]; data?: ModuleItem[] };
+    return Array.isArray(dataAny)
+      ? dataAny
+      : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
   };
 
-  const modules = useMemo(() => modulesData ? parseList(modulesData) : [], [modulesData]);
-  
+  const modules = useMemo(
+    () => (modulesData ? parseList(modulesData) : []),
+    [modulesData],
+  );
+
+  // Ref to track which module IDs we've already fetched counts for
+  const fetchedModuleIdsRef = useRef<string>("");
+
   // State management
   const [search, setSearch] = useState("");
-  const [modulesCounts, setModulesCounts] = useState<Record<string, { materials: number; quiz: number }>>({});
+  const [modulesCounts, setModulesCounts] = useState<
+    Record<string, { materials: number; quiz: number }>
+  >({});
   const [showForm, setShowForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedModule, setSelectedModule] = useState<ModuleItem | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState({ title: "", message: "" });
+  const [loadingMessage, setLoadingMessage] = useState({
+    title: "",
+    message: "",
+  });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [moduleToDelete, setModuleToDelete] = useState<ModuleItem | null>(null);
-  
+
   // Form state
   const [formData, setFormData] = useState<ModuleFormData>({
     title: "",
@@ -55,8 +75,6 @@ export default function ModuleManagement() {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-
-
 
   const resetForm = () => {
     setFormData({
@@ -78,9 +96,11 @@ export default function ModuleManagement() {
     try {
       // Fetch materials count
       const materialsRes = await materialsAPI.list({ module_id: moduleId });
-      const materialsCount = materialsRes.ok ?
-        (Array.isArray(materialsRes.data) ? materialsRes.data.length :
-          materialsRes.data?.items?.length || 0) : 0;
+      const materialsCount = materialsRes.ok
+        ? Array.isArray(materialsRes.data)
+          ? materialsRes.data.length
+          : materialsRes.data?.items?.length || 0
+        : 0;
 
       // Fetch quiz count
       let quizCount = 0;
@@ -88,13 +108,22 @@ export default function ModuleManagement() {
 
       if (quizRes.ok && quizRes.data?.items) {
         quizCount = quizRes.data.items.length;
-      } else if (quizRes.ok && !quizRes.data?.items && materialsRes.ok && materialsRes.data?.items) {
+      } else if (
+        quizRes.ok &&
+        !quizRes.data?.items &&
+        materialsRes.ok &&
+        materialsRes.data?.items
+      ) {
         const allQuizzes: unknown[] = [];
         for (const material of materialsRes.data.items) {
-          const subQuizRes = await quizzesAPI.list({ sub_materi_id: material.id });
+          const subQuizRes = await quizzesAPI.list({
+            sub_materi_id: material.id,
+          });
           if (subQuizRes.ok) {
             const quizData = subQuizRes.data;
-            const quizDataWithQuizzes = quizData as typeof quizData & { quizzes?: unknown[] };
+            const quizDataWithQuizzes = quizData as typeof quizData & {
+              quizzes?: unknown[];
+            };
             if (quizData.items) {
               allQuizzes.push(...quizData.items);
             } else if (quizDataWithQuizzes.quizzes) {
@@ -107,42 +136,49 @@ export default function ModuleManagement() {
 
       return { materials: materialsCount, quiz: quizCount };
     } catch (error) {
-      console.error('Error fetching module counts:', error);
+      console.error("Error fetching module counts:", error);
       return { materials: 0, quiz: 0 };
     }
   }, []);
 
   // Function to refresh counts for all modules
-  const refreshAllCounts = useCallback(async (modulesList: ModuleItem[]) => {
-    const countsPromises = modulesList.map(async (module) => {
-      const counts = await fetchModuleCounts(module.id);
-      return { id: String(module.id), counts };
-    });
+  const refreshAllCounts = useCallback(
+    async (modulesList: ModuleItem[]) => {
+      const countsPromises = modulesList.map(async (module) => {
+        const counts = await fetchModuleCounts(module.id);
+        return { id: String(module.id), counts };
+      });
 
-    const results = await Promise.all(countsPromises);
-    const newCounts: Record<string, { materials: number; quiz: number }> = {};
+      const results = await Promise.all(countsPromises);
+      const newCounts: Record<string, { materials: number; quiz: number }> = {};
 
-    results.forEach(({ id, counts }) => {
-      newCounts[id] = counts;
-    });
+      results.forEach(({ id, counts }) => {
+        newCounts[id] = counts;
+      });
 
-    setModulesCounts(newCounts);
-  }, [fetchModuleCounts]);
+      setModulesCounts(newCounts);
+    },
+    [fetchModuleCounts],
+  );
 
-  // Update counts when modules change
-  if (modules.length > 0 && Object.keys(modulesCounts).length === 0) {
-    refreshAllCounts(modules).catch(console.error);
-  }
+  // Update counts when modules change - moved to useEffect to prevent infinite renders
+  useEffect(() => {
+    if (modules.length === 0) {
+      return;
+    }
 
-  // Refresh counts when modules data changes
-  if (modules.length > 0) {
-    const currentModuleIds = modules.map(m => String(m.id)).sort().join(',');
-    const cachedModuleIds = Object.keys(modulesCounts).sort().join(',');
-    
-    if (currentModuleIds !== cachedModuleIds) {
+    // Generate module IDs string for comparison
+    const currentModuleIds = modules
+      .map((m) => String(m.id))
+      .sort()
+      .join(",");
+
+    // Only refresh if module IDs changed (new module added, deleted, or initial load)
+    if (currentModuleIds !== fetchedModuleIdsRef.current) {
+      fetchedModuleIdsRef.current = currentModuleIds;
       refreshAllCounts(modules).catch(console.error);
     }
-  }
+  }, [modules, refreshAllCounts]);
 
   // Validation
   const validateForm = () => {
@@ -175,11 +211,12 @@ export default function ModuleManagement() {
       published: !!module.published,
       durationLabel: module.duration_label || "",
       durationMinutes:
-        typeof module.duration_minutes === 'number' && Number.isFinite(module.duration_minutes)
+        typeof module.duration_minutes === "number" &&
+        Number.isFinite(module.duration_minutes)
           ? String(module.duration_minutes)
           : "",
       lessons:
-        typeof module.lessons === 'number' && Number.isFinite(module.lessons)
+        typeof module.lessons === "number" && Number.isFinite(module.lessons)
           ? String(module.lessons)
           : "",
       category: module.category || "",
@@ -211,14 +248,14 @@ export default function ModuleManagement() {
       setIsLoadingAction(false);
       toast.delete(
         "Berhasil Dihapus!",
-        `Modul <strong class="text-red-600">"${moduleToDelete.title}"</strong> telah dihapus dari sistem`
+        `Modul <strong class="text-red-600">"${moduleToDelete.title}"</strong> telah dihapus dari sistem`,
       );
     } catch (error) {
       console.error("Error deleting module:", error);
       setIsLoadingAction(false);
       toast.error(
         "Gagal Menghapus!",
-        "Terjadi kesalahan saat menghapus modul. Silakan coba lagi."
+        "Terjadi kesalahan saat menghapus modul. Silakan coba lagi.",
       );
     }
   };
@@ -233,11 +270,15 @@ export default function ModuleManagement() {
 
     const payload = {
       title: formData.title.trim(),
-      description: (formData.description ?? '').trim(),
+      description: (formData.description ?? "").trim(),
       published: !!formData.published,
       category: formData.category ? formData.category.trim() : undefined,
-      duration_label: formData.durationLabel ? formData.durationLabel.trim() : undefined,
-      duration_minutes: formData.durationMinutes ? parseInt(formData.durationMinutes, 10) : undefined,
+      duration_label: formData.durationLabel
+        ? formData.durationLabel.trim()
+        : undefined,
+      duration_minutes: formData.durationMinutes
+        ? parseInt(formData.durationMinutes, 10)
+        : undefined,
       lessons: formData.lessons ? parseInt(formData.lessons, 10) : undefined,
     };
 
@@ -252,7 +293,10 @@ export default function ModuleManagement() {
 
     try {
       if (isEditMode && selectedModule) {
-        await updateModuleMutation.mutateAsync({ id: selectedModule.id, data: payload });
+        await updateModuleMutation.mutateAsync({
+          id: selectedModule.id,
+          data: payload,
+        });
 
         setIsLoadingAction(false);
         setSubmitting(false);
@@ -261,7 +305,7 @@ export default function ModuleManagement() {
 
         toast.update(
           "Berhasil Diupdate!",
-          `Modul <strong class="text-blue-600">"${payload.title}"</strong> telah diperbarui`
+          `Modul <strong class="text-blue-600">"${payload.title}"</strong> telah diperbarui`,
         );
       } else {
         await createModuleMutation.mutateAsync(payload);
@@ -273,7 +317,7 @@ export default function ModuleManagement() {
 
         toast.create(
           "Berhasil Ditambahkan!",
-          `Modul <strong class="text-emerald-600">"${payload.title}"</strong> telah ditambahkan ke sistem`
+          `Modul <strong class="text-emerald-600">"${payload.title}"</strong> telah ditambahkan ke sistem`,
         );
       }
     } catch (error: unknown) {
@@ -296,14 +340,20 @@ export default function ModuleManagement() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return modules;
-    return modules.filter(m => m.title.toLowerCase().includes(q));
+    return modules.filter((m) => m.title.toLowerCase().includes(q));
   }, [modules, search]);
 
   // Calculate statistics
   const totalModules = modules.length;
-  const publishedModules = modules.filter(m => m.published === true).length;
-  const totalMaterials = Object.values(modulesCounts).reduce((acc, curr) => acc + curr.materials, 0);
-  const totalQuiz = Object.values(modulesCounts).reduce((acc, curr) => acc + curr.quiz, 0);
+  const publishedModules = modules.filter((m) => m.published === true).length;
+  const totalMaterials = Object.values(modulesCounts).reduce(
+    (acc, curr) => acc + curr.materials,
+    0,
+  );
+  const totalQuiz = Object.values(modulesCounts).reduce(
+    (acc, curr) => acc + curr.quiz,
+    0,
+  );
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -366,12 +416,22 @@ export default function ModuleManagement() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-          {filtered.map(m => (
+          {filtered.map((m) => (
             <ModuleCard
               key={m.id}
               module={m}
-              materialsCount={modulesCounts[String(m.id)]?.materials ?? m.materiCount ?? m.materials_count ?? 0}
-              quizCount={modulesCounts[String(m.id)]?.quiz ?? m.quizCount ?? m.quiz_count ?? 0}
+              materialsCount={
+                modulesCounts[String(m.id)]?.materials ??
+                m.materiCount ??
+                m.materials_count ??
+                0
+              }
+              quizCount={
+                modulesCounts[String(m.id)]?.quiz ??
+                m.quizCount ??
+                m.quiz_count ??
+                0
+              }
               onEdit={() => handleEditModule(m)}
               onDelete={() => handleDeleteModule(m)}
             />
@@ -399,7 +459,10 @@ export default function ModuleManagement() {
         isOpen={isDeleteModalOpen}
         title="Hapus Modul?"
         userName={moduleToDelete?.title || ""}
-        userEmail={moduleToDelete?.description || "Modul ini akan dihapus beserta semua materi dan kuis"}
+        userEmail={
+          moduleToDelete?.description ||
+          "Modul ini akan dihapus beserta semua materi dan kuis"
+        }
         onConfirm={confirmDeleteModule}
         onCancel={() => setIsDeleteModalOpen(false)}
       />
