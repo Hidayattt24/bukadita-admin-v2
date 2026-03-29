@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import {
@@ -16,88 +16,48 @@ import {
   Lightbulb,
   Save,
   X as XIcon,
+  BookOpen,
+  TrendingUp,
+  Settings2,
+  Loader2,
 } from "lucide-react";
 import { quizzesAPI, type Quiz, type QuizQuestion } from "@/lib/api";
 import { useModernToast } from "@/hooks/useModernToast";
 import { useUpdateQuiz } from "@/hooks/useQuizzes";
 
-// Alias for backward compatibility
 type QuizRecord = Quiz;
 
 interface QuizQuestionManagerProps {
   kuisId: string;
 }
 
-export default function QuizQuestionManager({
-  kuisId,
-}: QuizQuestionManagerProps) {
+export default function QuizQuestionManager({ kuisId }: QuizQuestionManagerProps) {
   const router = useRouter();
   const { success, error, warning, ToastContainer } = useModernToast();
   const updateQuizMutation = useUpdateQuiz();
+  const formRef = useRef<HTMLDivElement>(null);
+
   const [quiz, setQuiz] = useState<QuizRecord | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [showEditQuestion, setShowEditQuestion] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(
-    null,
-  );
+  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
 
-  // NEW: State for questions_to_show
+  // "Questions to show" sidebar state
   const [questionsToShow, setQuestionsToShow] = useState<string>("");
-  const [isEditingQuestionsToShow, setIsEditingQuestionsToShow] =
-    useState(false);
+  const [isEditingQuestionsToShow, setIsEditingQuestionsToShow] = useState(false);
   const [isSavingQuestionsToShow, setIsSavingQuestionsToShow] = useState(false);
 
-  // Add/Edit question form state
+  // Form state
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState<string[]>(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [explanation, setExplanation] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [saveAndContinueLoading, setSaveAndContinueLoading] = useState(false);
 
-  // Custom radio button styles
-  const radioButtonStyles = `
-    input[type="radio"].custom-radio {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 1.25rem;
-      height: 1.25rem;
-      border: 2px solid #d1d5db;
-      border-radius: 50%;
-      outline: none;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s ease;
-    }
-    
-    input[type="radio"].custom-radio:hover {
-      border-color: #578FCA;
-    }
-    
-    input[type="radio"].custom-radio:checked {
-      border-color: #578FCA;
-      background-color: #578FCA;
-    }
-    
-    input[type="radio"].custom-radio:checked::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 0.5rem;
-      height: 0.5rem;
-      border-radius: 50%;
-      background-color: white;
-    }
-    
-    input[type="radio"].custom-radio:focus {
-      box-shadow: 0 0 0 3px rgba(87, 143, 202, 0.3);
-    }
-  `;
-
-  // Load quiz and questions
+  /* ─── Load quiz ─── */
   useEffect(() => {
     const loadQuiz = async () => {
       setLoading(true);
@@ -106,26 +66,32 @@ export default function QuizQuestionManager({
         if (res.ok) {
           setQuiz(res.data);
           setQuestions(res.data.questions || []);
-          // NEW: Set questions_to_show value
           setQuestionsToShow(
-            res.data.questions_to_show
-              ? String(res.data.questions_to_show)
-              : "",
+            res.data.questions_to_show ? String(res.data.questions_to_show) : ""
           );
         } else {
           error("Error", "Gagal memuat kuis");
         }
       } catch (err) {
-        console.error("Error loading quiz:", err);
+        console.error(err);
         error("Error", "Terjadi kesalahan saat memuat kuis");
       } finally {
         setLoading(false);
       }
     };
-
     loadQuiz();
   }, [kuisId, error]);
 
+  /* ─── Scroll to form when it opens ─── */
+  useEffect(() => {
+    if ((showAddQuestion || showEditQuestion) && formRef.current) {
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
+  }, [showAddQuestion, showEditQuestion]);
+
+  /* ─── Helpers ─── */
   const resetForm = () => {
     setQuestionText("");
     setOptions(["", "", "", ""]);
@@ -134,425 +100,143 @@ export default function QuizQuestionManager({
     setEditingQuestion(null);
   };
 
-  // NEW: Function to save questions_to_show
   const handleSaveQuestionsToShow = async () => {
     if (!kuisId || !quiz) return;
-
-    const value = questionsToShow.trim()
-      ? parseInt(questionsToShow)
-      : undefined;
-
-    // Validate
+    const value = questionsToShow.trim() ? parseInt(questionsToShow) : undefined;
     if (value !== undefined) {
-      if (isNaN(value)) {
-        error("Input Tidak Valid", "Masukkan angka yang valid");
-        return;
-      }
-      if (value < 1) {
-        error("Input Tidak Valid", "Jumlah soal minimal 1");
-        return;
-      }
+      if (isNaN(value)) { error("Input Tidak Valid", "Masukkan angka yang valid"); return; }
+      if (value < 1) { error("Input Tidak Valid", "Jumlah soal minimal 1"); return; }
       if (value > questions.length) {
-        error(
-          "Jumlah Soal Melebihi Batas",
-          `Anda hanya memiliki ${questions.length} soal. Tidak bisa menampilkan ${value} soal. Silakan tambahkan soal terlebih dahulu atau kurangi jumlah soal yang ditampilkan.`,
-        );
+        error("Melebihi Batas", `Hanya ada ${questions.length} soal tersedia.`);
         return;
       }
     }
-
     setIsSavingQuestionsToShow(true);
     try {
       const result = await updateQuizMutation.mutateAsync({
         id: kuisId,
-        data: {
-          questions_to_show: value,
-        },
+        data: { questions_to_show: value },
       });
-
       setQuiz(result);
       setIsEditingQuestionsToShow(false);
-      success(
-        "Berhasil Disimpan!",
-        "Jumlah soal yang ditampilkan berhasil diperbarui",
-        2000,
-      );
+      success("Berhasil Disimpan!", "Pengaturan soal diperbarui", 2000);
     } catch (err) {
-      console.error("Error updating questions_to_show:", err);
-      error(
-        "Terjadi Kesalahan",
-        err instanceof Error
-          ? err.message
-          : "Terjadi kesalahan saat memperbarui",
-      );
+      error("Error", err instanceof Error ? err.message : "Terjadi kesalahan");
     } finally {
       setIsSavingQuestionsToShow(false);
     }
   };
 
-  const loadQuestionToForm = (question: QuizQuestion) => {
-    setQuestionText(question.question_text);
-    setOptions([...question.options]);
-    setCorrectIndex(question.correct_answer_index);
-    setExplanation(question.explanation || "");
-    setEditingQuestion(question);
+  const loadQuestionToForm = (q: QuizQuestion) => {
+    setQuestionText(q.question_text);
+    setOptions([...q.options]);
+    setCorrectIndex(q.correct_answer_index);
+    setExplanation(q.explanation || "");
+    setEditingQuestion(q);
   };
 
-  const addOption = () => {
-    if (options.length < 6) {
-      setOptions([...options, ""]);
-    }
-  };
-
+  const addOption = () => { if (options.length < 6) setOptions([...options, ""]); };
   const removeOption = (index: number) => {
     if (options.length > 2) {
-      const newOptions = options.filter((_, i) => i !== index);
-      setOptions(newOptions);
-      if (correctIndex >= newOptions.length) {
-        setCorrectIndex(newOptions.length - 1);
-      }
+      const n = options.filter((_, i) => i !== index);
+      setOptions(n);
+      if (correctIndex >= n.length) setCorrectIndex(n.length - 1);
     }
   };
-
   const updateOption = (index: number, value: string) => {
-    const newOptions = [...options];
-    newOptions[index] = value;
-    setOptions(newOptions);
+    const n = [...options];
+    n[index] = value;
+    setOptions(n);
+  };
+
+  const validateAndGetPayload = () => {
+    if (!questionText.trim()) { warning("Peringatan", "Teks pertanyaan harus diisi"); return null; }
+    if (questionText.trim().length < 10) { warning("Peringatan", "Pertanyaan minimal 10 karakter"); return null; }
+    if (!options[correctIndex]?.trim()) { warning("Peringatan", "Opsi jawaban benar tidak boleh kosong"); return null; }
+    const validOptions = options.filter((o) => o.trim());
+    if (validOptions.length < 2) { warning("Peringatan", "Minimal 2 opsi jawaban"); return null; }
+    let adjIdx = correctIndex; let vi = 0;
+    for (let i = 0; i <= correctIndex && i < options.length; i++) {
+      if (options[i].trim()) { if (i === correctIndex) { adjIdx = vi; break; } vi++; }
+    }
+    if (adjIdx >= validOptions.length) { warning("Peringatan", "Jawaban benar tidak valid"); return null; }
+    return {
+      question_text: questionText.trim(),
+      options: validOptions,
+      correct_answer_index: adjIdx,
+      explanation: explanation.trim() || undefined,
+    };
   };
 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!kuisId) {
-      error("Error", "ID kuis tidak valid");
-      return;
-    }
-
-    if (!questionText.trim()) {
-      warning("Peringatan", "Teks pertanyaan harus diisi");
-      return;
-    }
-
-    if (questionText.trim().length < 10) {
-      warning("Peringatan", "Pertanyaan harus minimal 10 karakter");
-      return;
-    }
-
-    // Validate that the selected correct answer is not empty
-    if (!options[correctIndex] || !options[correctIndex].trim()) {
-      warning(
-        "Peringatan",
-        "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong",
-      );
-      return;
-    }
-
-    const validOptions = options.filter((opt) => opt.trim());
-    if (validOptions.length < 2) {
-      warning("Peringatan", "Minimal harus ada 2 opsi jawaban");
-      return;
-    }
-
-    // Check if the correct_answer_index is valid for the filtered options
-    let adjustedCorrectIndex = correctIndex;
-
-    // Find the actual index in validOptions array
-    let validIndex = 0;
-    for (let i = 0; i <= correctIndex && i < options.length; i++) {
-      if (options[i].trim()) {
-        if (i === correctIndex) {
-          adjustedCorrectIndex = validIndex;
-          break;
-        }
-        validIndex++;
-      }
-    }
-
-    if (adjustedCorrectIndex >= validOptions.length) {
-      warning("Peringatan", "Jawaban benar tidak valid");
-      return;
-    }
-
+    if (!kuisId) { error("Error", "ID kuis tidak valid"); return; }
+    const payload = validateAndGetPayload();
+    if (!payload) return;
     setSubmitting(true);
     try {
-      const payload = {
-        question_text: questionText.trim(),
-        options: validOptions,
-        correct_answer_index: adjustedCorrectIndex,
-        explanation: explanation.trim() || undefined,
-        order_index: questions.length + 1,
-      };
-
-      const res = await quizzesAPI.addQuestion(kuisId, payload);
-
+      const res = await quizzesAPI.addQuestion(kuisId, { ...payload, order_index: questions.length + 1 });
       if (res.ok) {
-        // Reload quiz to get updated questions
-        const quizRes = await quizzesAPI.get(kuisId);
-        if (quizRes.ok) {
-          setQuiz(quizRes.data);
-          setQuestions(quizRes.data.questions || []);
-        }
+        const qr = await quizzesAPI.get(kuisId);
+        if (qr.ok) { setQuiz(qr.data); setQuestions(qr.data.questions || []); }
         resetForm();
         setShowAddQuestion(false);
-        success("Berhasil", "Pertanyaan berhasil ditambahkan", 2000);
-      } else {
-        console.error("Failed to add question:", res);
-
-        let errorMessage = "Gagal menambah pertanyaan";
-        let errorDetails = "";
-
-        if (res.status === 422) {
-          errorMessage = "Data pertanyaan tidak valid";
-          if (res.raw && typeof res.raw === "object") {
-            const rawError = res.raw as Record<string, unknown>;
-            if (rawError.message) {
-              errorDetails = String(rawError.message);
-            } else if (rawError.errors) {
-              errorDetails = JSON.stringify(rawError.errors);
-            }
-          }
-        }
-
-        const finalMessage = errorDetails
-          ? `${errorDetails}`
-          : res.error || errorMessage;
-        error("Error", finalMessage);
-      }
-    } catch (err) {
-      console.error("Error adding question:", err);
-      error("Error", "Terjadi kesalahan saat menambah pertanyaan");
-    } finally {
-      setSubmitting(false);
-    }
+        success("Berhasil", "Pertanyaan ditambahkan", 2000);
+      } else { error("Error", res.error || "Gagal menambah pertanyaan"); }
+    } catch { error("Error", "Terjadi kesalahan"); }
+    finally { setSubmitting(false); }
   };
 
   const handleAddQuestionAndContinue = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!kuisId) {
-      error("Error", "ID kuis tidak valid");
-      return;
-    }
-
-    if (!questionText.trim()) {
-      warning("Peringatan", "Teks pertanyaan harus diisi");
-      return;
-    }
-
-    if (questionText.trim().length < 10) {
-      warning("Peringatan", "Pertanyaan harus minimal 10 karakter");
-      return;
-    }
-
-    // Validate that the selected correct answer is not empty
-    if (!options[correctIndex] || !options[correctIndex].trim()) {
-      warning(
-        "Peringatan",
-        "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong",
-      );
-      return;
-    }
-
-    const validOptions = options.filter((opt) => opt.trim());
-    if (validOptions.length < 2) {
-      warning("Peringatan", "Minimal harus ada 2 opsi jawaban");
-      return;
-    }
-
-    // Check if the correct_answer_index is valid for the filtered options
-    let adjustedCorrectIndex = correctIndex;
-
-    // Find the actual index in validOptions array
-    let validIndex = 0;
-    for (let i = 0; i <= correctIndex && i < options.length; i++) {
-      if (options[i].trim()) {
-        if (i === correctIndex) {
-          adjustedCorrectIndex = validIndex;
-          break;
-        }
-        validIndex++;
-      }
-    }
-
-    if (adjustedCorrectIndex >= validOptions.length) {
-      warning("Peringatan", "Jawaban benar tidak valid");
-      return;
-    }
-
+    if (!kuisId) { error("Error", "ID kuis tidak valid"); return; }
+    const payload = validateAndGetPayload();
+    if (!payload) return;
+    setSaveAndContinueLoading(true);
     setSubmitting(true);
     try {
-      const payload = {
-        question_text: questionText.trim(),
-        options: validOptions,
-        correct_answer_index: adjustedCorrectIndex,
-        explanation: explanation.trim() || undefined,
-        order_index: questions.length + 1,
-      };
-
-      const res = await quizzesAPI.addQuestion(kuisId, payload);
-
+      const res = await quizzesAPI.addQuestion(kuisId, { ...payload, order_index: questions.length + 1 });
       if (res.ok) {
-        // Reload quiz to get updated questions
-        const quizRes = await quizzesAPI.get(kuisId);
-        if (quizRes.ok) {
-          setQuiz(quizRes.data);
-          setQuestions(quizRes.data.questions || []);
-        }
+        const qr = await quizzesAPI.get(kuisId);
+        if (qr.ok) { setQuiz(qr.data); setQuestions(qr.data.questions || []); }
         resetForm();
-        // Keep form open for adding another question
-        success(
-          "Berhasil",
-          "Pertanyaan berhasil ditambahkan. Silakan tambah pertanyaan lagi.",
-          2000,
-        );
-      } else {
-        console.error("Failed to add question:", res);
-
-        let errorMessage = "Gagal menambah pertanyaan";
-        let errorDetails = "";
-
-        if (res.status === 422) {
-          errorMessage = "Data pertanyaan tidak valid";
-          if (res.raw && typeof res.raw === "object") {
-            const rawError = res.raw as Record<string, unknown>;
-            if (rawError.message) {
-              errorDetails = String(rawError.message);
-            } else if (rawError.errors) {
-              errorDetails = JSON.stringify(rawError.errors);
-            }
-          }
-        }
-
-        const finalMessage = errorDetails
-          ? `${errorDetails}`
-          : res.error || errorMessage;
-        error("Error", finalMessage);
-      }
-    } catch (err) {
-      console.error("Error adding question:", err);
-      error("Error", "Terjadi kesalahan saat menambah pertanyaan");
-    } finally {
-      setSubmitting(false);
-    }
+        success("Berhasil!", "Pertanyaan ditambahkan. Silakan tambah lagi.", 2000);
+      } else { error("Error", res.error || "Gagal menambah pertanyaan"); }
+    } catch { error("Error", "Terjadi kesalahan"); }
+    finally { setSubmitting(false); setSaveAndContinueLoading(false); }
   };
 
-  const handleEditQuestion = (question: QuizQuestion) => {
-    loadQuestionToForm(question);
+  const handleEditQuestion = (q: QuizQuestion) => {
+    loadQuestionToForm(q);
     setShowEditQuestion(true);
-    setShowAddQuestion(false); // Hide add form if open
+    setShowAddQuestion(false);
   };
 
   const handleUpdateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!editingQuestion) return;
-
-    if (!questionText.trim()) {
-      warning("Peringatan", "Teks pertanyaan harus diisi");
-      return;
-    }
-
-    if (questionText.trim().length < 10) {
-      warning("Peringatan", "Pertanyaan harus minimal 10 karakter");
-      return;
-    }
-
-    // Validate that the selected correct answer is not empty
-    if (!options[correctIndex] || !options[correctIndex].trim()) {
-      warning(
-        "Peringatan",
-        "Opsi jawaban yang dipilih sebagai benar tidak boleh kosong",
-      );
-      return;
-    }
-
-    const validOptions = options.filter((opt) => opt.trim());
-    if (validOptions.length < 2) {
-      warning("Peringatan", "Minimal harus ada 2 opsi jawaban");
-      return;
-    }
-
-    // Check if the correct_answer_index is valid for the filtered options
-    let adjustedCorrectIndex = correctIndex;
-
-    // Find the actual index in validOptions array
-    let validIndex = 0;
-    for (let i = 0; i <= correctIndex && i < options.length; i++) {
-      if (options[i].trim()) {
-        if (i === correctIndex) {
-          adjustedCorrectIndex = validIndex;
-          break;
-        }
-        validIndex++;
-      }
-    }
-
-    if (adjustedCorrectIndex >= validOptions.length) {
-      warning("Peringatan", "Jawaban benar tidak valid");
-      return;
-    }
-
+    const payload = validateAndGetPayload();
+    if (!payload) return;
     setSubmitting(true);
     try {
-      const payload = {
-        question_text: questionText.trim(),
-        options: validOptions,
-        correct_answer_index: adjustedCorrectIndex,
-        explanation: explanation.trim() || undefined,
-      };
-
       const res = await quizzesAPI.updateQuestion(editingQuestion.id, payload);
-
       if (res.ok) {
-        // Reload quiz to get updated questions
-        const quizRes = await quizzesAPI.get(kuisId);
-        if (quizRes.ok) {
-          setQuiz(quizRes.data);
-          setQuestions(quizRes.data.questions || []);
-        }
+        const qr = await quizzesAPI.get(kuisId);
+        if (qr.ok) { setQuiz(qr.data); setQuestions(qr.data.questions || []); }
         resetForm();
         setShowEditQuestion(false);
-        success("Berhasil", "Pertanyaan berhasil diperbarui", 2000);
-      } else {
-        console.error("Failed to update question:", res);
-
-        let errorMessage = "Gagal memperbarui pertanyaan";
-        let errorDetails = "";
-
-        if (res.status === 422) {
-          errorMessage = "Data pertanyaan tidak valid";
-          if (res.raw && typeof res.raw === "object") {
-            const rawError = res.raw as Record<string, unknown>;
-            if (rawError.message) {
-              errorDetails = String(rawError.message);
-            } else if (rawError.errors) {
-              errorDetails = JSON.stringify(rawError.errors);
-            }
-          }
-        }
-
-        const finalMessage = errorDetails
-          ? `${errorDetails}`
-          : res.error || errorMessage;
-        error("Error", finalMessage);
-      }
-    } catch (err) {
-      console.error("Error updating question:", err);
-      error("Error", "Terjadi kesalahan saat memperbarui pertanyaan");
-    } finally {
-      setSubmitting(false);
-    }
+        success("Berhasil", "Pertanyaan diperbarui", 2000);
+      } else { error("Error", res.error || "Gagal memperbarui"); }
+    } catch { error("Error", "Terjadi kesalahan"); }
+    finally { setSubmitting(false); }
   };
 
-  const handleCancelEdit = () => {
-    resetForm();
-    setShowEditQuestion(false);
-  };
+  const handleCancelEdit = () => { resetForm(); setShowEditQuestion(false); };
 
-  const handleDeleteQuestion = async (question: QuizQuestion) => {
-    const result = await Swal.fire({
+  const handleDeleteQuestion = async (q: QuizQuestion) => {
+    const r = await Swal.fire({
       title: "Hapus Pertanyaan?",
-      text: `Pertanyaan "${question.question_text.slice(0, 50)}..." akan dihapus.`,
+      text: `"${q.question_text.slice(0, 50)}..." akan dihapus permanen.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Hapus",
@@ -561,40 +245,27 @@ export default function QuizQuestionManager({
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#6b7280",
     });
-
-    if (result.isConfirmed) {
+    if (r.isConfirmed) {
       try {
-        const res = await quizzesAPI.removeQuestion(question.id);
+        const res = await quizzesAPI.removeQuestion(q.id);
         if (res.ok) {
-          // Reload quiz
-          const quizRes = await quizzesAPI.get(kuisId);
-          if (quizRes.ok) {
-            setQuiz(quizRes.data);
-            setQuestions(quizRes.data.questions || []);
-          }
-          success("Berhasil", "Pertanyaan berhasil dihapus", 2000);
-        } else {
-          error("Error", "Gagal menghapus pertanyaan");
-        }
-      } catch (err) {
-        console.error("Error deleting question:", err);
-        error("Error", "Terjadi kesalahan saat menghapus pertanyaan");
-      }
+          const qr = await quizzesAPI.get(kuisId);
+          if (qr.ok) { setQuiz(qr.data); setQuestions(qr.data.questions || []); }
+          success("Berhasil", "Pertanyaan dihapus", 2000);
+        } else { error("Error", "Gagal menghapus pertanyaan"); }
+      } catch { error("Error", "Terjadi kesalahan"); }
     }
   };
 
+  /* ─── Loading / Not Found states ─── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center animate-pulse">
-                <FileQuestion className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-gray-600 font-medium">Memuat kuis...</div>
-            </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center animate-pulse shadow-lg">
+            <FileQuestion className="w-8 h-8 text-white" />
           </div>
+          <p className="text-gray-500 font-medium">Memuat kuis...</p>
         </div>
       </div>
     );
@@ -602,513 +273,563 @@ export default function QuizQuestionManager({
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-                <XIcon className="w-8 h-8 text-red-600" />
-              </div>
-              <div className="text-red-600 font-medium">
-                Kuis tidak ditemukan
-              </div>
-            </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
+            <XIcon className="w-8 h-8 text-red-500" />
           </div>
+          <p className="text-red-500 font-medium">Kuis tidak ditemukan</p>
         </div>
       </div>
     );
   }
 
+  const timeMins = Math.floor((quiz.time_limit_seconds || quiz.time_limit || 1800) / 60);
+  const isFormOpen = showAddQuestion || showEditQuestion;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-3 sm:p-6">
-      {/* Custom Radio Button Styles */}
-      <style jsx>{radioButtonStyles}</style>
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 lg:p-6">
+      {/* ── Global transition styles for form slide-in ── */}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .form-enter { animation: slideDown 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .fade-in    { animation: fadeIn 0.2s ease both; }
+        .btn-press:active { transform: scale(0.96); }
+      `}</style>
 
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-white hover:bg-gradient-to-r hover:from-[#578FCA] hover:to-[#27548A] rounded-lg transition-all mb-4 sm:mb-6 border border-gray-200 hover:border-transparent shadow-sm text-sm sm:text-base"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium">Kembali</span>
-          </button>
+      <div className="max-w-6xl mx-auto space-y-3 sm:space-y-5">
 
-          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100">
-            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-4">
-              <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-lg">
-                <FileQuestion className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+        {/* ── Back button ── */}
+        <button
+          onClick={() => router.back()}
+          className="btn-press inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Kembali
+        </button>
+
+        {/* ── Split layout ── */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
+
+          {/* ════════════════════════════════
+              LEFT — Main content
+          ════════════════════════════════ */}
+          <div className="flex-1 min-w-0 space-y-3 sm:space-y-4">
+
+            {/* Quiz title card */}
+            <div className="bg-white rounded-2xl px-3 sm:px-5 py-3 sm:py-4 border border-gray-100 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center flex-shrink-0 shadow-md">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">
-                  {quiz.title}
-                </h1>
-                {quiz.description && (
-                  <p className="text-gray-600">{quiz.description}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3 sm:gap-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
-                <Clock className="w-4 h-4 text-[#578FCA] flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-gray-700">
-                  {Math.floor(
-                    (quiz.time_limit_seconds || quiz.time_limit || 1800) / 60,
-                  )}{" "}
-                  Menit
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-lg">
-                <Target className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-gray-700">
-                  Nilai Lulus: {quiz.passing_score || 70}%
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-lg">
-                <FileQuestion className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-medium text-gray-700">
-                  {questions.length} Pertanyaan
-                </span>
-              </div>
-
-              {/* NEW: Questions to Show Input - Modern Design */}
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 shadow-sm min-w-fit">
-                <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                {isEditingQuestionsToShow ? (
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex flex-col gap-1">
-                      <input
-                        type="number"
-                        value={questionsToShow}
-                        onChange={(e) => setQuestionsToShow(e.target.value)}
-                        min="1"
-                        max={questions.length}
-                        placeholder="Semua"
-                        className="w-28 px-3 py-2 text-sm font-bold text-gray-900 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                      />
-                      <span className="text-xs text-amber-700 font-medium">
-                        Max: {questions.length} soal
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSaveQuestionsToShow}
-                        disabled={isSavingQuestionsToShow}
-                        className="p-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Simpan"
-                      >
-                        <Save className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsEditingQuestionsToShow(false);
-                          setQuestionsToShow(
-                            quiz.questions_to_show
-                              ? String(quiz.questions_to_show)
-                              : "",
-                          );
-                        }}
-                        className="p-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-md hover:shadow-lg"
-                        title="Batal"
-                      >
-                        <XIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
-                      Tampilkan:{" "}
-                      <span className="text-amber-700">
-                        {quiz.questions_to_show || "Semua"}
-                      </span>{" "}
-                      soal
-                    </span>
-                    <button
-                      onClick={() => setIsEditingQuestionsToShow(true)}
-                      className="p-1.5 bg-gradient-to-r from-[#578FCA] to-[#27548A] text-white hover:shadow-lg rounded-lg transition-all"
-                      title="Edit Jumlah Soal"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Add Question Button */}
-        {!showEditQuestion && (
-          <div className="mb-6">
-            <button
-              onClick={() => {
-                setShowAddQuestion(!showAddQuestion);
-                if (showAddQuestion) {
-                  resetForm();
-                }
-              }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:shadow-lg text-white rounded-xl shadow-md transition-all font-medium text-sm sm:text-base"
-            >
-              {showAddQuestion ? (
-                <>
-                  <XIcon className="w-5 h-5" />
-                  Tutup Form
-                </>
-              ) : (
-                <>
-                  <Plus className="w-5 h-5" />
-                  Tambah Pertanyaan
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Add/Edit Question Form */}
-        {(showAddQuestion || showEditQuestion) && (
-          <form
-            onSubmit={
-              editingQuestion ? handleUpdateQuestion : handleAddQuestion
-            }
-            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${editingQuestion ? "bg-gradient-to-br from-amber-500 to-orange-500" : "bg-gradient-to-br from-[#578FCA] to-[#27548A]"}`}
-              >
-                {editingQuestion ? (
-                  <Edit className="w-6 h-6 text-white" />
-                ) : (
-                  <Plus className="w-6 h-6 text-white" />
-                )}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {editingQuestion
-                    ? "Edit Pertanyaan"
-                    : "Tambah Pertanyaan Baru"}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {editingQuestion
-                    ? "Perbarui informasi pertanyaan"
-                    : "Lengkapi form untuk menambah pertanyaan"}
+                <p className="text-[10px] font-bold text-[#578FCA] uppercase tracking-wider mb-0.5">
+                  Manajemen Soal Kuis
                 </p>
+                <h1 className="text-sm sm:text-xl font-bold text-gray-900 truncate">{quiz.title}</h1>
+                {quiz.description && (
+                  <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{quiz.description}</p>
+                )}
               </div>
             </div>
 
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
-                  Pertanyaan <span className="text-red-500">*</span>
-                  <span className="text-xs font-normal text-gray-500 ml-2">
-                    (minimal 10 karakter)
+            {/* Header row: Daftar Pertanyaan + Tambah button */}
+            {!showEditQuestion && (
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm sm:text-base font-bold text-gray-700 flex items-center gap-2 min-w-0">
+                  <span className="truncate">Daftar Pertanyaan</span>
+                  <span className="flex-shrink-0 px-2 py-0.5 bg-[#578FCA]/10 text-[#27548A] text-xs font-bold rounded-full">
+                    {questions.length}
                   </span>
-                </label>
-                <textarea
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#578FCA] focus:border-[#27548A] transition-all resize-none text-gray-900"
-                  rows={3}
-                  placeholder="Masukkan pertanyaan (minimal 10 karakter)..."
-                  required
-                />
+                </h2>
+                <button
+                  onClick={() => { setShowAddQuestion(!showAddQuestion); if (showAddQuestion) resetForm(); }}
+                  className="btn-press flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#578FCA] to-[#27548A] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md"
+                >
+                  {showAddQuestion
+                    ? <><XIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span>Tutup</span></>
+                    : <><Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /><span>Tambah Soal</span></>
+                  }
+                </button>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-3">
-                  Opsi Jawaban <span className="text-red-500">*</span>
-                  <span className="text-xs font-normal text-gray-500 ml-2">
-                    (pilih salah satu sebagai jawaban benar)
-                  </span>
-                </label>
-                <div className="space-y-2">
-                  {options.map((option, index) => (
-                    <div key={index} className="flex items-center gap-3 group">
-                      <div className="flex-shrink-0">
-                        <input
-                          type="radio"
-                          name="correct_answer"
-                          checked={correctIndex === index}
-                          onChange={() => setCorrectIndex(index)}
-                          className="custom-radio"
-                          title="Pilih sebagai jawaban benar"
-                        />
-                      </div>
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={option}
-                          onChange={(e) => updateOption(index, e.target.value)}
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition-all text-gray-900 ${
-                            correctIndex === index
-                              ? "border-[#578FCA] bg-blue-50 focus:ring-[#578FCA] focus:border-[#27548A]"
-                              : "border-gray-200 focus:ring-[#578FCA] focus:border-[#27548A]"
-                          }`}
-                          placeholder={`Opsi ${String.fromCharCode(65 + index)}...`}
-                        />
-                        {correctIndex === index && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <CheckCircle2 className="w-5 h-5 text-[#578FCA]" />
+            {/* ── Add / Edit Form ── */}
+            {isFormOpen && (
+              <div ref={formRef} className="form-enter">
+                <form
+                  onSubmit={editingQuestion ? handleUpdateQuestion : handleAddQuestion}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-md overflow-hidden"
+                >
+                  {/* Form header */}
+                  <div className={`px-3 sm:px-5 py-3 flex items-center gap-2.5 ${editingQuestion
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                    : "bg-gradient-to-r from-[#578FCA] to-[#27548A]"
+                    }`}>
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                      {editingQuestion
+                        ? <Edit className="w-4 h-4 text-white" />
+                        : <Plus className="w-4 h-4 text-white" />}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-white text-sm sm:text-base truncate">
+                        {editingQuestion ? "Edit Pertanyaan" : "Tambah Pertanyaan Baru"}
+                      </h3>
+                      <p className="text-white/70 text-xs hidden sm:block">
+                        {editingQuestion ? "Perbarui informasi pertanyaan" : "Lengkapi form berikut"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Form body */}
+                  <div className="p-3 sm:p-5 space-y-4">
+
+                    {/* Teks Pertanyaan */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1.5">
+                        Teks Pertanyaan <span className="text-red-500">*</span>
+                        <span className="text-xs font-normal text-gray-400 ml-1">(min. 10 karakter)</span>
+                      </label>
+                      <textarea
+                        value={questionText}
+                        onChange={(e) => setQuestionText(e.target.value)}
+                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#578FCA] resize-none text-gray-900 text-sm placeholder-gray-400 bg-gray-50 focus:bg-white"
+                        rows={3}
+                        placeholder="Masukkan pertanyaan yang jelas dan spesifik..."
+                        required
+                      />
+                    </div>
+
+                    {/* Opsi Jawaban */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1.5">
+                        Opsi Jawaban <span className="text-red-500">*</span>
+                        <span className="text-xs font-normal text-gray-400 ml-1 hidden sm:inline">
+                          — klik baris untuk tandai jawaban benar
+                        </span>
+                      </label>
+                      {/* Hint for mobile */}
+                      <p className="text-[11px] text-gray-400 mb-2 sm:hidden">
+                        Ketuk baris opsi untuk menjadikannya jawaban benar
+                      </p>
+                      <div className="space-y-2">
+                        {options.map((option, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center gap-2 px-2.5 sm:px-3 py-2.5 rounded-xl border-2 transition-colors ${correctIndex === index
+                              ? "border-[#578FCA] bg-blue-50"
+                              : "border-gray-200 bg-gray-50"
+                              }`}
+                          >
+                            {/* Radio – tap to select */}
+                            <input
+                              type="radio"
+                              name="correct_answer"
+                              checked={correctIndex === index}
+                              onChange={() => setCorrectIndex(index)}
+                              className="w-4 h-4 accent-[#578FCA] cursor-pointer flex-shrink-0"
+                            />
+                            {/* Letter badge */}
+                            <span
+                              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${correctIndex === index
+                                ? "bg-[#578FCA] text-white"
+                                : "bg-white text-gray-500 border border-gray-300"
+                                }`}
+                            >
+                              {String.fromCharCode(65 + index)}
+                            </span>
+                            {/* Text input */}
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(e) => updateOption(index, e.target.value)}
+                              className="flex-1 bg-transparent text-sm text-gray-900 focus:outline-none placeholder-gray-400 min-w-0"
+                              placeholder={`Opsi ${String.fromCharCode(65 + index)}...`}
+                            />
+                            {/* Correct indicator */}
+                            {correctIndex === index && (
+                              <CheckCircle2 className="w-4 h-4 text-[#578FCA] flex-shrink-0" />
+                            )}
+                            {/* Remove button */}
+                            {options.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => removeOption(index)}
+                                className="p-1.5 text-red-400 hover:text-red-600 flex-shrink-0 rounded-lg hover:bg-red-50"
+                                title="Hapus opsi"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
-                      {options.length > 2 && (
+                      {options.length < 6 && (
                         <button
                           type="button"
-                          onClick={() => removeOption(index)}
-                          className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                          title="Hapus opsi"
+                          onClick={addOption}
+                          className="btn-press inline-flex items-center gap-1.5 text-[#578FCA] text-xs font-bold mt-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Plus className="w-3.5 h-3.5" /> Tambah Opsi
                         </button>
                       )}
                     </div>
-                  ))}
-                </div>
-                {options.length < 6 && (
-                  <button
-                    type="button"
-                    onClick={addOption}
-                    className="inline-flex items-center gap-2 text-[#578FCA] hover:text-[#27548A] text-sm font-semibold mt-3 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Tambah Opsi
-                  </button>
-                )}
-                <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg">
-                  <Lightbulb className="w-4 h-4 text-[#578FCA] flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-gray-900">
-                    Klik radio button di sebelah kiri opsi untuk menandai
-                    jawaban yang benar
-                  </p>
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">
-                  Penjelasan{" "}
-                  <span className="text-gray-500 font-normal">(opsional)</span>
-                </label>
-                <textarea
-                  value={explanation}
-                  onChange={(e) => setExplanation(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#578FCA] focus:border-[#27548A] transition-all resize-none text-gray-900"
-                  rows={2}
-                  placeholder="Penjelasan jawaban yang benar..."
-                />
-              </div>
-            </div>
+                    {/* Penjelasan */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1.5">
+                        Penjelasan{" "}
+                        <span className="text-gray-400 font-normal">(opsional)</span>
+                      </label>
+                      <textarea
+                        value={explanation}
+                        onChange={(e) => setExplanation(e.target.value)}
+                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#578FCA] resize-none text-gray-900 text-sm placeholder-gray-400 bg-gray-50 focus:bg-white"
+                        rows={2}
+                        placeholder="Jelaskan mengapa jawaban tersebut benar..."
+                      />
+                    </div>
+                  </div>
 
-            <div className="flex items-center gap-3 mt-6 pt-6 border-t border-gray-100">
-              {!editingQuestion && (
-                <button
-                  type="button"
-                  onClick={handleAddQuestionAndContinue}
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:shadow-lg text-white rounded-xl font-medium shadow-md transition-all disabled:opacity-60"
-                >
-                  <Plus className="w-4 h-4" />
-                  {submitting ? "Menyimpan..." : "Simpan & Tambah Lagi"}
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={submitting}
-                className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-white font-medium shadow-md transition-all disabled:opacity-60 ${
-                  editingQuestion
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg"
-                    : "bg-gradient-to-r from-[#578FCA] to-[#27548A] hover:shadow-lg"
-                }`}
-              >
-                <Save className="w-4 h-4" />
-                {submitting
-                  ? "Menyimpan..."
-                  : editingQuestion
-                    ? "Perbarui Pertanyaan"
-                    : "Simpan Pertanyaan"}
-              </button>
-              <button
-                type="button"
-                onClick={
-                  editingQuestion
-                    ? handleCancelEdit
-                    : () => {
-                        resetForm();
-                        setShowAddQuestion(false);
-                      }
-                }
-                className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
-              >
-                <XIcon className="w-4 h-4" />
-                Batal
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Questions List */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-[#578FCA] to-[#27548A]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <FileQuestion className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-white">
-                    Daftar Pertanyaan
-                  </h2>
-                  <p className="text-xs sm:text-sm text-white/80">
-                    {questions.length} pertanyaan tersedia
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {questions.length === 0 ? (
-            <div className="p-8 sm:p-12 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <Eye className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
-              </div>
-              <p className="text-sm sm:text-base text-gray-600 font-medium mb-2">
-                Belum ada pertanyaan
-              </p>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Klik &quot;Tambah Pertanyaan&quot; untuk mulai membuat kuis.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {questions.map((question, index) => (
-                <div
-                  key={question.id}
-                  className="p-3 sm:p-6 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                    {/* Question Number Badge and Action Buttons (Mobile) */}
-                    <div className="flex items-center justify-between w-full sm:w-auto">
-                      <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-md">
-                        <span className="text-white font-bold text-sm">
-                          {index + 1}
-                        </span>
-                      </div>
-
-                      {/* Action Buttons (Mobile - visible) */}
-                      <div className="flex sm:hidden items-center gap-2">
+                  {/* ── Action Buttons ── */}
+                  <div className="px-3 sm:px-5 py-3 sm:py-4 bg-gray-50 border-t border-gray-100">
+                    {/* On mobile: stack vertically, full width each */}
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-2.5">
+                      {/* Simpan & Tambah Lagi — Add mode only */}
+                      {!editingQuestion && (
                         <button
-                          onClick={() => handleEditQuestion(question)}
-                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-200"
-                          title="Edit"
+                          type="button"
+                          onClick={handleAddQuestionAndContinue}
+                          disabled={submitting}
+                          className="btn-press w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 bg-emerald-500 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-60"
                         >
-                          <Edit className="w-4 h-4" />
+                          {saveAndContinueLoading
+                            ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
+                            : <><Plus className="w-4 h-4" /> Simpan &amp; Tambah Lagi</>
+                          }
                         </button>
+                      )}
+
+                      {/* Row: Simpan + Batal side by side on mobile */}
+                      <div className="flex gap-2 sm:contents">
+                        {/* Simpan / Perbarui */}
                         <button
-                          onClick={() => handleDeleteQuestion(question)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-                          title="Hapus"
+                          type="submit"
+                          disabled={submitting}
+                          className={`btn-press flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-white text-sm font-semibold rounded-xl shadow-sm disabled:opacity-60 ${editingQuestion
+                            ? "bg-amber-500"
+                            : "bg-gradient-to-r from-[#578FCA] to-[#27548A]"
+                            }`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {submitting && !saveAndContinueLoading
+                            ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
+                            : <><Save className="w-4 h-4" /> {editingQuestion ? "Perbarui" : "Simpan"}</>
+                          }
+                        </button>
+
+                        {/* Batal */}
+                        <button
+                          type="button"
+                          onClick={editingQuestion
+                            ? handleCancelEdit
+                            : () => { resetForm(); setShowAddQuestion(false); }}
+                          disabled={submitting}
+                          className="btn-press flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 bg-white text-gray-700 text-sm font-semibold rounded-xl border-2 border-gray-200 disabled:opacity-60"
+                        >
+                          <XIcon className="w-4 h-4" /> Batal
                         </button>
                       </div>
                     </div>
+                  </div>
+                </form>
+              </div>
+            )}
 
-                    {/* Question Content */}
-                    <div className="flex-1 min-w-0 w-full">
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">
-                        {question.question_text}
-                      </h3>
+            {/* ── Question List — Timeline Style ── */}
+            <div id="question-list">
+              {questions.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center fade-in">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Eye className="w-6 h-6 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 font-semibold text-sm mb-1">Belum ada pertanyaan</p>
+                  <p className="text-xs text-gray-400">Tambah pertanyaan pertama untuk memulai kuis.</p>
+                </div>
+              ) : (
+                <div className="fade-in space-y-3">
+                  {questions.map((question, index) => (
+                    <div
+                      key={question.id}
+                      className="relative flex items-start gap-2.5 sm:gap-3 group"
+                    >
+                      {/* Timeline connector line */}
+                      {index < questions.length - 1 && (
+                        <div className="absolute left-[15px] sm:left-[19px] top-9 sm:top-10 bottom-[-12px] w-0.5 bg-gradient-to-b from-[#578FCA]/20 to-transparent pointer-events-none" />
+                      )}
 
-                      {/* Options */}
-                      <div className="space-y-2 mb-3">
-                        {question.options.map((option, optIndex) => {
-                          const isCorrect =
-                            optIndex === question.correct_answer_index;
-                          return (
-                            <div
-                              key={optIndex}
-                              className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border-2 transition-all ${
-                                isCorrect
-                                  ? "bg-emerald-50 border-emerald-300"
-                                  : "bg-gray-50 border-gray-200"
-                              }`}
-                            >
-                              <div
-                                className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
-                                  isCorrect
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-white text-gray-600 border-2 border-gray-300"
-                                }`}
-                              >
-                                {String.fromCharCode(65 + optIndex)}
-                              </div>
-                              <span
-                                className={`flex-1 text-xs sm:text-sm ${
-                                  isCorrect
-                                    ? "text-emerald-900 font-medium"
-                                    : "text-gray-700"
-                                }`}
-                              >
-                                {option}
-                              </span>
-                              {isCorrect && (
-                                <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span className="hidden sm:inline">
-                                    Benar
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                      {/* Number node */}
+                      <div className="flex-shrink-0 z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#578FCA] to-[#27548A] flex items-center justify-center shadow-md mt-0.5">
+                        <span className="text-white font-bold text-xs">{index + 1}</span>
                       </div>
 
-                      {/* Explanation */}
-                      {question.explanation && (
-                        <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-[#578FCA] flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-[#27548A] mb-1">
-                              Penjelasan:
+                      {/* Card */}
+                      <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm group-hover:border-[#578FCA]/30 group-hover:shadow-md overflow-hidden">
+
+                        {/* Card top: question text + action buttons */}
+                        <div className="p-3 sm:p-4">
+                          <div className="flex items-start gap-2 mb-2.5">
+                            <p className="flex-1 text-sm font-semibold text-gray-900 leading-relaxed min-w-0">
+                              {question.question_text}
                             </p>
-                            <p className="text-xs sm:text-sm text-gray-700">
+                            {/* Action buttons: always visible, no hover-hide on mobile */}
+                            <div className="flex-shrink-0 flex items-center gap-1">
+                              <button
+                                onClick={() => handleEditQuestion(question)}
+                                className="btn-press p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200"
+                                title="Edit"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuestion(question)}
+                                className="btn-press p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Options — single column on mobile, 2-col on sm+ */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {question.options.map((option, optIndex) => {
+                              const isCorrect = optIndex === question.correct_answer_index;
+                              return (
+                                <div
+                                  key={optIndex}
+                                  className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs ${isCorrect
+                                    ? "bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold"
+                                    : "bg-gray-50 border border-gray-200 text-gray-600"
+                                    }`}
+                                >
+                                  <span
+                                    className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black ${isCorrect
+                                      ? "bg-emerald-500 text-white"
+                                      : "bg-white border border-gray-300 text-gray-500"
+                                      }`}
+                                  >
+                                    {String.fromCharCode(65 + optIndex)}
+                                  </span>
+                                  {/* Use break-words to avoid text overflow on narrow mobile */}
+                                  <span className="flex-1 break-words leading-snug">{option}</span>
+                                  {isCorrect && (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Explanation */}
+                        {question.explanation && (
+                          <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-50 border-t border-blue-100">
+                            <Lightbulb className="w-3.5 h-3.5 text-[#578FCA] flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-gray-700 leading-relaxed">
+                              <span className="font-bold text-[#27548A]">Penjelasan: </span>
                               {question.explanation}
                             </p>
                           </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ════════════════════════════════
+              RIGHT — Sticky Sidebar
+          ════════════════════════════════ */}
+          <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 order-first lg:order-last">
+            <div className="lg:sticky lg:top-6 space-y-3 sm:space-y-4">
+
+              {/* ── Quiz Info Card ── */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-br from-[#27548A] to-[#578FCA] px-4 py-3 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-white/80" />
+                  <h3 className="text-sm font-bold text-white">Informasi Kuis</h3>
+                </div>
+
+                {/* On mobile: 3-column horizontal stats grid; on lg+: vertical list */}
+                <div className="grid grid-cols-3 lg:grid-cols-1 divide-x lg:divide-x-0 divide-y-0 lg:divide-y divide-gray-100 border-b lg:border-b-0 border-gray-100">
+                  {/* Waktu */}
+                  <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-between p-3 lg:px-4 lg:py-2.5 gap-1 lg:gap-2 text-center lg:text-left">
+                    <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-2 text-gray-600">
+                      <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-[#578FCA]" />
+                      </div>
+                      <span className="text-[10px] lg:text-xs font-semibold leading-tight">Waktu</span>
+                    </div>
+                    <span className="text-sm lg:text-base font-extrabold text-gray-900">
+                      {timeMins}<span className="text-[10px] lg:text-xs font-semibold text-gray-400 ml-0.5">mnt</span>
+                    </span>
+                  </div>
+
+                  {/* Nilai lulus */}
+                  <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-between p-3 lg:px-4 lg:py-2.5 gap-1 lg:gap-2 text-center lg:text-left">
+                    <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-2 text-gray-600">
+                      <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-emerald-600" />
+                      </div>
+                      <span className="text-[10px] lg:text-xs font-semibold leading-tight">Lulus</span>
+                    </div>
+                    <span className="text-sm lg:text-base font-extrabold text-emerald-700">
+                      {quiz.passing_score || 70}<span className="text-[10px] lg:text-xs font-semibold text-gray-400 ml-0.5">%</span>
+                    </span>
+                  </div>
+
+                  {/* Total soal */}
+                  <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-between p-3 lg:px-4 lg:py-2.5 gap-1 lg:gap-2 text-center lg:text-left">
+                    <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-2 text-gray-600">
+                      <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                        <FileQuestion className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-purple-600" />
+                      </div>
+                      <span className="text-[10px] lg:text-xs font-semibold leading-tight">Total Soal</span>
+                    </div>
+                    <span className="text-sm lg:text-base font-extrabold text-gray-900">
+                      {questions.length}<span className="text-[10px] lg:text-xs font-semibold text-gray-400 ml-0.5">soal</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 sm:p-4 space-y-1">
+
+                  {/* ── Tampil ke Peserta ── */}
+                  <div className="pt-2.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
                         </div>
+                        <span className="text-xs font-semibold text-gray-700">Tampil ke Peserta</span>
+                      </div>
+                      {!isEditingQuestionsToShow && (
+                        <button
+                          onClick={() => setIsEditingQuestionsToShow(true)}
+                          className="btn-press p-1.5 text-[#578FCA] hover:bg-blue-50 rounded-lg border border-blue-100"
+                          title="Ubah jumlah soal"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
 
-                    {/* Action Buttons (Desktop) */}
-                    <div className="hidden sm:flex flex-shrink-0 items-center gap-2">
-                      <button
-                        onClick={() => handleEditQuestion(question)}
-                        className="p-2.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-transparent hover:border-amber-200"
-                        title="Edit"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteQuestion(question)}
-                        className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200"
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                    {isEditingQuestionsToShow ? (
+                      <div className="space-y-2 fade-in">
+                        <div className="flex items-stretch gap-2">
+                          <div className="flex-1 relative">
+                            <input
+                              type="number"
+                              value={questionsToShow}
+                              onChange={(e) => setQuestionsToShow(e.target.value)}
+                              min="1"
+                              max={questions.length}
+                              placeholder="Masukkan angka..."
+                              autoFocus
+                              className="w-full px-3 py-2.5 text-sm font-bold text-gray-900 border-2 border-amber-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white placeholder-gray-400"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium pointer-events-none">
+                              / {questions.length}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 px-0.5">
+                          Kosongkan untuk menampilkan semua soal.
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveQuestionsToShow}
+                            disabled={isSavingQuestionsToShow}
+                            className="btn-press flex-1 inline-flex items-center justify-center gap-1.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl disabled:opacity-50"
+                          >
+                            {isSavingQuestionsToShow
+                              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan</>
+                              : <><Save className="w-3.5 h-3.5" /> Simpan</>
+                            }
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsEditingQuestionsToShow(false);
+                              setQuestionsToShow(quiz.questions_to_show ? String(quiz.questions_to_show) : "");
+                            }}
+                            className="btn-press flex-1 inline-flex items-center justify-center gap-1.5 py-2 bg-white text-gray-700 text-xs font-bold rounded-xl border-2 border-gray-200 hover:border-gray-300"
+                          >
+                            <XIcon className="w-3.5 h-3.5" /> Batal
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="fade-in px-3 py-3 bg-amber-50 border-2 border-amber-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <p className="text-xl font-black text-amber-900 leading-none">
+                            {quiz.questions_to_show || "Semua"}
+                          </p>
+                          <p className="text-xs text-amber-600 font-semibold mt-0.5">
+                            {quiz.questions_to_show ? "soal per sesi" : "soal ditampilkan"}
+                          </p>
+                        </div>
+                        {quiz.questions_to_show && quiz.questions_to_show < questions.length && (
+                          <div className="text-right">
+                            <p className="text-xs text-amber-700 font-semibold">dari</p>
+                            <p className="text-base font-black text-amber-800">{questions.length}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* ── Quick Actions Card ── */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Settings2 className="w-4 h-4 text-gray-400" />
+                  <h3 className="text-sm font-bold text-gray-700">Aksi Cepat</h3>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddQuestion(!showAddQuestion);
+                    setShowEditQuestion(false);
+                    if (showAddQuestion) resetForm();
+                  }}
+                  className="btn-press w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#578FCA] to-[#27548A] text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg mb-2"
+                >
+                  {showAddQuestion || showEditQuestion
+                    ? <><XIcon className="w-4 h-4" /> Tutup Form</>
+                    : <><Plus className="w-4 h-4" /> Tambah Pertanyaan</>
+                  }
+                </button>
+                <p className="text-center text-xs text-gray-400 mt-1">
+                  {questions.length === 0
+                    ? "Belum ada soal ditambahkan"
+                    : `${questions.length} soal sudah tersedia`
+                  }
+                </p>
+              </div>
             </div>
-          )}
+          </div>
+
         </div>
       </div>
 
-      {/* Toast Container */}
       <ToastContainer />
     </div>
   );
