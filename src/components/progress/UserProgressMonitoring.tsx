@@ -646,15 +646,7 @@ export default function UserProgressMonitoring() {
                           <div className="flex items-center gap-2">
                             <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  percentage >= 50
-                                    ? "bg-gradient-to-r from-red-600 to-red-500"
-                                    : percentage >= 25
-                                      ? "bg-gradient-to-r from-orange-600 to-orange-500"
-                                      : percentage >= 10
-                                        ? "bg-gradient-to-r from-yellow-600 to-yellow-500"
-                                        : "bg-gradient-to-r from-yellow-500 to-yellow-400"
-                                }`}
+                                className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-yellow-500 to-yellow-400"
                                 style={{
                                   width: `${Math.min(percentage, 100)}%`,
                                 }}
