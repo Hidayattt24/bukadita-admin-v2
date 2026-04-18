@@ -8,7 +8,10 @@ import {
   Calendar,
   Plus,
   Edit,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { useState } from "react";
 import type { UserFormData } from "./types.ts";
 import CustomRoleSelect from "./CustomRoleSelect";
 import CustomDatePicker from "./CustomDatePicker";
@@ -36,6 +39,8 @@ export default function UserFormModal({
   onSubmit,
   onChange,
 }: UserFormModalProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   if (!isOpen) return null;
 
   return (
@@ -200,22 +205,36 @@ export default function UserFormModal({
                   <span className="text-red-500">*</span>
                 )}
               </label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => onChange("password", e.target.value)}
-                className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 border-2 rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base focus:ring-2 focus:ring-[#27548A]/20 focus:border-[#27548A] transition-all text-slate-700 ${
-                  formErrors.password
-                    ? "border-red-500 bg-red-50"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-                placeholder={
-                  isEditMode
-                    ? "Kosongkan jika tidak ingin mengubah"
-                    : "Minimal 6 karakter"
-                }
-                required={!isEditMode}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => onChange("password", e.target.value)}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 pr-10 sm:pr-12 border-2 rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base focus:ring-2 focus:ring-[#27548A]/20 focus:border-[#27548A] transition-all text-slate-700 ${
+                    formErrors.password
+                      ? "border-red-500 bg-red-50"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                  placeholder={
+                    isEditMode
+                      ? "Kosongkan jika tidak ingin mengubah"
+                      : "Minimal 6 karakter"
+                  }
+                  required={!isEditMode}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 text-slate-400 hover:text-[#27548A] transition-colors rounded-lg hover:bg-slate-100"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
+                </button>
+              </div>
               {formErrors.password && (
                 <motion.p
                   initial={{ opacity: 0, y: -10 }}
