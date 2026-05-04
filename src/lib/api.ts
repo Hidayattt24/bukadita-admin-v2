@@ -1018,6 +1018,20 @@ export interface UserDetailProgress {
   modules_progress: ModuleProgressDetail[];
 }
 
+export interface StuckUser {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_profil_url?: string | null;
+  total_quiz_failed: number;
+  last_activity: string;
+  failed_quizzes: Array<{
+    quiz_id: string;
+    quiz_title: string;
+    failure_count: number;
+  }>;
+}
+
 export interface ReadingProgressStats {
   user_id: string;
   user_name: string;
@@ -1086,7 +1100,7 @@ export const progressMonitoringAPI = {
   },
 
   getStuckUsers: async (moduleId: string) => {
-    return apiFetch<UserDetailProgress[]>(
+    return apiFetch<StuckUser[]>(
       `/api/v1/admin/progress-monitoring/stuck-users/${encodeURIComponent(moduleId)}`,
       { method: "GET" }
     );

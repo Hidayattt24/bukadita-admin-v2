@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, Users, AlertTriangle, Mail, Calendar } from "lucide-react";
+import { X, Users, AlertTriangle, Mail, User } from "lucide-react";
 import { useStuckUsersByModule } from "@/hooks/useProgressMonitoring";
+import Image from "next/image";
 
 interface StuckUsersModalProps {
   isOpen: boolean;
@@ -96,40 +97,73 @@ export default function StuckUsersModal({
                       {idx + 1}
                     </div>
 
+                    {/* User Avatar */}
+                    <div className="flex-shrink-0">
+                      {user.user_profil_url ? (
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-slate-200">
+                          <Image
+                            src={user.user_profil_url}
+                            alt={user.user_name}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                            onError={(e) => {
+                              // Fallback to default avatar if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center">
+                          <User className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                    </div>
+
                     {/* User Info */}
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-slate-900 text-base mb-1">
                         {user.user_name}
                       </h4>
                       
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 text-xs text-slate-600">
                           <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                           <span className="truncate">{user.user_email}</span>
                         </div>
                         
-                        <div className="flex items-center gap-3 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                            <span className="text-slate-600">Gagal:</span>
-                            <span className="font-bold text-red-600">
-                              {user.total_quiz_failed}x
-                            </span>
-                          </div>
-                          
-                          <span className="text-slate-300">•</span>
-                          
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="text-slate-600">
-                              {new Date(user.last_activity).toLocaleDateString("id-ID", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                          <span className="text-slate-600">Total Gagal:</span>
+                          <span className="font-bold text-red-600">
+                            {user.total_quiz_failed}x
+                          </span>
                         </div>
+
+                        {/* Failed Quizzes Detail */}
+                        {user.failed_quizzes && user.failed_quizzes.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-slate-200">
+                            <p className="text-xs font-semibold text-slate-700 mb-1.5">
+                              Kuis yang Gagal:
+                            </p>
+                            <div className="space-y-1">
+                              {user.failed_quizzes.map((quiz) => (
+                                <div
+                                  key={quiz.quiz_id}
+                                  className="flex items-center justify-between text-xs bg-red-50 rounded px-2 py-1"
+                                >
+                                  <span className="text-slate-700 truncate flex-1">
+                                    {quiz.quiz_title}
+                                  </span>
+                                  <span className="font-bold text-red-600 ml-2">
+                                    {quiz.failure_count}x
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
