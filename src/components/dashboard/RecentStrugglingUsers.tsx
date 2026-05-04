@@ -4,6 +4,7 @@ import { Users, ArrowRight, AlertTriangle, TrendingDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useUserProgressList } from "@/hooks/useProgressMonitoring";
+import { UserProgressItem } from "@/lib/api";
 
 export default function RecentStrugglingUsers() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function RecentStrugglingUsers() {
     limit: 5,
   });
 
-  const strugglingUsers = userListData?.items || [];
+  const strugglingUsers: UserProgressItem[] = userListData?.items || [];
 
   const handleViewAll = () => {
     router.push("/admin/progress?filter=struggling");

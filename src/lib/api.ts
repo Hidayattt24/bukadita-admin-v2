@@ -1092,3 +1092,61 @@ export const progressMonitoringAPI = {
     );
   },
 };
+
+// ── Admin Messages API ──────────────────────────────────────────────
+
+export interface AdminMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+  sender?: {
+    id: string;
+    full_name: string;
+    role: string;
+    profil_url: string | null;
+  };
+  receiver?: {
+    id: string;
+    full_name: string;
+    email: string;
+    profil_url: string | null;
+  };
+}
+
+export interface MessageListResponse {
+  items: AdminMessage[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const messagesAPI = {
+  send: async (data: { receiver_id: string; title: string; message: string }) => {
+    return apiFetch<AdminMessage>(`/api/v1/messages`, {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  getHistory: async (userId: string, page: number = 1, limit: number = 20) => {
+    return apiFetch<MessageListResponse>(
+      `/api/v1/messages/history/${encodeURIComponent(userId)}?page=${page}&limit=${limit}`,
+      { method: "GET" }
+    );
+  },
+
+  deleteMessage: async (messageId: string) => {
+    return apiFetch<null>(
+      `/api/v1/messages/${encodeURIComponent(messageId)}`,
+      { method: "DELETE" }
+    );
+  },
+};

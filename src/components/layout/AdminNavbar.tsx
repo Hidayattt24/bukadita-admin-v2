@@ -48,22 +48,20 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
     const load = async () => {
       try {
         const res = await modulesAPI.list();
-        if (res.ok) {
-          const dataAny = res.data as unknown as
-            | ModuleItem[]
-            | { items?: ModuleItem[]; data?: ModuleItem[] };
-          const items = Array.isArray(dataAny)
-            ? dataAny
-            : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
-          if (items && Array.isArray(items)) {
-            setModules(items);
-            try {
-              localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(items));
-            } catch {
-              /* ignore */
-            }
-            return;
+        const dataAny = res as unknown as
+          | ModuleItem[]
+          | { items?: ModuleItem[]; data?: ModuleItem[] };
+        const items = Array.isArray(dataAny)
+          ? dataAny
+          : ((dataAny.items || dataAny.data || []) as ModuleItem[]);
+        if (items && Array.isArray(items)) {
+          setModules(items);
+          try {
+            localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(items));
+          } catch {
+            /* ignore */
           }
+          return;
         }
       } catch {
         // fallback
@@ -146,12 +144,12 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
   const userManagementLinks = [
     ...(profile?.role === "superadmin"
       ? [
-          {
-            label: "Ketua Posyandu / Admin",
-            href: "/admin/kelola-pengguna?role=admin",
-            icon: <Users className="h-4 w-4 shrink-0 text-neutral-200" />,
-          },
-        ]
+        {
+          label: "Ketua Posyandu / Admin",
+          href: "/admin/kelola-pengguna?role=admin",
+          icon: <Users className="h-4 w-4 shrink-0 text-neutral-200" />,
+        },
+      ]
       : []),
     {
       label: "Kader",
@@ -174,67 +172,67 @@ export function AdminNavbar({ children }: { children: React.ReactNode }) {
               {/* User Management Section - Only for Admin/Superadmin */}
               {(profile?.role === "admin" ||
                 profile?.role === "superadmin") && (
-                <div className="space-y-1">
-                  <button
-                    onClick={() => setOpenUsers(!openUsers)}
-                    className={cn(
-                      "group/sidebar flex w-full items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-white/10 transition-colors text-white",
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 shrink-0 text-neutral-200" />
-                      <motion.span
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setOpenUsers(!openUsers)}
+                      className={cn(
+                        "group/sidebar flex w-full items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-white/10 transition-colors text-white",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 shrink-0 text-neutral-200" />
+                        <motion.span
+                          animate={{
+                            display: open ? "inline-block" : "none",
+                            opacity: open ? 1 : 0,
+                          }}
+                          className="text-sm font-medium whitespace-nowrap"
+                        >
+                          Kelola Pengguna
+                        </motion.span>
+                      </div>
+                      <motion.div
                         animate={{
-                          display: open ? "inline-block" : "none",
+                          display: open ? "block" : "none",
                           opacity: open ? 1 : 0,
+                          rotate: openUsers ? 180 : 0,
                         }}
-                        className="text-sm font-medium whitespace-nowrap"
+                        transition={{ duration: 0.2 }}
                       >
-                        Kelola Pengguna
-                      </motion.span>
-                    </div>
+                        <ChevronDown className="h-4 w-4 text-neutral-200" />
+                      </motion.div>
+                    </button>
+
+                    {/* Submenu for User Management */}
                     <motion.div
+                      initial={false}
                       animate={{
-                        display: open ? "block" : "none",
-                        opacity: open ? 1 : 0,
-                        rotate: openUsers ? 180 : 0,
+                        height: openUsers && open ? "auto" : 0,
+                        opacity: openUsers && open ? 1 : 0,
                       }}
                       transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
                     >
-                      <ChevronDown className="h-4 w-4 text-neutral-200" />
+                      <div className="flex flex-col gap-1 pl-4 pt-1">
+                        {userManagementLinks.map((link, idx) => (
+                          <Link
+                            key={idx}
+                            href={link.href}
+                            className={cn(
+                              "flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition-colors",
+                              isActive(link.href)
+                                ? "bg-white/20 text-white font-semibold"
+                                : "text-neutral-300 hover:bg-white/10 hover:text-white",
+                            )}
+                          >
+                            {link.icon}
+                            <span>{link.label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </motion.div>
-                  </button>
-
-                  {/* Submenu for User Management */}
-                  <motion.div
-                    initial={false}
-                    animate={{
-                      height: openUsers && open ? "auto" : 0,
-                      opacity: openUsers && open ? 1 : 0,
-                    }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex flex-col gap-1 pl-4 pt-1">
-                      {userManagementLinks.map((link, idx) => (
-                        <Link
-                          key={idx}
-                          href={link.href}
-                          className={cn(
-                            "flex items-center gap-2 py-2 px-3 rounded-lg text-sm transition-colors",
-                            isActive(link.href)
-                              ? "bg-white/20 text-white font-semibold"
-                              : "text-neutral-300 hover:bg-white/10 hover:text-white",
-                          )}
-                        >
-                          {link.icon}
-                          <span>{link.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </motion.div>
-                </div>
-              )}
+                  </div>
+                )}
 
               {/* Other Main Links (Kelola Modul, Progress & Attempts) */}
               {mainLinks.slice(1).map((link, idx) => (
