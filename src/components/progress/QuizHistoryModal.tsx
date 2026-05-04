@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { XCircle, Award } from "lucide-react";
+import { XCircle, Award, MessageSquare } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import QuizHistoryDetail from "@/components/progress/QuizHistoryDetail";
 import type { UserProgress } from "./types";
 import { useUserDetailProgress } from "@/hooks/useProgressMonitoring";
@@ -60,12 +61,22 @@ export default function QuizHistoryModal({ user, onClose }: QuizHistoryModalProp
                 </div>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
-            >
-              <XCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href={`/admin/pesan/${user.user_id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Kirim Pesan</span>
+              </Link>
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <XCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
           </div>
         </div>
 

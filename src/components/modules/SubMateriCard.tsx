@@ -65,7 +65,7 @@ export default function SubMateriCard({
       setIsDeleting(true);
       try {
         await deleteMaterialMutation.mutateAsync(material.id);
-        toast.delete(
+        toast.removed(
           "Berhasil Dihapus!",
           `Sub-materi <strong class="text-red-600">"${material.title}"</strong> telah dihapus`,
         );

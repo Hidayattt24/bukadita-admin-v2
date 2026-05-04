@@ -270,7 +270,7 @@ export default function ModernMaterialsPage({
 
     try {
       await deleteMaterialMutation.mutateAsync(materialToDelete.id);
-      toast.delete(
+      toast.removed(
         "Berhasil Dihapus!",
         `Sub-materi <strong class="text-red-600">"${materialToDelete.title}"</strong> telah dihapus`,
       );

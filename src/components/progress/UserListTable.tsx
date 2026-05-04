@@ -1,8 +1,9 @@
-import { BookOpen, Award, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { BookOpen, Award, Search, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
 import { CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { UserProgress } from "./types";
 
 interface UserListTableProps {
@@ -299,6 +300,14 @@ export default function UserListTable({
                       <Award className="w-4 h-4" />
                       <span className="hidden lg:inline">Kuis</span>
                     </button>
+                    <Link
+                      href={`/admin/pesan/${user.user_id}`}
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-semibold text-sm"
+                      title="Kirim Pesan"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span className="hidden lg:inline">Pesan</span>
+                    </Link>
                   </div>
                 </td>
               </tr>

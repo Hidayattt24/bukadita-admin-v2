@@ -39,7 +39,8 @@ export function useToast() {
       showToast("error", title, message, duration),
     warning: (title: string, message: string, duration?: number) =>
       showToast("warning", title, message, duration),
-    delete: (title: string, message: string, duration?: number) =>
+    /** Jangan namai `delete` — bentrok dengan operator `delete` / bug Turbopack ("is not a function"). */
+    removed: (title: string, message: string, duration?: number) =>
       showToast("delete", title, message, duration),
     create: (title: string, message: string, duration?: number) =>
       showToast("create", title, message, duration),
