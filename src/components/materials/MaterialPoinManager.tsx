@@ -946,7 +946,7 @@ export default function MaterialPoinManager({
             setMaterial(materialRes.data);
             setPoins(materialRes.data.poin_details || []);
           }
-          toast.delete(
+          toast.removed(
             "Berhasil Dihapus!",
             `Poin <strong class="text-red-600">"${poin.title}"</strong> telah dihapus`
           );

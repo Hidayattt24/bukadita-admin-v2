@@ -256,7 +256,7 @@ export default function UserManagement() {
 
       setIsLoadingAction(false);
 
-      toast.delete(
+      toast.removed(
         "Berhasil Dihapus!",
         `Pengguna <strong class="text-red-600">"${selectedUser.full_name}"</strong> telah dihapus dari sistem`
       );

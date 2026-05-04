@@ -91,18 +91,28 @@ export async function apiFetch<T = unknown>(
             } catch {}
             
             // Show notification
-            import("sweetalert2").then((Swal) => {
-              Swal.default.fire({
-                icon: "warning",
-                title: "Sesi Berakhir",
-                text: "Sesi login Anda telah berakhir. Silakan login kembali.",
-                confirmButtonText: "Login",
-                allowOutsideClick: false,
-              }).then(() => {
-                // Redirect to login
+            import("sweetalert2")
+              .then((mod) => {
+                const Swal = mod.default ?? mod;
+                const fire = (Swal as { fire?: (opts: object) => Promise<unknown> })
+                  ?.fire;
+                if (typeof fire !== "function") {
+                  window.location.href = "/login";
+                  return;
+                }
+                void fire({
+                  icon: "warning",
+                  title: "Sesi Berakhir",
+                  text: "Sesi login Anda telah berakhir. Silakan login kembali.",
+                  confirmButtonText: "Login",
+                  allowOutsideClick: false,
+                }).then(() => {
+                  window.location.href = "/login";
+                });
+              })
+              .catch(() => {
                 window.location.href = "/login";
               });
-            });
           }
         }
       }

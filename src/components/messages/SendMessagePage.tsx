@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { messagesAPI, progressMonitoringAPI } from "@/lib/api";
+import { messagesAPI, progressMonitoringAPI, removeAdminMessage } from "@/lib/api";
 import type { AdminMessage } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
@@ -120,15 +120,18 @@ export default function SendMessagePage({ userId }: SendMessagePageProps) {
 
   const deleteMutation = useMutation({
     mutationFn: async (messageId: string) => {
-      const res = await messagesAPI.deleteMessage(messageId);
+      const res = await removeAdminMessage(messageId);
       if (!res.ok) throw new Error(res.error);
       return res.data;
     },
     onSuccess: () => {
       setDeleteTargetId(null);
-      toast.delete("Berhasil Dihapus!", "Pesan telah dihapus dari riwayat dan notifikasi pengguna");
+      toast.removed(
+        "Berhasil Dihapus!",
+        "Pesan telah dihapus dari riwayat dan notifikasi pengguna",
+      );
       queryClient.invalidateQueries({ queryKey: ["message-history", userId] });
-      refetchHistory();
+      void refetchHistory();
     },
     onError: (error: Error) => {
       setDeleteTargetId(null);
@@ -373,10 +376,10 @@ export default function SendMessagePage({ userId }: SendMessagePageProps) {
                       )}
                       <button
                         onClick={() => setDeleteTargetId(msg.id)}
-                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1.5 text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
                         title="Hapus pesan"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5"/>
                       </button>
                     </div>
                   </div>

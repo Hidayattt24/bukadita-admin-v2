@@ -79,7 +79,7 @@ export default function ModernMaterialPoinPage({
     try {
       const response = await poinsAPI.remove(poinToDelete.id);
       if (response.ok) {
-        toast.delete(
+        toast.removed(
           "Berhasil Dihapus!",
           `Poin <strong class="text-red-600">"${poinToDelete.title}"</strong> telah dihapus`,
         );

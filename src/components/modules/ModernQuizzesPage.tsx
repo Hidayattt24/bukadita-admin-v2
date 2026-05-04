@@ -146,7 +146,7 @@ export default function ModernQuizzesPage({
 
     try {
       await deleteQuizMutation.mutateAsync(quizToDelete.id);
-      toast.delete(
+      toast.removed(
         "Berhasil Dihapus!",
         `Kuis <strong class="text-red-600">"${quizToDelete.title}"</strong> telah dihapus`,
       );

@@ -246,7 +246,7 @@ export default function ModuleManagement() {
       await deleteModuleMutation.mutateAsync(moduleToDelete.id);
 
       setIsLoadingAction(false);
-      toast.delete(
+      toast.removed(
         "Berhasil Dihapus!",
         `Modul <strong class="text-red-600">"${moduleToDelete.title}"</strong> telah dihapus dari sistem`,
       );

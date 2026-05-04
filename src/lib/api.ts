@@ -1142,6 +1142,14 @@ export interface MessageListResponse {
   };
 }
 
+/** Hapus pesan (admin). Dipisah dari objek messagesAPI — Turbopack bisa salah-bundle akses `.deleteMessage`. */
+export async function removeAdminMessage(messageId: string) {
+  return apiFetch<null>(
+    `/api/v1/messages/${encodeURIComponent(messageId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export const messagesAPI = {
   send: async (data: { receiver_id: string; title: string; message: string }) => {
     return apiFetch<AdminMessage>(`/api/v1/messages`, {
@@ -1157,10 +1165,5 @@ export const messagesAPI = {
     );
   },
 
-  deleteMessage: async (messageId: string) => {
-    return apiFetch<null>(
-      `/api/v1/messages/${encodeURIComponent(messageId)}`,
-      { method: "DELETE" }
-    );
-  },
+  removeMessage: removeAdminMessage,
 };
