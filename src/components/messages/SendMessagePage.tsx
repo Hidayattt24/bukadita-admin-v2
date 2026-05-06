@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Send,
@@ -374,15 +374,34 @@ export default function SendMessagePage({ userId }: SendMessagePageProps) {
                           Belum dibaca
                         </span>
                       )}
-                      <button
-                        onClick={() => setDeleteTargetId(msg.id)}
-                        className="p-1.5 text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
-                        title="Hapus pesan"
-                      >
-                        <Trash2 className="w-3.5 h-3.5"/>
-                      </button>
+                      {msg.can_delete ? (
+                        <button
+                          onClick={() => setDeleteTargetId(msg.id)}
+                          className="p-1.5 text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors"
+                          title="Hapus pesan"
+                        >
+                          <Trash2 className="w-3.5 h-3.5"/>
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="p-1.5 text-gray-300 bg-gray-100 rounded-md cursor-not-allowed"
+                          title="Hanya pengirim atau superadmin yang dapat menghapus"
+                        >
+                          <Trash2 className="w-3.5 h-3.5"/>
+                        </button>
+                      )}
                     </div>
                   </div>
+                  {msg.sender && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Dikirim oleh{" "}
+                      <span className="font-medium text-gray-700">
+                        {msg.sender.full_name}
+                      </span>{" "}
+                      ({msg.sender.role})
+                    </div>
+                  )}
                   <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
                     <Clock className="w-3 h-3" />
                     {new Date(msg.created_at).toLocaleDateString("id-ID", {
