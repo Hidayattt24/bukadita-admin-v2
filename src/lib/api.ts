@@ -1118,6 +1118,7 @@ export interface AdminMessage {
   is_read: boolean;
   read_at: string | null;
   created_at: string;
+  can_delete?: boolean;
   sender?: {
     id: string;
     full_name: string;
